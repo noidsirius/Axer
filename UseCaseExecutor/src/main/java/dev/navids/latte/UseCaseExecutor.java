@@ -9,6 +9,8 @@ import androidx.annotation.RequiresApi;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -35,7 +37,7 @@ public class UseCaseExecutor{
     }
 
     private UseCase currentUseCase = null;
-
+    private  StepCommand customStep = null;
     public void setStepExecutor(StepExecutor stepExecutor) {
         this.stepExecutor = stepExecutor;
         Log.i(LatteService.TAG, "StepExecutor is set to " + this.stepExecutor);
@@ -74,6 +76,21 @@ public class UseCaseExecutor{
                 case IDLE:
                     break;
                 case CUSTOM_STEP:
+                    if(customStep == null){
+                        mode = ExecutorState.IDLE;
+                    }
+                    else{
+                        if(customStep.isDone()){
+                            Log.i(LatteService.TAG, "The custom step is done!");
+                            customStep = null;
+                            mode = ExecutorState.IDLE;
+                        }
+                        else {
+                            if (customStep.isNotStarted())
+                                customStep.setState(StepCommand.StepState.RUNNING);
+                            stepExecutor.executeStep(customStep);
+                        }
+                    }
                     break;
                 case RUNNING:
                     Log.i(LatteService.TAG, "Current UseCase" + currentUseCase);
@@ -131,6 +148,27 @@ public class UseCaseExecutor{
         Log.i(LatteService.TAG, "UseCaseExecutor is stopped!");
     }
 
+    public synchronized boolean executeCustomStep(String stepJSONString){
+        stop();
+        JSONParser jsonParser = new JSONParser();
+        try {
+            JSONObject stepJSON = (JSONObject) jsonParser.parse(stepJSONString);
+            customStep = createStepFromJson(stepJSON);
+            Log.i(LatteService.TAG, "CustomStep is created: " + customStep);
+            if(customStep instanceof SleepStep) {
+                Log.e(LatteService.TAG, "CustomStep cannot be SleepStep.");
+                customStep = null;
+                return false;
+            }
+            mode = ExecutorState.CUSTOM_STEP;
+            return true;
+        } catch (ParseException e) {
+            e.printStackTrace();
+            Log.e(LatteService.TAG, "CustomStep cannot be created " + e.getLocalizedMessage());
+        }
+        return false;
+    }
+
     public synchronized void setDelay(long delay){
         this.delay = delay;
         Log.i(LatteService.TAG, "Delay has been set to " + this.delay);
@@ -153,22 +191,33 @@ public class UseCaseExecutor{
                 Log.i(LatteService.TAG, "Json Command is null!");
                 continue;
             }
-            String action = (String) stepJson.getOrDefault("action", "UNKNOWN");
-            StepCommand stepCommand = null;
-            if(SleepStep.isSleepAction(action))
-                stepCommand = new SleepStep(stepJson);
-            else if(TypeStep.isTypeStep(action))
-                stepCommand = new TypeStep(stepJson);
-            else if(ClickStep.isClickStep(action))
-                stepCommand = new ClickStep(stepJson);
-            else {
-                Log.e(LatteService.TAG, "Json Unknown Action" + action + " " + stepJson);
+            StepCommand stepCommand = createStepFromJson(stepJson);
+            if(stepCommand == null){
+                Log.e(LatteService.TAG, "Json Unknown Step " + stepJson);
                 continue;
             }
             steps.add(stepCommand);
         }
         currentUseCase = new UseCase(steps);
         Log.i(LatteService.TAG, String.format("New UseCase is initalized with %d steps", currentUseCase.getStepCount()));
+    }
+
+    public static StepCommand createStepFromJson(JSONObject stepJson){
+        try {
+            String action = (String) stepJson.getOrDefault("action", "UNKNOWN");
+            StepCommand stepCommand = null;
+            if (SleepStep.isSleepAction(action))
+                stepCommand = new SleepStep(stepJson);
+            else if (TypeStep.isTypeStep(action))
+                stepCommand = new TypeStep(stepJson);
+            else if (ClickStep.isClickStep(action))
+                stepCommand = new ClickStep(stepJson);
+            else
+                stepCommand = null;
+            return stepCommand;
+        } catch (Exception e) {
+        }
+        return null;
     }
 
 

@@ -59,6 +59,8 @@ public abstract class StepCommand {
         return state.equals(StepState.COMPLETED) || state.equals(StepState.FAILED) || state.equals(StepState.COMPLETED_BY_HELP);
     }
 
+
+
     public boolean isNotStarted(){
         return state.equals(StepState.NOT_STARTED);
     }

@@ -27,6 +27,9 @@ public class CommandReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         String command = intent.getStringExtra(ACTION_COMMAND_CODE);
         String extra = intent.getStringExtra(ACTION_COMMAND_EXTRA);
+        // De-sanitizing extra value ["\s\,]
+        extra = extra.replace("__^__", "\"").replace("__^^__", " ").replace("__^^^__", ",");
+
         if (command == null || extra == null) {
             Log.e(LatteService.TAG, "The command or extra message is null!");
             return;
@@ -62,6 +65,9 @@ public class CommandReceiver extends BroadcastReceiver {
                 break;
             case "stop":
                 UseCaseExecutor.v().stop();
+                break;
+            case "do_step":
+                UseCaseExecutor.v().executeCustomStep(extra);
                 break;
             case "set_delay":
                 long delay = Long.valueOf(extra);
