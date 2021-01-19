@@ -74,9 +74,16 @@ public class ConceivedWidgetInfo extends WidgetInfo {
         return isSimilar;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
     public String getXpath() {
         return getAttr("xpath");
+    }
+
+    @Override
+    public String toString() {
+        return "ConceivedWidgetInfo{"
+                + "LocBy= "+locatedBy+ ", "
+                + super.toString()
+                +"}";
     }
 }

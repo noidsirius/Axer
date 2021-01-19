@@ -37,18 +37,25 @@ public abstract class StepCommand {
                 startTime = endTime = -1;
                 break;
             case RUNNING:
-                startTime = System.currentTimeMillis();
-                endTime = -1;
+                if(startTime == -1) {
+                    startTime = System.currentTimeMillis();
+                    endTime = -1;
+                }
                 break;
             case COMPLETED:
             case FAILED:
             case COMPLETED_BY_HELP:
-                endTime = System.currentTimeMillis();
+                if(startTime != -1 && endTime == -1)
+                    endTime = System.currentTimeMillis();
                 break;
         }
     }
 
-    public boolean isFinished(){
+    public long getTotalTime(){
+        return endTime - startTime;
+    }
+
+    public boolean isDone(){
         return state.equals(StepState.COMPLETED) || state.equals(StepState.FAILED) || state.equals(StepState.COMPLETED_BY_HELP);
     }
 

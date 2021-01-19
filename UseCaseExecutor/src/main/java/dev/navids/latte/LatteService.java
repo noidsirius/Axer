@@ -50,7 +50,6 @@ public class LatteService extends AccessibilityService {
         instance = this;
         connected = true;
         addStepExecutor("regular", new RegularStepExecutor());
-        UseCaseExecutor.v().run();
     }
 
     @Override

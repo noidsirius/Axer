@@ -2,20 +2,14 @@ package dev.navids.latte;
 
 
 import android.os.Build;
-import android.view.accessibility.AccessibilityNodeInfo;
 
 import androidx.annotation.RequiresApi;
 
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 @RequiresApi(api = Build.VERSION_CODES.N)
 public abstract class WidgetInfo {
@@ -71,4 +65,16 @@ public abstract class WidgetInfo {
         this.attributes.put("xpath", xpath);
     }
     public abstract String getXpath();
+
+    @Override
+    public String toString() {
+        String xpath = "";
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+//            xpath = !getXpath().equals("")? " xpath: " + getXpath() : ""; // TODO: it's too long
+        String id = hasAttr("resourceId") ? " ID= "+getAttr("resourceId")+", ": "";
+        String cd = hasAttr("contentDescription") ? " CD= "+getAttr("contentDescription")+", ": "";
+        String tx = hasAttr("text") ? " TX= "+getAttr("text")+", ": "";
+        String cl = hasAttr("class") ? " CL= "+getAttr("class")+", ": "";
+        return id + cd + tx + cl + xpath;
+    }
 }

@@ -51,6 +51,12 @@ public class CommandReceiver extends BroadcastReceiver {
                     e.printStackTrace();
                 }
                 break;
+            case "enable":
+                UseCaseExecutor.v().enable();
+                break;
+            case "disable":
+                UseCaseExecutor.v().disable();
+                break;
             case "start":
                 UseCaseExecutor.v().start();
                 break;

@@ -9,8 +9,13 @@ import org.json.simple.JSONObject;
 @RequiresApi(api = Build.VERSION_CODES.N)
 public abstract class LocatableStep extends StepCommand {
     private ConceivedWidgetInfo targetWidget;
+
+    public int getNumberOfLocatingAttempts() {
+        return numberOfLocatingAttempts;
+    }
+
     int numberOfLocatingAttempts = 0;
-    public final static int MAX_LOCATING_ATTEMPT = 4;
+    public final static int MAX_LOCATING_ATTEMPT = 4; // TODO: configurable
 
     public void increaseLocatingAttempts(){
         numberOfLocatingAttempts += 1;
@@ -21,7 +26,7 @@ public abstract class LocatableStep extends StepCommand {
     }
 
     int numberOfActingAttempts = 0;
-    public final static int MAX_ACTING_ATTEMPT = 4;
+    public final static int MAX_ACTING_ATTEMPT = 4; // TODO: configurable
 
     public void increaseActingAttempts(){
         numberOfActingAttempts += 1;

@@ -16,7 +16,6 @@ if [ "$PKG" = "com.vimeo.android.videoapp" ]; then
 	adb shell am force-stop $PKG
 	adb shell monkey -p $PKG 1
 fi
-./send-command.sh set_delay 2000
-sleep 3
+./send-command.sh set_delay 1000
 ./send-command.sh init /data/local/tmp/test_guideline.json
-sleep 1
+./send-command.sh enable

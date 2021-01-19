@@ -102,4 +102,11 @@ public class ActualWidgetInfo extends WidgetInfo {
             return other.isSimilar(this, myMaskedAttributes);
         return super.isSimilar(other, myMaskedAttributes);
     }
+
+    @Override
+    public String toString() {
+        return "ActualWidgetInfo{"
+                + super.toString()
+                + "}";
+    }
 }
