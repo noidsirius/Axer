@@ -1,0 +1,62 @@
+package dev.navids.latte;
+
+import android.os.Build;
+import android.util.Log;
+
+import androidx.annotation.RequiresApi;
+
+import org.json.simple.JSONObject;
+
+@RequiresApi(api = Build.VERSION_CODES.N)
+public abstract class StepCommand {
+    enum StepState{
+        NOT_STARTED,
+        RUNNING,
+        COMPLETED,
+        FAILED,
+        COMPLETED_BY_HELP
+    }
+    private StepState state = StepState.NOT_STARTED;
+    private long startTime = -1;
+    private long endTime = -1;
+    private boolean executeByA11yAssistantService = true; // AKA skip
+
+    StepCommand(JSONObject stepJson){
+        boolean skip = (boolean) stepJson.getOrDefault("skip", false);
+        this.executeByA11yAssistantService = !skip;
+    }
+
+    public StepState getState() {
+        return state;
+    }
+
+    public void setState(StepState state) {
+        this.state = state;
+        switch (state){
+            case NOT_STARTED:
+                startTime = endTime = -1;
+                break;
+            case RUNNING:
+                startTime = System.currentTimeMillis();
+                endTime = -1;
+                break;
+            case COMPLETED:
+            case FAILED:
+            case COMPLETED_BY_HELP:
+                endTime = System.currentTimeMillis();
+                break;
+        }
+    }
+
+    public boolean isFinished(){
+        return state.equals(StepState.COMPLETED) || state.equals(StepState.FAILED) || state.equals(StepState.COMPLETED_BY_HELP);
+    }
+
+    public boolean isNotStarted(){
+        return state.equals(StepState.NOT_STARTED);
+    }
+
+    public boolean shouldExecuteByA11yAssistantService() {
+        return executeByA11yAssistantService;
+    }
+}
