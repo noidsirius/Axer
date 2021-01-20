@@ -48,7 +48,7 @@ public class Utils {
         for(AccessibilityNodeInfo node : getAllA11yNodeInfo(false)) {
             if(!node.isVisibleToUser())
                 continue;
-            ActualWidgetInfo currentNodeInfo = ActualWidgetInfo.createFromA11yNode(node);
+            ActualWidgetInfo currentNodeInfo = ActualWidgetInfo.createFromA11yNode(node); // TODO: Use Cache
             if (target.isSimilar(currentNodeInfo, myMaskedAttributes)) {
                 if(node.isVisibleToUser())
                     result.add(node);

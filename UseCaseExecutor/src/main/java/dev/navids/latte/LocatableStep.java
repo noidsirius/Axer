@@ -26,7 +26,7 @@ public abstract class LocatableStep extends StepCommand {
     }
 
     int numberOfActingAttempts = 0;
-    public final static int MAX_ACTING_ATTEMPT = 4; // TODO: configurable
+    public final static int MAX_ACTING_ATTEMPT = 50; // TODO: configurable
 
     public void increaseActingAttempts(){
         numberOfActingAttempts += 1;

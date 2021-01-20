@@ -77,13 +77,13 @@ public class UseCase {
                 number_of_actions = locatableStep.getNumberOfLocatingAttempts();
             }
 
-            if(step.getState() != StepCommand.StepState.COMPLETED && firstProbelmaticCommand < 0)
+            if(step.getState() != StepState.COMPLETED && firstProbelmaticCommand < 0)
                 firstProbelmaticCommand = i+1;
-            if(step.getState() == StepCommand.StepState.COMPLETED)
+            if(step.getState() == StepState.COMPLETED)
                 completeCount++;
-            else if(step.getState() == StepCommand.StepState.COMPLETED_BY_HELP)
+            else if(step.getState() == StepState.COMPLETED_BY_HELP)
                 unlocatedCount++;
-            else if(step.getState() == StepCommand.StepState.FAILED)
+            else if(step.getState() == StepState.FAILED)
                 failedCount++;
             String message = String.format(Locale.getDefault(),"   Step[%d] $ State: %s $ #Events: %d $ Time: %d",
                     i + 1, step.getState().name(),

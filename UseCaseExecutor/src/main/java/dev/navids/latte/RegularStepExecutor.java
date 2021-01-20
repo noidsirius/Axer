@@ -14,7 +14,7 @@ public class RegularStepExecutor implements StepExecutor {
     @Override
     public boolean executeStep(StepCommand step) {
         Log.i(LatteService.TAG, "Executing Step " + step);
-        if(step.getState() != StepCommand.StepState.RUNNING)
+        if(step.getState() != StepState.RUNNING)
             return false;
         if(step instanceof LocatableStep){
             LocatableStep locatableStep = (LocatableStep) step;
@@ -30,7 +30,7 @@ public class RegularStepExecutor implements StepExecutor {
                     }
                 }
                 if(locatableStep.reachedMaxLocatingAttempts()) {
-                    locatableStep.setState(StepCommand.StepState.FAILED);
+                    locatableStep.setState(StepState.FAILED);
                     return false;
                 }
                 return true;
@@ -45,14 +45,14 @@ public class RegularStepExecutor implements StepExecutor {
                     return executeType((TypeStep) locatableStep, node);
                 else {
                     Log.e(LatteService.TAG, "This locatable step is unrecognizable " + locatableStep);
-                    locatableStep.setState(StepCommand.StepState.FAILED);
+                    locatableStep.setState(StepState.FAILED);
                     return false;
                 }
             }
         }
         else {
             Log.e(LatteService.TAG, "This step is unrecognizable " + step);
-            step.setState(StepCommand.StepState.FAILED);
+            step.setState(StepState.FAILED);
             return false;
         }
     }
@@ -63,11 +63,11 @@ public class RegularStepExecutor implements StepExecutor {
             clickableNode = clickableNode.getParent();
         if (clickableNode == null || !clickableNode.isClickable()) {
             Log.e(LatteService.TAG, "The widget is not clickable.");
-            clickStep.setState(StepCommand.StepState.FAILED);
+            clickStep.setState(StepState.FAILED);
             return false;
         }
         clickableNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-        clickStep.setState(StepCommand.StepState.COMPLETED);
+        clickStep.setState(StepState.COMPLETED);
         return true;
     }
 
@@ -75,7 +75,7 @@ public class RegularStepExecutor implements StepExecutor {
         Bundle arguments = new Bundle();
         arguments.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, typeStep.getText());
         boolean result = node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments);
-        typeStep.setState(result ? StepCommand.StepState.COMPLETED : StepCommand.StepState.FAILED);
+        typeStep.setState(result ? StepState.COMPLETED : StepState.FAILED);
         return result;
     }
 }

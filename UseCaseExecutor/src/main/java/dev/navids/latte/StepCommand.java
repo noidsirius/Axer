@@ -1,7 +1,6 @@
 package dev.navids.latte;
 
 import android.os.Build;
-import android.util.Log;
 
 import androidx.annotation.RequiresApi;
 
@@ -9,13 +8,6 @@ import org.json.simple.JSONObject;
 
 @RequiresApi(api = Build.VERSION_CODES.N)
 public abstract class StepCommand {
-    enum StepState{
-        NOT_STARTED,
-        RUNNING,
-        COMPLETED,
-        FAILED,
-        COMPLETED_BY_HELP
-    }
     private StepState state = StepState.NOT_STARTED;
     private long startTime = -1;
     private long endTime = -1;

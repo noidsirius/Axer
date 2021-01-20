@@ -27,7 +27,9 @@ public class UseCaseExecutor{
         NEXT,
         CUSTOM_STEP
     }
-    private UseCaseExecutor(){}
+    private UseCaseExecutor(){
+        stepExecutor = LatteService.getInstance().getStepExecutor("regular");
+    }
     private static UseCaseExecutor instance = null;
     public static UseCaseExecutor v(){
         if(instance == null){
@@ -43,7 +45,7 @@ public class UseCaseExecutor{
         Log.i(LatteService.TAG, "StepExecutor is set to " + this.stepExecutor);
     }
 
-    private StepExecutor stepExecutor = new RegularStepExecutor();
+    private StepExecutor stepExecutor = null;
 
     public final static String result_file_name = "test_result.txt";
     private boolean sleepLock = false;
@@ -87,7 +89,7 @@ public class UseCaseExecutor{
                         }
                         else {
                             if (customStep.isNotStarted())
-                                customStep.setState(StepCommand.StepState.RUNNING);
+                                customStep.setState(StepState.RUNNING);
                             stepExecutor.executeStep(customStep);
                         }
                     }
@@ -103,14 +105,14 @@ public class UseCaseExecutor{
                         Log.i(LatteService.TAG, "Current Step: " + currentStep);
                         if(currentStep != null && !currentStep.isDone()) {
                             if (currentStep.isNotStarted())
-                                currentStep.setState(StepCommand.StepState.RUNNING);
+                                currentStep.setState(StepState.RUNNING);
                             if (currentStep instanceof SleepStep) {
                                 SleepStep sleepStep = (SleepStep) currentStep;
                                 sleepLock = true;
                                 Log.i(LatteService.TAG, "Sleep Command " + sleepStep.getSleepTime());
                                 new Handler().postDelayed(() -> {
                                     sleepLock = false;
-                                    sleepStep.setState(StepCommand.StepState.COMPLETED);
+                                    sleepStep.setState(StepState.COMPLETED);
                                 }, sleepStep.getSleepTime() * 1000);
                             }
                             else {
