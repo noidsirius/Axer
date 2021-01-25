@@ -65,7 +65,7 @@ public class LatteService extends AccessibilityService {
             Log.i(TAG, "Incomming event is null!");
             return;
         }
-        Log.i(TAG, "   Type : " +AccessibilityEvent.eventTypeToString(event.getEventType()));
+//        Log.i(TAG, "   Type : " +AccessibilityEvent.eventTypeToString(event.getEventType()));
     }
 
     @Override

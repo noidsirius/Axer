@@ -5,8 +5,23 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
+import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
 
 import androidx.annotation.RequiresApi;
+
+import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckPreset;
+import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckResult;
+import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckResultUtils;
+import com.google.android.apps.common.testing.accessibility.framework.AccessibilityHierarchyCheck;
+import com.google.android.apps.common.testing.accessibility.framework.AccessibilityHierarchyCheckResult;
+import com.google.android.apps.common.testing.accessibility.framework.Parameters;
+import com.google.android.apps.common.testing.accessibility.framework.checks.ImageContrastCheck;
+import com.google.android.apps.common.testing.accessibility.framework.checks.SpeakableTextPresentCheck;
+import com.google.android.apps.common.testing.accessibility.framework.checks.TextContrastCheck;
+import com.google.android.apps.common.testing.accessibility.framework.checks.TouchTargetSizeCheck;
+import com.google.android.apps.common.testing.accessibility.framework.uielement.AccessibilityHierarchyAndroid;
+import com.google.common.collect.ImmutableSet;
 
 import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
@@ -16,6 +31,13 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 @RequiresApi(api = Build.VERSION_CODES.N)
 public class CommandReceiver extends BroadcastReceiver {
@@ -69,6 +91,42 @@ public class CommandReceiver extends BroadcastReceiver {
             case "do_step":
                 UseCaseExecutor.v().executeCustomStep(extra);
                 break;
+            case "report_a11y_issues":
+            {
+//                Parameters
+                Context context2 = LatteService.getInstance().getApplicationContext();
+                Set<AccessibilityHierarchyCheck> contrastChecks = new HashSet<>(Arrays.asList(
+                        AccessibilityCheckPreset.getHierarchyCheckForClass(TextContrastCheck.class),
+                        AccessibilityCheckPreset.getHierarchyCheckForClass(ImageContrastCheck.class)
+                ));
+                Set<AccessibilityHierarchyCheck> touchTargetChecks = new HashSet<>(Arrays.asList(
+                        AccessibilityCheckPreset.getHierarchyCheckForClass(TouchTargetSizeCheck.class)
+                ));
+                Set<AccessibilityHierarchyCheck> checks =
+                        AccessibilityCheckPreset.getAccessibilityHierarchyChecksForPreset(
+                                AccessibilityCheckPreset.LATEST);
+                if(extra.equals("contrast"))
+                    checks = contrastChecks;
+                else if(extra.equals("touch"))
+                    checks = touchTargetChecks;
+                AccessibilityNodeInfo rootNode = LatteService.getInstance().getRootInActiveWindow();
+                AccessibilityHierarchyAndroid hierarchy = AccessibilityHierarchyAndroid.newBuilder(rootNode, context2).build();
+                List<AccessibilityHierarchyCheckResult> results = new ArrayList<>();
+                for (AccessibilityHierarchyCheck check : checks) {
+                    Parameters params = new Parameters();
+                    params.putCustomTouchTargetSize(39);
+                    results.addAll(check.runCheckOnHierarchy(hierarchy, null, params));
+                }
+                List<AccessibilityHierarchyCheckResult> returnedResult = AccessibilityCheckResultUtils.getResultsForType(
+                        results, AccessibilityCheckResult.AccessibilityCheckResultType.ERROR);
+                returnedResult.addAll(AccessibilityCheckResultUtils.getResultsForType(
+                        results, AccessibilityCheckResult.AccessibilityCheckResultType.WARNING));
+                Log.i(LatteService.TAG, "Issue Size: " + returnedResult.size() + " " + results.size());
+//                for(AccessibilityHierarchyCheckResult res : results){
+//                    Log.i(LatteService.TAG, "    " + res.getType().name() + " " + res.getShortMessage(Locale.getDefault()) + " " + res.getElement().getClassName());
+//                }
+            }
+            break;
             case "set_delay":
                 long delay = Long.valueOf(extra);
                 UseCaseExecutor.v().setDelay(delay);
