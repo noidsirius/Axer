@@ -3,12 +3,9 @@ package dev.navids.latte;
 import android.os.Build;
 import android.view.accessibility.AccessibilityNodeInfo;
 
-import androidx.annotation.RequiresApi;
-
 import java.util.ArrayList;
 import java.util.List;
 
-@RequiresApi(api = Build.VERSION_CODES.N)
 public class ActualWidgetInfo extends WidgetInfo {
     AccessibilityNodeInfo node;
     public ActualWidgetInfo(String resourceId, String contentDescription, String text, String clsName, AccessibilityNodeInfo node) {
@@ -38,13 +35,10 @@ public class ActualWidgetInfo extends WidgetInfo {
             }
         }
         ActualWidgetInfo widgetInfo = new ActualWidgetInfo(resourceId, contentDescription, text, clsName, node);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            widgetInfo.setXpath(widgetInfo.getXpath());
-        }
+        widgetInfo.setXpath(widgetInfo.getXpath());
         return widgetInfo;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public String getXpath() {
         if(this.hasAttr("xpath"))

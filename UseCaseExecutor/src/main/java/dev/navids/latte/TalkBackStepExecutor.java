@@ -1,4 +1,4 @@
-package dev.navids.latte.app;
+package dev.navids.latte;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
@@ -12,14 +12,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
-import dev.navids.latte.ClickStep;
-import dev.navids.latte.LocatableStep;
-import dev.navids.latte.StepCommand;
-import dev.navids.latte.StepExecutor;
-import dev.navids.latte.StepState;
-import dev.navids.latte.TypeStep;
-import dev.navids.latte.Utils;
 
 public class TalkBackStepExecutor implements StepExecutor {
     private AccessibilityNodeInfo focusedNode;
@@ -37,13 +29,13 @@ public class TalkBackStepExecutor implements StepExecutor {
     }
     @Override
     public boolean executeStep(StepCommand step) {
-        Log.i(MyLatteService.TAG, "Executing Step " + step);
+        Log.i(LatteService.TAG, "Executing Step " + step);
         if(step.getState() != StepState.RUNNING)
             return false;
         if(!step.shouldExecuteByA11yAssistantService())
-            return MyLatteService.getInstance().getStepExecutor("regular").executeStep(step);
+            return LatteService.getInstance().getStepExecutor("regular").executeStep(step);
         if(pendingActions.size() > 0){
-            Log.i(MyLatteService.TAG, String.format("Do nothing since we're another action is pending! (Size:%d)", pendingActions.size()));
+            Log.i(LatteService.TAG, String.format("Do nothing since we're another action is pending! (Size:%d)", pendingActions.size()));
             return false;
         }
         if(step instanceof LocatableStep) {
@@ -55,26 +47,26 @@ public class TalkBackStepExecutor implements StepExecutor {
             }
             waitAttemptsForFocusChange = 0;
             if(checkStoppingCriteria(step, locatableStep)){
-                Log.i(MyLatteService.TAG, "Reached Stopping Criteria!");
+                Log.i(LatteService.TAG, "Reached Stopping Criteria!");
                 return executeByRegularExecutor(step, locatableStep);
             }
             // ------------ TODO: Need major refactor -----------------
             List<AccessibilityNodeInfo> matchedNodes = Utils.findSimilarNodes(locatableStep.getTargetWidgetInfo());
             if(matchedNodes.size() != 1){ // TODO: Configurable, maybe we can tolerate multiple widgets with same info
-                Log.i(MyLatteService.TAG, "The target widget is not unique. " + matchedNodes.size());
+                Log.i(LatteService.TAG, "The target widget is not unique. " + matchedNodes.size());
                 locatableStep.setState(StepState.FAILED);
                 return false;
             }
             // matchedNodes.get(0) is our target
             List<AccessibilityNodeInfo> similarNodes = Utils.findSimilarNodes(locatableStep.getTargetWidgetInfo(), maskedAttributes);
             if(!isFocusedNodeTarget(similarNodes)){
-                Log.i(MyLatteService.TAG, "Continue exploration!");
+                Log.i(LatteService.TAG, "Continue exploration!");
                 performNext(null);
                 return false;
             }
             // Because isFocusedNodeTarget(similarNodes) == true, the focusedNode represent similarNodes.get(0)
             if(!similarNodes.get(0).equals(matchedNodes.get(0))){
-                Log.i(MyLatteService.TAG, "The located widget is not correct, use regular executor");
+                Log.i(LatteService.TAG, "The located widget is not correct, use regular executor");
                 return executeByRegularExecutor(step, locatableStep);
             }
             if(locatableStep instanceof ClickStep){
@@ -86,14 +78,14 @@ public class TalkBackStepExecutor implements StepExecutor {
                 locatableStep.setState(StepState.COMPLETED);
             }
             else{
-                Log.e(MyLatteService.TAG, "This locatable step is unrecognizable " + locatableStep);
+                Log.e(LatteService.TAG, "This locatable step is unrecognizable " + locatableStep);
                 locatableStep.setState(StepState.FAILED);
                 return false;
             }
             return true;
         }
         else{
-            Log.e(MyLatteService.TAG, "This step is unrecognizable " + step);
+            Log.e(LatteService.TAG, "This step is unrecognizable " + step);
             step.setState(StepState.FAILED);
             return false;
         }
@@ -114,14 +106,14 @@ public class TalkBackStepExecutor implements StepExecutor {
                 }
                 it = it.getParent();
             }
-            Log.i(MyLatteService.TAG, "-- FIRST REACHABLE NODE IS " + firstReachableNode);
+            Log.i(LatteService.TAG, "-- FIRST REACHABLE NODE IS " + firstReachableNode);
             isSimilar = firstReachableNode != null && firstReachableNode.equals(focusedNode);
         }
         return isSimilar;
     }
 
     private boolean executeByRegularExecutor(StepCommand step, LocatableStep locatableStep) {
-        MyLatteService.getInstance().getStepExecutor("regular").executeStep(step);
+        LatteService.getInstance().getStepExecutor("regular").executeStep(step);
         if(step.getState() == StepState.COMPLETED) {
             locatableStep.setState(StepState.COMPLETED_BY_HELP);
             return true;
@@ -140,24 +132,24 @@ public class TalkBackStepExecutor implements StepExecutor {
 
     private void handleNullFocusNode(StepCommand step) {
         if (waitAttemptsForFocusChange < MAX_WAIT_FOR_FOCUS_CHANGE) {
-            Log.i(MyLatteService.TAG, "Do nothing since no node is focused for " + waitAttemptsForFocusChange + " attempts.");
+            Log.i(LatteService.TAG, "Do nothing since no node is focused for " + waitAttemptsForFocusChange + " attempts.");
         }
         else if (waitAttemptsForFocusChange == MAX_WAIT_FOR_FOCUS_CHANGE) {
-            Log.i(MyLatteService.TAG, "Perform next to refocus!");
+            Log.i(LatteService.TAG, "Perform next to refocus!");
             performNext(null);
         }
         else if (waitAttemptsForFocusChange < MAX_WAIT_FOR_FOCUS_CHANGE_AFTER_PERFORM_NEXT) {
-            Log.i(MyLatteService.TAG, "Do nothing since no node is focused for " + waitAttemptsForFocusChange + " attempts. (After performing next)");
+            Log.i(LatteService.TAG, "Do nothing since no node is focused for " + waitAttemptsForFocusChange + " attempts. (After performing next)");
         }
         else {
-            Log.i(MyLatteService.TAG, "Reached MAX_WAIT_FOR_FOCUS_CHANGE_AFTER_PERFORM_NEXT");
+            Log.i(LatteService.TAG, "Reached MAX_WAIT_FOR_FOCUS_CHANGE_AFTER_PERFORM_NEXT");
             step.setState(StepState.FAILED);
         }
     }
 
     // TODO: Do we need callback?
     public boolean performNext(AccessibilityService.GestureResultCallback callback){
-        Log.i(MyLatteService.TAG, "performNext");
+        Log.i(LatteService.TAG, "performNext");
         final int thisActionId = pendingActionId;
         pendingActionId++;
         pendingActions.put(thisActionId, "Pending: I'm going to do NEXT");
@@ -179,8 +171,8 @@ public class TalkBackStepExecutor implements StepExecutor {
             swipePath.lineTo(x2, y2);
             gestureBuilder.addStroke(new GestureDescription.StrokeDescription(swipePath, 0, GESTURE_DURATION));
             GestureDescription gestureDescription = gestureBuilder.build();
-            Log.i(MyLatteService.TAG, "Execute Gesture " + gestureDescription.toString());
-            MyLatteService.getInstance().dispatchGesture(gestureDescription, callback, null);
+            Log.i(LatteService.TAG, "Execute Gesture " + gestureDescription.toString());
+            LatteService.getInstance().dispatchGesture(gestureDescription, callback, null);
         }, 10);
         new Handler().postDelayed(() -> pendingActions.remove(thisActionId), GESTURE_DURATION);
         return false;

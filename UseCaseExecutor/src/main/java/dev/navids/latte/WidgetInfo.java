@@ -1,17 +1,12 @@
 package dev.navids.latte;
 
 
-import android.os.Build;
-
-import androidx.annotation.RequiresApi;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@RequiresApi(api = Build.VERSION_CODES.N)
 public abstract class WidgetInfo {
     List<String> attributeNames = Arrays.asList(
             "resourceId", "contentDescription", "text", "class", "xpath");

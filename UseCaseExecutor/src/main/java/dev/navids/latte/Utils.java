@@ -1,17 +1,13 @@
 package dev.navids.latte;
 
 
-import android.os.Build;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
-
-import androidx.annotation.RequiresApi;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-@RequiresApi(api = Build.VERSION_CODES.N)
 public class Utils {
 
     // A11yNodeInfoUtils

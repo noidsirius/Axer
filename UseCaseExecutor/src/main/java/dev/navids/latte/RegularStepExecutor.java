@@ -1,15 +1,11 @@
 package dev.navids.latte;
 
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 
-import androidx.annotation.RequiresApi;
-
 import java.util.List;
 
-@RequiresApi(api = Build.VERSION_CODES.N)
 public class RegularStepExecutor implements StepExecutor {
     @Override
     public boolean executeStep(StepCommand step) {

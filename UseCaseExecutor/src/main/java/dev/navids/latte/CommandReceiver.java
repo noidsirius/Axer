@@ -3,12 +3,8 @@ package dev.navids.latte;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.util.Log;
-import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
-
-import androidx.annotation.RequiresApi;
 
 import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckPreset;
 import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckResult;
@@ -17,29 +13,23 @@ import com.google.android.apps.common.testing.accessibility.framework.Accessibil
 import com.google.android.apps.common.testing.accessibility.framework.AccessibilityHierarchyCheckResult;
 import com.google.android.apps.common.testing.accessibility.framework.Parameters;
 import com.google.android.apps.common.testing.accessibility.framework.checks.ImageContrastCheck;
-import com.google.android.apps.common.testing.accessibility.framework.checks.SpeakableTextPresentCheck;
 import com.google.android.apps.common.testing.accessibility.framework.checks.TextContrastCheck;
 import com.google.android.apps.common.testing.accessibility.framework.checks.TouchTargetSizeCheck;
 import com.google.android.apps.common.testing.accessibility.framework.uielement.AccessibilityHierarchyAndroid;
-import com.google.common.collect.ImmutableSet;
 
 import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
-@RequiresApi(api = Build.VERSION_CODES.N)
 public class CommandReceiver extends BroadcastReceiver {
     static final String ACTION_COMMAND_INTENT = "dev.navids.latte.COMMAND";
     static final String ACTION_COMMAND_CODE = "command";

@@ -1,4 +1,4 @@
-package dev.navids.latte.app;
+package dev.navids.latte;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
@@ -13,13 +13,13 @@ public class TalkBackUtils {
     private static AccessibilityService.GestureResultCallback defaultCallBack= new AccessibilityService.GestureResultCallback() {
         @Override
         public void onCompleted(GestureDescription gestureDescription) {
-            Log.i(MyLatteService.TAG, "Complete Gesture " + gestureDescription.toString());
+            Log.i(LatteService.TAG, "Complete Gesture " + gestureDescription.toString());
             super.onCompleted(gestureDescription);
         }
 
         @Override
         public void onCancelled(GestureDescription gestureDescription) {
-            Log.i(MyLatteService.TAG, "Cancel Gesture " + gestureDescription.toString());
+            Log.i(LatteService.TAG, "Cancel Gesture " + gestureDescription.toString());
             super.onCancelled(gestureDescription);
         }
     };
@@ -35,12 +35,12 @@ public class TalkBackUtils {
         swipePath.moveTo(x, y);
         gestureBuilder.addStroke(new GestureDescription.StrokeDescription(swipePath, startTime, duration));
         GestureDescription gestureDescription = gestureBuilder.build();
-        Log.i(MyLatteService.TAG, "Execute Gesture " + gestureDescription.toString());
-        return MyLatteService.getInstance().dispatchGesture(gestureDescription, callback, null);
+        Log.i(LatteService.TAG, "Execute Gesture " + gestureDescription.toString());
+        return LatteService.getInstance().dispatchGesture(gestureDescription, callback, null);
     }
 
     public static boolean performType(AccessibilityNodeInfo node, String message){
-        Log.i(MyLatteService.TAG, "performType");
+        Log.i(LatteService.TAG, "performType");
         Bundle arguments = new Bundle();
         arguments.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, message);
         return node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments);
@@ -48,7 +48,7 @@ public class TalkBackUtils {
 
 
     public static boolean performDoubleTap(){
-        Log.i(MyLatteService.TAG, "performDoubleTap");
+        Log.i(LatteService.TAG, "performDoubleTap");
         try {
             Thread.sleep(300); // TODO
         } catch (InterruptedException e) {
@@ -62,7 +62,7 @@ public class TalkBackUtils {
         AccessibilityService.GestureResultCallback newClickCallBack = new AccessibilityService.GestureResultCallback() {
             @Override
             public void onCompleted(GestureDescription gestureDescription) {
-                Log.i(MyLatteService.TAG, "Complete Gesture " + gestureDescription.getStrokeCount());
+                Log.i(LatteService.TAG, "Complete Gesture " + gestureDescription.getStrokeCount());
                 super.onCompleted(gestureDescription);
                 try {
                     Thread.sleep(100); // TODO
@@ -74,7 +74,7 @@ public class TalkBackUtils {
 
             @Override
             public void onCancelled(GestureDescription gestureDescription) {
-                Log.i(MyLatteService.TAG, "Cancel Gesture");
+                Log.i(LatteService.TAG, "Cancel Gesture");
                 super.onCancelled(gestureDescription);
             }
         };

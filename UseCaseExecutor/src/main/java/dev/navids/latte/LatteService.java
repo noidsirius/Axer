@@ -6,7 +6,6 @@ import android.os.Build;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 
-import androidx.annotation.RequiresApi;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -36,12 +35,10 @@ public class LatteService extends AccessibilityService {
         return true;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
     public StepExecutor getStepExecutor(String key){
         return stepExecutorsMap.getOrDefault(key, null);
     }
-
-    @RequiresApi(api = Build.VERSION_CODES.N)
+    TalkBackStepExecutor talkBackStepExecutor;
     @Override
     protected void onServiceConnected() {
         Log.i(TAG, "Latte Service has started!");
@@ -49,7 +46,9 @@ public class LatteService extends AccessibilityService {
         registerReceiver(receiver, new IntentFilter(CommandReceiver.ACTION_COMMAND_INTENT));
         instance = this;
         connected = true;
+        talkBackStepExecutor = new TalkBackStepExecutor();
         addStepExecutor("regular", new RegularStepExecutor());
+        addStepExecutor("talkback", talkBackStepExecutor);
     }
 
     @Override
@@ -65,6 +64,8 @@ public class LatteService extends AccessibilityService {
             Log.i(TAG, "Incomming event is null!");
             return;
         }
+        if(event.getEventType() == AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED)
+            talkBackStepExecutor.setFocusedNode(event.getSource());
 //        Log.i(TAG, "   Type : " +AccessibilityEvent.eventTypeToString(event.getEventType()));
     }
 

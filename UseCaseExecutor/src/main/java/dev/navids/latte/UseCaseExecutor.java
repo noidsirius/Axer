@@ -1,11 +1,8 @@
 package dev.navids.latte;
 
 
-import android.os.Build;
 import android.os.Handler;
 import android.util.Log;
-
-import androidx.annotation.RequiresApi;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -18,7 +15,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-@RequiresApi(api = Build.VERSION_CODES.N)
 public class UseCaseExecutor{
 
     enum ExecutorState{

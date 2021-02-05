@@ -1,12 +1,7 @@
 package dev.navids.latte;
 
-import android.os.Build;
-
-import androidx.annotation.RequiresApi;
-
 import org.json.simple.JSONObject;
 
-@RequiresApi(api = Build.VERSION_CODES.N)
 public abstract class LocatableStep extends StepCommand {
     private ConceivedWidgetInfo targetWidget;
 

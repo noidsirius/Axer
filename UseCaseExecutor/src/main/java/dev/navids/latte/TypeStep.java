@@ -1,14 +1,10 @@
 package dev.navids.latte;
 
-import android.os.Build;
 import android.util.Log;
-
-import androidx.annotation.RequiresApi;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-@RequiresApi(api = Build.VERSION_CODES.N)
 public class TypeStep extends LocatableStep {
     public String getText() {
         return text;

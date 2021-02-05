@@ -1,15 +1,10 @@
 package dev.navids.latte;
 
-import android.os.Build;
-
-import androidx.annotation.RequiresApi;
-
 import org.json.simple.JSONObject;
 
 import java.util.Collections;
 import java.util.List;
 
-@RequiresApi(api = Build.VERSION_CODES.N)
 public class ConceivedWidgetInfo extends WidgetInfo {
 
     String locatedBy = "";

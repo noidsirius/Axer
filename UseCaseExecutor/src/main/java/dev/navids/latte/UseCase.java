@@ -1,14 +1,10 @@
 package dev.navids.latte;
 
-import android.os.Build;
 import android.util.Log;
-
-import androidx.annotation.RequiresApi;
 
 import java.util.List;
 import java.util.Locale;
 
-@RequiresApi(api = Build.VERSION_CODES.N)
 public class UseCase {
     private List<StepCommand> steps;
     int currentStepIndex = -1;
