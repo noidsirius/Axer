@@ -70,11 +70,11 @@ public class TalkBackStepExecutor implements StepExecutor {
                 return executeByRegularExecutor(step, locatableStep);
             }
             if(locatableStep instanceof ClickStep){
-                TalkBackUtils.performDoubleTap();
+                ActionUtils.performDoubleTap();
                 locatableStep.setState(StepState.COMPLETED);
             }
             else if(locatableStep instanceof TypeStep){
-                TalkBackUtils.performType(focusedNode, ((TypeStep) locatableStep).getText());
+                ActionUtils.performType(focusedNode, ((TypeStep) locatableStep).getText());
                 locatableStep.setState(StepState.COMPLETED);
             }
             else{
