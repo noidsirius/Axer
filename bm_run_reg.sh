@@ -9,11 +9,12 @@ echo "Running on $EXECUTOR"
 echo "wait for adb"
 sleep 3
 adb wait-for-device
-if [[ $EXECUTOR == REG ]]; 
+if [[ $EXECUTOR == REG ]];
 then
  ./enable-service.sh;
  ./send-command.sh set_step_executor regular;
-elif [[ $EXECUTOR == TB ]]; 
+ ./send-command.sh set_physical_touch false;
+elif [[ $EXECUTOR == TB ]];
 then
  ./enable-talkback.sh;
  ./send-command.sh set_step_executor talkback;

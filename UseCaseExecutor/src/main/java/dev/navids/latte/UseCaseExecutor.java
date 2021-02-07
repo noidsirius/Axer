@@ -221,6 +221,7 @@ public class UseCaseExecutor{
                 stepCommand = null;
             return stepCommand;
         } catch (Exception e) {
+            Log.e(LatteService.TAG, "Error in creating Step from Json: " + e.getMessage());
         }
         return null;
     }
