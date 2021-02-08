@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService;
 import android.content.IntentFilter;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
 
 
 import java.util.HashMap;
@@ -15,6 +16,12 @@ import dev.navids.latte.UseCase.TalkBackStepExecutor;
 
 public class LatteService extends AccessibilityService {
     private static LatteService instance;
+
+    public AccessibilityNodeInfo getFocusedNode() {
+        return focusedNode;
+    }
+
+    private AccessibilityNodeInfo focusedNode;
     CommandReceiver receiver;
     public boolean isConnected() {
         return connected;
@@ -67,8 +74,9 @@ public class LatteService extends AccessibilityService {
             Log.i(TAG, "Incomming event is null!");
             return;
         }
-        if(event.getEventType() == AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED)
-            talkBackStepExecutor.setFocusedNode(event.getSource());
+        if(event.getEventType() == AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED) {
+            focusedNode = event.getSource();
+        }
 //        Log.i(TAG, "   Type : " +AccessibilityEvent.eventTypeToString(event.getEventType()));
     }
 

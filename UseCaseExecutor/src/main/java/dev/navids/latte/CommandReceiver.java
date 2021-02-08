@@ -38,6 +38,7 @@ public class CommandReceiver extends BroadcastReceiver {
     static final String ACTION_COMMAND_INTENT = "dev.navids.latte.COMMAND";
     static final String ACTION_COMMAND_CODE = "command";
     static final String ACTION_COMMAND_EXTRA = "extra";
+    private TalkBackNavigator talkBackNavigator = new TalkBackNavigator();
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -81,6 +82,15 @@ public class CommandReceiver extends BroadcastReceiver {
                 break;
             case "stop":
                 UseCaseExecutor.v().stop();
+                break;
+            case "nav_next":
+                talkBackNavigator.nextFocus(null);
+                break;
+            case "nav_clear_history":
+                talkBackNavigator.clearHistory();
+                break;
+            case "nav_select":
+                talkBackNavigator.selectFocus(null);
                 break;
             case "do_step":
                 UseCaseExecutor.v().executeCustomStep(extra);

@@ -1,13 +1,16 @@
 package dev.navids.latte;
 
 
+import androidx.annotation.Nullable;
+
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public abstract class WidgetInfo {
+public abstract class WidgetInfo implements Serializable {
     List<String> attributeNames = Arrays.asList(
             "resourceId", "contentDescription", "text", "class", "xpath");
     Map<String, String> attributes = new HashMap<>();
@@ -22,6 +25,22 @@ public abstract class WidgetInfo {
         attributes.put(attributeNames.get(3), clsName);
     }
 
+
+    @Override
+    public int hashCode() {
+        int prime = 31;
+        int result = 1;
+        for(String attrName : attributeNames)
+            result = result * prime + attrName.hashCode();
+        return result;
+    }
+
+    @Override
+    public boolean equals(@Nullable Object obj) {
+        if(!(obj instanceof  WidgetInfo))
+            return false;
+        return this.isSimilar((WidgetInfo) obj);
+    }
 
     protected String getAttr(String attributeName){
         return attributes.getOrDefault(attributeName, "");

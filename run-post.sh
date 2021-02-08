@@ -7,3 +7,4 @@ do
  cat my_result.txt | grep -q "No such file or directory" && rm my_result.txt
 done
 cat my_result.txt
+rm my_result.txt

@@ -14,11 +14,12 @@ import java.util.Map;
 import java.util.Random;
 
 import dev.navids.latte.ActionUtils;
+import dev.navids.latte.ActualWidgetInfo;
 import dev.navids.latte.LatteService;
 import dev.navids.latte.Utils;
+import dev.navids.latte.WidgetInfo;
 
 public class TalkBackStepExecutor implements StepExecutor {
-    private AccessibilityNodeInfo focusedNode;
     private Map<Integer, String> pendingActions = new HashMap<>();
     private int waitAttemptsForFocusChange = 0;
     private final int MAX_WAIT_FOR_FOCUS_CHANGE = 3; // TODO: Configurable
@@ -27,10 +28,7 @@ public class TalkBackStepExecutor implements StepExecutor {
     private final long GESTURE_DURATION = 400; // TODO: Configuratble
     public int pendingActionId = 0;
     private List<String> maskedAttributes = Arrays.asList("resourceId", "xpath"); // TODO: Configurable
-    private Map<StepCommand, Map<AccessibilityNodeInfo, Integer>> a11yNodeInfoTracker = new HashMap<>();
-    public void setFocusedNode(AccessibilityNodeInfo node){
-        focusedNode = node;
-    }
+    private Map<StepCommand, Map<WidgetInfo, Integer>> a11yNodeInfoTracker = new HashMap<>();
     @Override
     public boolean executeStep(StepCommand step) {
         Log.i(LatteService.TAG, "Executing Step " + step);
@@ -44,7 +42,7 @@ public class TalkBackStepExecutor implements StepExecutor {
         }
         if(step instanceof LocatableStep) {
             LocatableStep locatableStep = (LocatableStep) step;
-            if (focusedNode == null) {
+            if (LatteService.getInstance().getFocusedNode() == null) {
                 waitAttemptsForFocusChange++;
                 handleNullFocusNode(step);
                 return false;
@@ -65,7 +63,8 @@ public class TalkBackStepExecutor implements StepExecutor {
             List<AccessibilityNodeInfo> similarNodes = Utils.findSimilarNodes(locatableStep.getTargetWidgetInfo(), maskedAttributes);
             if(!isFocusedNodeTarget(similarNodes)){
                 Log.i(LatteService.TAG, "Continue exploration!");
-                performNext(null);
+//                performNext(null);
+                performNext();
                 return false;
             }
             // Because isFocusedNodeTarget(similarNodes) == true, the focusedNode represent similarNodes.get(0)
@@ -78,7 +77,7 @@ public class TalkBackStepExecutor implements StepExecutor {
                 locatableStep.setState(StepState.COMPLETED);
             }
             else if(locatableStep instanceof TypeStep){
-                ActionUtils.performType(focusedNode, ((TypeStep) locatableStep).getText());
+                ActionUtils.performType(LatteService.getInstance().getFocusedNode(), ((TypeStep) locatableStep).getText());
                 locatableStep.setState(StepState.COMPLETED);
             }
             else{
@@ -100,7 +99,7 @@ public class TalkBackStepExecutor implements StepExecutor {
             return false;
         AccessibilityNodeInfo targetNode = similarNodes.get(0); // TODO: This strategy works even we found multiple similar widgets
         AccessibilityNodeInfo firstReachableNode = targetNode;
-        boolean isSimilar = firstReachableNode != null && firstReachableNode.equals(focusedNode);
+        boolean isSimilar = firstReachableNode != null && firstReachableNode.equals(LatteService.getInstance().getFocusedNode());
         if(!isSimilar) {
             AccessibilityNodeInfo it = targetNode;
             while (it != null) {
@@ -111,7 +110,7 @@ public class TalkBackStepExecutor implements StepExecutor {
                 it = it.getParent();
             }
             Log.i(LatteService.TAG, "-- FIRST REACHABLE NODE IS " + firstReachableNode);
-            isSimilar = firstReachableNode != null && firstReachableNode.equals(focusedNode);
+            isSimilar = firstReachableNode != null && firstReachableNode.equals(LatteService.getInstance().getFocusedNode());
         }
         return isSimilar;
     }
@@ -129,9 +128,11 @@ public class TalkBackStepExecutor implements StepExecutor {
     private boolean checkStoppingCriteria(StepCommand step, LocatableStep locatableStep) {
         if(!a11yNodeInfoTracker.containsKey(step))
             a11yNodeInfoTracker.put(step, new HashMap<>());
-        a11yNodeInfoTracker.get(step).put(focusedNode,a11yNodeInfoTracker.get(step).getOrDefault(focusedNode, 0)); // TODO: it doesn't work, instead of A11yNodeInfo, its properties should be used for mapping
+        WidgetInfo focusedNodeWI = ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getFocusedNode());
+        a11yNodeInfoTracker.get(step).put(focusedNodeWI,a11yNodeInfoTracker.get(step).getOrDefault(focusedNodeWI, 0)+1);
         locatableStep.increaseActingAttempts();
-        return locatableStep.reachedMaxActingAttempts() || a11yNodeInfoTracker.get(step).get(focusedNode) > MAX_VISITED_WIDGET;
+        Log.i(LatteService.TAG, String.format("Widget %s is visited %d times", focusedNodeWI, a11yNodeInfoTracker.get(step).get(focusedNodeWI)));
+        return locatableStep.reachedMaxActingAttempts() || a11yNodeInfoTracker.get(step).get(focusedNodeWI) > MAX_VISITED_WIDGET;
     }
 
     private void handleNullFocusNode(StepCommand step) {
@@ -140,7 +141,7 @@ public class TalkBackStepExecutor implements StepExecutor {
         }
         else if (waitAttemptsForFocusChange == MAX_WAIT_FOR_FOCUS_CHANGE) {
             Log.i(LatteService.TAG, "Perform next to refocus!");
-            performNext(null);
+            performNext();
         }
         else if (waitAttemptsForFocusChange < MAX_WAIT_FOR_FOCUS_CHANGE_AFTER_PERFORM_NEXT) {
             Log.i(LatteService.TAG, "Do nothing since no node is focused for " + waitAttemptsForFocusChange + " attempts. (After performing next)");
@@ -152,11 +153,23 @@ public class TalkBackStepExecutor implements StepExecutor {
     }
 
     // TODO: Do we need callback?
-    public boolean performNext(AccessibilityService.GestureResultCallback callback){
+    public boolean performNext(){
         Log.i(LatteService.TAG, "performNext");
         final int thisActionId = pendingActionId;
         pendingActionId++;
         pendingActions.put(thisActionId, "Pending: I'm going to do NEXT");
+        AccessibilityService.GestureResultCallback callback = new AccessibilityService.GestureResultCallback() {
+            @Override
+            public void onCompleted(GestureDescription gestureDescription) {
+                pendingActions.remove(thisActionId);
+            }
+
+            @Override
+            public void onCancelled(GestureDescription gestureDescription) {
+                Log.i(LatteService.TAG, "Gesture is cancelled!");
+                pendingActions.remove(thisActionId);
+            }
+        };
 
         new Handler().postDelayed(() -> {
             GestureDescription.Builder gestureBuilder = new GestureDescription.Builder();
@@ -178,7 +191,6 @@ public class TalkBackStepExecutor implements StepExecutor {
             Log.i(LatteService.TAG, "Execute Gesture " + gestureDescription.toString());
             LatteService.getInstance().dispatchGesture(gestureDescription, callback, null);
         }, 10);
-        new Handler().postDelayed(() -> pendingActions.remove(thisActionId), GESTURE_DURATION);
         return false;
     }
 }
