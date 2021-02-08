@@ -1,5 +1,6 @@
 package dev.navids.latte;
 
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -7,6 +8,9 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import java.util.List;
 
 public class RegularStepExecutor implements StepExecutor {
+
+    public static boolean is_physical = false;
+
     @Override
     public boolean executeStep(StepCommand step) {
         Log.i(LatteService.TAG, "Executing Step " + step);
@@ -54,17 +58,34 @@ public class RegularStepExecutor implements StepExecutor {
     }
 
     private boolean executeClick(ClickStep clickStep, AccessibilityNodeInfo node){
-        AccessibilityNodeInfo clickableNode = node;
-        while (clickableNode != null && !clickableNode.isClickable())
-            clickableNode = clickableNode.getParent();
-        if (clickableNode == null || !clickableNode.isClickable()) {
-            Log.e(LatteService.TAG, "The widget is not clickable.");
-            clickStep.setState(StepState.FAILED);
-            return false;
+        if(is_physical){
+            Rect box = new Rect();
+            node.getBoundsInScreen(box);
+            int x = box.centerX();
+            int y = box.centerY();
+            Log.e(LatteService.TAG, String.format("Physically clicking on (%d, %d)", x, y));
+            boolean clickResult = ActionUtils.performTap(x, y);
+            if(!clickResult){
+                Log.e(LatteService.TAG, "The location could not be clicked.");
+                clickStep.setState(StepState.FAILED);
+                return false;
+            }
+            clickStep.setState(StepState.COMPLETED);
+            return true;
         }
-        clickableNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-        clickStep.setState(StepState.COMPLETED);
-        return true;
+        else{
+            AccessibilityNodeInfo clickableNode = node;
+            while (clickableNode != null && !clickableNode.isClickable())
+                clickableNode = clickableNode.getParent();
+            if (clickableNode == null || !clickableNode.isClickable()) {
+                Log.e(LatteService.TAG, "The widget is not clickable.");
+                clickStep.setState(StepState.FAILED);
+                return false;
+            }
+            clickableNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            clickStep.setState(StepState.COMPLETED);
+            return true;
+        }
     }
 
     private boolean executeType(TypeStep typeStep, AccessibilityNodeInfo node){

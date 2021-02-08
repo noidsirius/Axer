@@ -69,8 +69,8 @@ public class UseCase {
             int number_of_actions = 0;
             if(step instanceof LocatableStep){
                 LocatableStep locatableStep = (LocatableStep) step;
-                totalEvents += locatableStep.getNumberOfLocatingAttempts();
-                number_of_actions = locatableStep.getNumberOfLocatingAttempts();
+                totalEvents += locatableStep.getNumberOfLocatingAttempts() + locatableStep.getNumberOfActingAttempts();
+                number_of_actions = locatableStep.getNumberOfLocatingAttempts() + locatableStep.getNumberOfActingAttempts();
             }
 
             if(step.getState() != StepState.COMPLETED && firstProbelmaticCommand < 0)

@@ -14,6 +14,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class UseCaseExecutor{
 
@@ -44,6 +45,7 @@ public class UseCaseExecutor{
     private StepExecutor stepExecutor = null;
 
     public final static String result_file_name = "test_result.txt";
+    public final static String custom_step_result_file_name = "custom_step_result.txt";
     private boolean sleepLock = false;
     private ExecutorState mode = ExecutorState.IDLE;
     private long delay = 2000;
@@ -80,6 +82,7 @@ public class UseCaseExecutor{
                     else{
                         if(customStep.isDone()){
                             Log.i(LatteService.TAG, "The custom step is done!");
+                            writeCustomStepResult();
                             customStep = null;
                             mode = ExecutorState.IDLE;
                         }
@@ -118,7 +121,7 @@ public class UseCaseExecutor{
                         }
                     }
                     else {
-                        writeResult();
+                        writeUseCaseResult();
                         mode = ExecutorState.IDLE;
                     }
                     break;
@@ -148,6 +151,11 @@ public class UseCaseExecutor{
 
     public synchronized boolean executeCustomStep(String stepJSONString){
         stop();
+        // Removing previous result file
+        String fileName = custom_step_result_file_name;
+        String dir = LatteService.getInstance().getBaseContext().getFilesDir().getPath();
+        File file = new File(dir, fileName);
+        file.delete();
         JSONParser jsonParser = new JSONParser();
         try {
             JSONObject stepJSON = (JSONObject) jsonParser.parse(stepJSONString);
@@ -171,7 +179,6 @@ public class UseCaseExecutor{
         this.delay = delay;
         Log.i(LatteService.TAG, "Delay has been set to " + this.delay);
     }
-
 
     public synchronized void init(JSONArray commandsJson){
         // Removing previous result file
@@ -214,12 +221,33 @@ public class UseCaseExecutor{
                 stepCommand = null;
             return stepCommand;
         } catch (Exception e) {
+            Log.e(LatteService.TAG, "Error in creating Step from Json: " + e.getMessage());
         }
         return null;
     }
 
+    public void writeCustomStepResult() {
+        String fileName = custom_step_result_file_name;
+        String dir = LatteService.getInstance().getBaseContext().getFilesDir().getPath();
+        File file = new File(dir, fileName);
+        Log.i(LatteService.TAG, "Custom Step Result Path: " + file.getAbsolutePath());
+        FileWriter myWriter = null;
+        try {
+            myWriter = new FileWriter(file);
+            int number_of_actions = this.customStep instanceof LocatableStep ? ((LocatableStep) this.customStep).getNumberOfLocatingAttempts() + ((LocatableStep) this.customStep).getNumberOfActingAttempts() : 0;
+            String message = String.format(Locale.getDefault(),"   Custom Step $ State: %s $ #Events: %d $ Time: %d",
+                    this.customStep.getState().name(),
+                    number_of_actions,
+                    this.customStep.getTotalTime());
+            myWriter.write(message + "\n");
+            myWriter.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            Log.e(LatteService.TAG + "_RESULT", "Error: " + ex.getMessage());
+        }
+    }
 
-    public void writeResult() {
+    public void writeUseCaseResult() {
         if(currentUseCase == null || !currentUseCase.isFinished())
             return;
         String fileName = result_file_name;

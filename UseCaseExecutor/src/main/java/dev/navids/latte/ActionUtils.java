@@ -7,7 +7,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 
-public class TalkBackUtils {
+public class ActionUtils {
 
     public static final int tapDuration = 100;
     private static AccessibilityService.GestureResultCallback defaultCallBack= new AccessibilityService.GestureResultCallback() {

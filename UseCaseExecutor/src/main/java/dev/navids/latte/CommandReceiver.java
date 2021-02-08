@@ -123,8 +123,15 @@ public class CommandReceiver extends BroadcastReceiver {
                 break;
             case "set_step_executor":
                 StepExecutor stepExecutor = LatteService.getInstance().getStepExecutor(extra);
-                if(stepExecutor != null)
+                if(stepExecutor != null) {
+                    if(extra.equals("talkback"))
+                        RegularStepExecutor.is_physical = false;
                     UseCaseExecutor.v().setStepExecutor(stepExecutor);
+                }
+                break;
+            case "set_physical_touch":
+                RegularStepExecutor.is_physical = extra.equals("true");
+                Log.i(LatteService.TAG, String.format("RegularStepExecutor %suse physical touch", RegularStepExecutor.is_physical ? "" : "does NOT "));
                 break;
             default:
                 break;
