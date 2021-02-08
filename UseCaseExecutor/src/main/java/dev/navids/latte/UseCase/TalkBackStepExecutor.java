@@ -1,4 +1,4 @@
-package dev.navids.latte;
+package dev.navids.latte.UseCase;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
@@ -12,6 +12,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+
+import dev.navids.latte.ActionUtils;
+import dev.navids.latte.LatteService;
+import dev.navids.latte.Utils;
 
 public class TalkBackStepExecutor implements StepExecutor {
     private AccessibilityNodeInfo focusedNode;

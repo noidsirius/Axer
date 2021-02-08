@@ -1,4 +1,4 @@
-package dev.navids.latte;
+package dev.navids.latte.UseCase;
 
 import android.graphics.Rect;
 import android.os.Bundle;
@@ -6,6 +6,11 @@ import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import java.util.List;
+
+import dev.navids.latte.ActionUtils;
+import dev.navids.latte.ActualWidgetInfo;
+import dev.navids.latte.LatteService;
+import dev.navids.latte.Utils;
 
 public class RegularStepExecutor implements StepExecutor {
 

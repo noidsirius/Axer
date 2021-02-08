@@ -2,13 +2,16 @@ package dev.navids.latte;
 
 import android.accessibilityservice.AccessibilityService;
 import android.content.IntentFilter;
-import android.os.Build;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 
 
 import java.util.HashMap;
 import java.util.Map;
+
+import dev.navids.latte.UseCase.RegularStepExecutor;
+import dev.navids.latte.UseCase.StepExecutor;
+import dev.navids.latte.UseCase.TalkBackStepExecutor;
 
 public class LatteService extends AccessibilityService {
     private static LatteService instance;
@@ -18,7 +21,7 @@ public class LatteService extends AccessibilityService {
     }
 
     private boolean connected = false;
-    static String TAG = "LATTE_SERVICE";
+    public static String TAG = "LATTE_SERVICE";
 
     public static LatteService getInstance() {
         return instance;

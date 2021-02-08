@@ -1,8 +1,10 @@
-package dev.navids.latte;
+package dev.navids.latte.UseCase;
 
 import android.util.Log;
 
 import org.json.simple.JSONObject;
+
+import dev.navids.latte.LatteService;
 
 public class ClickStep extends LocatableStep {
     ClickStep(JSONObject stepJson) {

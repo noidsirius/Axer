@@ -1,9 +1,11 @@
-package dev.navids.latte;
+package dev.navids.latte.UseCase;
 
 import android.util.Log;
 
 import java.util.List;
 import java.util.Locale;
+
+import dev.navids.latte.LatteService;
 
 public class UseCase {
     private List<StepCommand> steps;

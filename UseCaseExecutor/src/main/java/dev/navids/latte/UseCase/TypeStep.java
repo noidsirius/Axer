@@ -1,9 +1,11 @@
-package dev.navids.latte;
+package dev.navids.latte.UseCase;
 
 import android.util.Log;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+
+import dev.navids.latte.LatteService;
 
 public class TypeStep extends LocatableStep {
     public String getText() {

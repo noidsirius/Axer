@@ -1,6 +1,5 @@
 package dev.navids.latte;
 
-import android.os.Build;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import java.util.ArrayList;

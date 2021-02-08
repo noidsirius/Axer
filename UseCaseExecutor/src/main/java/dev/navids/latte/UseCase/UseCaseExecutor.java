@@ -1,4 +1,4 @@
-package dev.navids.latte;
+package dev.navids.latte.UseCase;
 
 
 import android.os.Handler;
@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
+import dev.navids.latte.LatteService;
 
 public class UseCaseExecutor{
 

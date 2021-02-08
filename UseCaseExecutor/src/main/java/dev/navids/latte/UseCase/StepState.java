@@ -1,4 +1,4 @@
-package dev.navids.latte;
+package dev.navids.latte.UseCase;
 
 public enum StepState {
     NOT_STARTED,

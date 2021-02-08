@@ -1,4 +1,4 @@
-package dev.navids.latte;
+package dev.navids.latte.UseCase;
 
 import org.json.simple.JSONObject;
 
