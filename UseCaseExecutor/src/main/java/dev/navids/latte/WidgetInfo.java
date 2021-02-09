@@ -31,7 +31,7 @@ public abstract class WidgetInfo implements Serializable {
         int prime = 31;
         int result = 1;
         for(String attrName : attributeNames)
-            result = result * prime + attrName.hashCode();
+            result = result * prime + getAttr(attrName).hashCode();
         return result;
     }
 

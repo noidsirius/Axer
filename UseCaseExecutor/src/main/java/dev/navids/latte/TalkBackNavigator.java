@@ -8,6 +8,9 @@ import android.service.controls.templates.ControlTemplate;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -26,7 +29,8 @@ public class TalkBackNavigator {
     private final long WAIT_DURATION_TO_GET_RESULT = 400; // TODO: Configuratble
     private Set<WidgetInfo> visitedWidgets = new HashSet<>();
     private List<WidgetInfo> orderedVisitiedWidgets = new ArrayList<>();
-    private String FINISH_NAVIGATION_FILE_PATH = "finish_nav_reult.txt";
+    private String FINISH_NAVIGATION_FILE_PATH = "finish_nav_result.txt";
+    private String FINISH_ACTION_FILE_PATH = "finish_nav_action.txt";
 
     // TODO: Do we need callback?
     private boolean performNext(Navigator.DoneCallback doneCallback){
@@ -91,22 +95,12 @@ public class TalkBackNavigator {
         if(visitedWidgets.contains(widgetInfo)){
             if(!widgetInfo.equals(orderedVisitiedWidgets.get(orderedVisitiedWidgets.size()-1))) {
                 new Handler().post(() -> {
-                    Log.i(LatteService.TAG, String.format("Widget %s is ALREADY visited.", widgetInfo));
-                    String fileName = FINISH_NAVIGATION_FILE_PATH;
-                    String dir = LatteService.getInstance().getBaseContext().getFilesDir().getPath();
-
-                    File file = new File(dir, fileName);
-                    Log.i(LatteService.TAG, "Finish navigation Path: " + file.getAbsolutePath());
-                    FileWriter myWriter = null;
-                    try {
-                        myWriter = new FileWriter(file);
-                        for(WidgetInfo wi : orderedVisitiedWidgets)
-                            myWriter.write(wi + " $$$ " + wi.getXpath() + "\n");
-                        myWriter.close();
-                    } catch (IOException ex) {
-                        ex.printStackTrace();
-                        Log.e(LatteService.TAG + "_RESULT", "Error: " + ex.getMessage());
-                    }
+                    Log.i(LatteService.TAG, String.format("Widget %s is ALREADY visited XPath: %s.", widgetInfo, widgetInfo.getAttr("xpath")));
+                    StringBuilder stringBuilder = new StringBuilder();
+                    for(WidgetInfo wi : orderedVisitiedWidgets)
+                        stringBuilder.append(wi + " $$$ " + (wi != null ? wi.getXpath() : "NONE") + "\n");
+                    createFile(FINISH_NAVIGATION_FILE_PATH, stringBuilder.toString());
+                    createFile(FINISH_ACTION_FILE_PATH, "DONE\n");
                     if (callback != null)
                         callback.onError("ALREADY_VISITED");
                 });
@@ -116,7 +110,7 @@ public class TalkBackNavigator {
                     widgetInfo.getAttr("resourceId")+"_COPY",
                     widgetInfo.getAttr("contentDescription")+"_COPY",
                     widgetInfo.getAttr("text")+"_COPY",
-                    widgetInfo.getAttr("clsName")+"_COPY",
+                    widgetInfo.getAttr("class")+"_COPY",
                     LatteService.getInstance().getFocusedNode()
                     ));
         }
@@ -124,11 +118,32 @@ public class TalkBackNavigator {
             visitedWidgets.add(widgetInfo);
             orderedVisitiedWidgets.add(widgetInfo);
         }
-        Log.i(LatteService.TAG, String.format("Widget %s is visited.", widgetInfo));
+        Log.i(LatteService.TAG, String.format("Widget %s is visited XPATH: %s.", widgetInfo, widgetInfo != null ? widgetInfo.getAttr("xpath") : "NONE"));
         performNext(new Navigator.DoneCallback() {
             @Override
             public void onCompleted(AccessibilityNodeInfo nodeInfo) {
-                Log.i(LatteService.TAG, "The next focused node is: " + ActualWidgetInfo.createFromA11yNode(nodeInfo));
+                WidgetInfo newWidgetNodeInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo);
+                Log.i(LatteService.TAG, "The next focused node is: " + newWidgetNodeInfo + " Xpath: " + newWidgetNodeInfo.getXpath());
+                deleteFile(FINISH_ACTION_FILE_PATH);
+                String jsonCommand;
+                try {
+                     jsonCommand = new JSONObject()
+                            .put("resourceId", newWidgetNodeInfo.getAttr("resourceId"))
+                            .put("contentDescription", newWidgetNodeInfo.getAttr("contentDescription"))
+                            .put("text", newWidgetNodeInfo.getAttr("text"))
+                            .put("class", newWidgetNodeInfo.getAttr("class"))
+                            .put("xpath", newWidgetNodeInfo.getAttr("xpath"))
+                            .put("located_by", "xpath")
+                            .put("skip", false)
+                            .put("action", "click")
+                            .toString();
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    jsonCommand = "error in json";
+                }
+                createFile(FINISH_ACTION_FILE_PATH, jsonCommand);
+//                createFile(FINISH_ACTION_FILE_PATH, String.format("Next is done $ %s $%s\n", newWidgetNodeInfo, newWidgetNodeInfo.getXpath()));
                 if(callback != null)
                     callback.onCompleted(nodeInfo);
             }
@@ -148,7 +163,10 @@ public class TalkBackNavigator {
         ActionUtils.performDoubleTap(new AccessibilityService.GestureResultCallback() {
             @Override
             public void onCompleted(GestureDescription gestureDescription) {
+                WidgetInfo newWidgetNodeInfo = ActualWidgetInfo.createFromA11yNode(focusedNode);
                 Log.i(LatteService.TAG, "The focused node is tapped: " + focusedNode);
+                deleteFile(FINISH_ACTION_FILE_PATH);
+                createFile(FINISH_ACTION_FILE_PATH, String.format("Select is done $ %s $%s\n", newWidgetNodeInfo, newWidgetNodeInfo.getXpath()));
             }
 
             @Override
@@ -157,5 +175,27 @@ public class TalkBackNavigator {
             }
         });
         return null;
+    }
+
+    private void deleteFile(String fileName){
+        String dir = LatteService.getInstance().getBaseContext().getFilesDir().getPath();
+        File file = new File(dir, fileName);
+        file.delete();
+    }
+
+    private void createFile(String fileName, String message){
+        String dir = LatteService.getInstance().getBaseContext().getFilesDir().getPath();
+
+        File file = new File(dir, fileName);
+        Log.i(LatteService.TAG, "Output Path: " + file.getAbsolutePath());
+        FileWriter myWriter = null;
+        try {
+            myWriter = new FileWriter(file);
+            myWriter.write(message);
+            myWriter.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            Log.e(LatteService.TAG + "_RESULT", "Error: " + ex.getMessage());
+        }
     }
 }

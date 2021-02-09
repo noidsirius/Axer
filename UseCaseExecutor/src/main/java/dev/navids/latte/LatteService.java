@@ -7,6 +7,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,6 +53,10 @@ public class LatteService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         Log.i(TAG, "Latte Service has started!");
+        File dir = new File(getBaseContext().getFilesDir().getPath());
+        for(File file : dir.listFiles())
+            if(!file.isDirectory())
+                file.delete();
         receiver = new CommandReceiver();
         registerReceiver(receiver, new IntentFilter(CommandReceiver.ACTION_COMMAND_INTENT));
         instance = this;

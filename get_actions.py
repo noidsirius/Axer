@@ -50,13 +50,14 @@ for i,x in enumerate(tree.getiterator()):
             info['action'] = 'click'
             # command = "'"+str(json.dumps(info))+"'"
             command = str(json.dumps(info))
-            EXECUTOR = "REG"
-            bashCommand = ["./bm_run_reg.sh", "yelp_rate", command, EXECUTOR]
-            print(i, bashCommand)
-            # break
-            process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE)
-            output, error = process.communicate()
-            with open(f"result/{EXECUTOR}/{i}.txt", "w") as f:
-                f.write(f"===Output===\n{output.decode('utf-8') if output else 'NONE'}\n===Error===\n{error.decode('utf-8') if error else 'NONE'}")
-            process = subprocess.Popen(f"cp {EXECUTOR}.txt result/{EXECUTOR}/{i}.xml".split(), stdout=subprocess.PIPE)
-            output, error = process.communicate()
+            print(command)
+            # EXECUTOR = "REG"
+            # bashCommand = ["./bm_run_reg.sh", "yelp_rate", command, EXECUTOR]
+            # print(i, bashCommand)
+            # # break
+            # process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE)
+            # output, error = process.communicate()
+            # with open(f"result/{EXECUTOR}/{i}.txt", "w") as f:
+            #     f.write(f"===Output===\n{output.decode('utf-8') if output else 'NONE'}\n===Error===\n{error.decode('utf-8') if error else 'NONE'}")
+            # process = subprocess.Popen(f"cp {EXECUTOR}.txt result/{EXECUTOR}/{i}.xml".split(), stdout=subprocess.PIPE)
+            # output, error = process.communicate()
