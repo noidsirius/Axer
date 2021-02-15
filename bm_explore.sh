@@ -3,11 +3,20 @@ INITIAL_SNAPSHOT=$1
 LAST_SNAPSHOT=BM_SNAPSHOT
 FINAL_NAV_FILE="finish_nav_result.txt"
 FINAL_ACITON_FILE="finish_nav_action.txt"
+OUTPUT_PATH=result/$1
+REG_OUTPUT_PATH=$OUTPUT_PATH/REG
+TB_OUTPUT_PATH=$OUTPUT_PATH/TB
+mkdir -p $OUTPUT_PATH
+rm -rf $OUTPUT_PATH/*
+mkdir -p $REG_OUTPUT_PATH
+mkdir -p $TB_OUTPUT_PATH
+RESULT_FILE=$OUTPUT_PATH/summary.txt
 ./load_snapshot.sh $1 || exit 1
 sleep 3
 ./enable-talkback.sh;
 sleep 2
 ./save_snapshot.sh $LAST_SNAPSHOT
+echo "Result of Snapshot $1" > $RESULT_FILE
 COUNT=0
 while ! ./android_file_exists.sh $FINAL_NAV_FILE;
 do
@@ -22,14 +31,14 @@ do
   if ./android_file_exists.sh $FINAL_NAV_FILE; then
     break
   fi
-  echo $NEXT_COMMAND > result/cmd_${COUNT}.json
+  echo "$COUNT: [$NEXT_COMMAND]" >> $RESULT_FILE
   echo "Get another snapshot"
   ./save_snapshot.sh $LAST_SNAPSHOT
   sleep 2
   echo "Perform Select!"
   ./send-command.sh nav_select
   ./wait_for_file.sh $FINAL_ACITON_FILE
-  adb exec-out uiautomator dump /dev/tty > result/TB/${COUNT}.xml
+  ./capture_layout.sh > $TB_OUTPUT_PATH/${COUNT}.xml
   #----------------
   echo "Now with regular executor"
   ./load_snapshot.sh $LAST_SNAPSHOT || exit 1
@@ -42,7 +51,7 @@ do
   ./send-command.sh set_physical_touch true
   ./send-command.sh do_step "$NEXT_COMMAND"
   sleep 3
-  adb exec-out uiautomator dump /dev/tty > result/REG/${COUNT}.xml
+  ./capture_layout.sh > $REG_OUTPUT_PATH/${COUNT}.xml
   #---------
 
   echo "Groundhug Day!"
