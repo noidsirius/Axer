@@ -26,7 +26,7 @@ public class TalkBackNavigator {
     private Map<Integer, String> pendingActions = new HashMap<>();
     private int pendingActionId = 0;
     private final long GESTURE_DURATION = 400; // TODO: Configuratble
-    private final long WAIT_DURATION_TO_GET_RESULT = 400; // TODO: Configuratble
+    private final long WAIT_DURATION_TO_GET_RESULT = 410; // TODO: Configuratble
     private Set<WidgetInfo> visitedWidgets = new HashSet<>();
     private List<WidgetInfo> orderedVisitiedWidgets = new ArrayList<>();
     private String FINISH_NAVIGATION_FILE_PATH = "finish_nav_result.txt";
@@ -91,6 +91,7 @@ public class TalkBackNavigator {
     }
 
     public AccessibilityNodeInfo nextFocus(Navigator.DoneCallback callback) {
+        deleteFile(FINISH_ACTION_FILE_PATH);
         WidgetInfo widgetInfo = ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getFocusedNode());
         if(visitedWidgets.contains(widgetInfo)){
             if(!widgetInfo.equals(orderedVisitiedWidgets.get(orderedVisitiedWidgets.size()-1))) {
@@ -124,7 +125,6 @@ public class TalkBackNavigator {
             public void onCompleted(AccessibilityNodeInfo nodeInfo) {
                 WidgetInfo newWidgetNodeInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo);
                 Log.i(LatteService.TAG, "The next focused node is: " + newWidgetNodeInfo + " Xpath: " + newWidgetNodeInfo.getXpath());
-                deleteFile(FINISH_ACTION_FILE_PATH);
                 String jsonCommand;
                 try {
                      jsonCommand = new JSONObject()
