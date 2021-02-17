@@ -8,6 +8,7 @@ import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +28,7 @@ public class TalkBackStepExecutor implements StepExecutor {
     private final int MAX_VISITED_WIDGET = 4; // TODO: Configurable
     private final long GESTURE_DURATION = 400; // TODO: Configuratble
     public int pendingActionId = 0;
-    private List<String> maskedAttributes = Arrays.asList("resourceId", "xpath"); // TODO: Configurable
+    private List<String> maskedAttributes = Collections.emptyList();//Arrays.asList("resourceId", "xpath"); // TODO: Configurable
     private Map<StepCommand, Map<WidgetInfo, Integer>> a11yNodeInfoTracker = new HashMap<>();
     @Override
     public boolean executeStep(StepCommand step) {

@@ -94,19 +94,19 @@ public class TalkBackNavigator {
         deleteFile(FINISH_ACTION_FILE_PATH);
         WidgetInfo widgetInfo = ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getFocusedNode());
         if(visitedWidgets.contains(widgetInfo)){
-            if(!widgetInfo.equals(orderedVisitiedWidgets.get(orderedVisitiedWidgets.size()-1))) {
-                new Handler().post(() -> {
-                    Log.i(LatteService.TAG, String.format("Widget %s is ALREADY visited XPath: %s.", widgetInfo, widgetInfo.getAttr("xpath")));
-                    StringBuilder stringBuilder = new StringBuilder();
-                    for(WidgetInfo wi : orderedVisitiedWidgets)
-                        stringBuilder.append(wi + " $$$ " + (wi != null ? wi.getXpath() : "NONE") + "\n");
-                    createFile(FINISH_NAVIGATION_FILE_PATH, stringBuilder.toString());
-                    createFile(FINISH_ACTION_FILE_PATH, "DONE\n");
-                    if (callback != null)
-                        callback.onError("ALREADY_VISITED");
-                });
-                return null;
-            }
+//            if(!widgetInfo.equals(orderedVisitiedWidgets.get(orderedVisitiedWidgets.size()-1))) {
+//                new Handler().post(() -> {
+//                    Log.i(LatteService.TAG, String.format("Widget %s is ALREADY visited XPath: %s.", widgetInfo, widgetInfo.getAttr("xpath")));
+//                    StringBuilder stringBuilder = new StringBuilder();
+//                    for(WidgetInfo wi : orderedVisitiedWidgets)
+//                        stringBuilder.append(wi + " $$$ " + (wi != null ? wi.getXpath() : "NONE") + "\n");
+//                    createFile(FINISH_NAVIGATION_FILE_PATH, stringBuilder.toString());
+//                    createFile(FINISH_ACTION_FILE_PATH, "DONE\n");
+//                    if (callback != null)
+//                        callback.onError("ALREADY_VISITED");
+//                });
+//                return null;
+//            }
             orderedVisitiedWidgets.add(new ActualWidgetInfo(
                     widgetInfo.getAttr("resourceId")+"_COPY",
                     widgetInfo.getAttr("contentDescription")+"_COPY",
@@ -123,7 +123,7 @@ public class TalkBackNavigator {
         performNext(new Navigator.DoneCallback() {
             @Override
             public void onCompleted(AccessibilityNodeInfo nodeInfo) {
-                WidgetInfo newWidgetNodeInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo);
+                WidgetInfo newWidgetNodeInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo, true);
                 Log.i(LatteService.TAG, "The next focused node is: " + newWidgetNodeInfo + " Xpath: " + newWidgetNodeInfo.getXpath());
                 String jsonCommand;
                 try {

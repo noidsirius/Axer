@@ -14,6 +14,10 @@ public class ActualWidgetInfo extends WidgetInfo {
     }
 
     public static ActualWidgetInfo createFromA11yNode(AccessibilityNodeInfo node){
+        return createFromA11yNode(node, true);
+    }
+
+    public static ActualWidgetInfo createFromA11yNode(AccessibilityNodeInfo node, boolean fix_text){
         if (node == null){
             return null;
         }
@@ -21,15 +25,17 @@ public class ActualWidgetInfo extends WidgetInfo {
         String contentDescription = String.valueOf(node.getContentDescription());
         String text = String.valueOf(node.getText());
         String clsName = String.valueOf(node.getClassName());
-        if (clsName.endsWith("Layout")){
-            if (text.equals("null") && contentDescription.equals("null")) {
-                String tmp = Utils.getFirstText(node);
-                if (tmp != null)
-                    text = tmp;
-                else {
-                    tmp = Utils.getFirstContentDescription(node);
+        if(fix_text) {
+            if (clsName.endsWith("Layout")) {
+                if (text.equals("null") && contentDescription.equals("null")) {
+                    String tmp = Utils.getFirstText(node);
                     if (tmp != null)
-                        contentDescription = tmp;
+                        text = tmp;
+                    else {
+                        tmp = Utils.getFirstContentDescription(node);
+                        if (tmp != null)
+                            contentDescription = tmp;
+                    }
                 }
             }
         }

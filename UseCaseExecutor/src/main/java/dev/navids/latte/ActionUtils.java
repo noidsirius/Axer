@@ -3,9 +3,14 @@ package dev.navids.latte;
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
 import android.graphics.Path;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Pair;
 import android.view.accessibility.AccessibilityNodeInfo;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ActionUtils {
 
@@ -23,6 +28,60 @@ public class ActionUtils {
             super.onCancelled(gestureDescription);
         }
     };
+    public static Pair<Integer, Integer> getClickableCoordinate(AccessibilityNodeInfo node){
+        return getClickableCoordinate(node, true);
+    }
+
+    public static Pair<Integer, Integer> getClickableCoordinate(AccessibilityNodeInfo node, boolean fast){
+        int x, y;
+        if(fast)
+        {
+            List<AccessibilityNodeInfo> children = new ArrayList<>();
+            children.add(node);
+            for (int i = 0; i < children.size(); i++) {
+                AccessibilityNodeInfo child = children.get(i);
+                for (int j = 0; j < child.getChildCount(); j++)
+                    children.add(child.getChild(j));
+            }
+            Rect nodeBox = new Rect();
+            node.getBoundsInScreen(nodeBox);
+            children.remove(0);
+            int left = nodeBox.right;
+            int right = nodeBox.left;
+            int top = nodeBox.bottom;
+            int bottom = nodeBox.top;
+            for (AccessibilityNodeInfo child : children) {
+                if(!child.isClickable())
+                    continue;
+                Rect box = new Rect();
+                child.getBoundsInScreen(box);
+                left = Integer.min(left, box.left);
+                right = Integer.max(right, box.right);
+                top = Integer.min(top, box.top);
+                bottom = Integer.max(bottom, box.bottom);
+            }
+            Log.i(LatteService.TAG, " -------> " + nodeBox + " " + left + " " + right + " " + top + " " + bottom);
+            if(left > nodeBox.left)
+                x = (left+ nodeBox.left) / 2;
+            else if(right < nodeBox.right)
+                x = (right + nodeBox.right) / 2;
+            else
+                x = nodeBox.centerX();
+            if(top > nodeBox.top)
+                y = (top+nodeBox.top) / 2;
+            else if(bottom < nodeBox.bottom)
+                y = (top+nodeBox.top) / 2;
+            else
+                y = nodeBox.centerY();
+        }
+        else {
+            Rect box = new Rect();
+            node.getBoundsInScreen(box);
+            x = box.centerX();
+            y = box.centerY();
+        }
+        return new Pair<>(x,y);
+    }
 
     public static boolean performTap(int x, int y){ return performTap(x, y, tapDuration); }
     public static boolean performTap(int x, int y, int duration){ return performTap(x, y, 0, duration); }

@@ -3,8 +3,10 @@ package dev.navids.latte.UseCase;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Pair;
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import dev.navids.latte.ActionUtils;
@@ -64,10 +66,8 @@ public class RegularStepExecutor implements StepExecutor {
 
     private boolean executeClick(ClickStep clickStep, AccessibilityNodeInfo node){
         if(is_physical){
-            Rect box = new Rect();
-            node.getBoundsInScreen(box);
-            int x = box.centerX();
-            int y = box.centerY();
+            Pair<Integer, Integer> clickableCoordinate = ActionUtils.getClickableCoordinate(node, false);
+            int x =clickableCoordinate.first, y = clickableCoordinate.second;
             Log.e(LatteService.TAG, String.format("Physically clicking on (%d, %d)", x, y));
             boolean clickResult = ActionUtils.performTap(x, y);
             if(!clickResult){
