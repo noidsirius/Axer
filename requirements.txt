@@ -1,0 +1,5 @@
+aiofiles==0.6.0
+beautifulsoup4==4.9.3
+lxml==4.6.2
+pure-python-adb==0.3.0.dev0
+soupsieve==2.2
