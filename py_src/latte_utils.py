@@ -1,9 +1,13 @@
+from collections import namedtuple
 import asyncio
 from adb_utils import run_bash, local_android_file_exists, cat_local_android_file, capture_layout
 from a11y_service import A11yServiceManager
 LATTE_INTENT = "dev.navids.latte.COMMAND"
 FINAL_NAV_FILE = "finish_nav_result.txt"
 FINAL_ACITON_FILE = "finish_nav_action.txt"
+CUSTOM_STEP_RESULT = "custom_step_result.txt"
+ExecutionResult = namedtuple('ExecutionResult', ['state', 'events', 'time', 'resourceId', 'className', 'contentDescription', 'xpath'])
+
 
 async def send_command_to_latte(command: str, extra: str = "NONE") -> bool:
     extra = extra.replace('"', "__^__").replace(" ", "__^^__").replace(",", "__^^^__")
@@ -20,11 +24,19 @@ async def setup_talkback_executor():
     await send_command_to_latte("enable")
 
 
-async def setup_regular_executor():
+async def setup_sighted_talkback_executor():
+    await A11yServiceManager.setup_latte_a11y_services(tb=True)
+    await send_command_to_latte("set_step_executor", "sighted_tb")
+    await send_command_to_latte("set_delay", "1000")
+    await send_command_to_latte("set_physical_touch", "false")
+    await send_command_to_latte("enable")
+
+
+async def setup_regular_executor(physical_touch=True):
     await A11yServiceManager.setup_latte_a11y_services(tb=False)
     await send_command_to_latte("set_step_executor", "regular")
     await send_command_to_latte("set_delay", "1000")
-    await send_command_to_latte("set_physical_touch", "true")
+    await send_command_to_latte("set_physical_touch", "true" if physical_touch else "false")
     await send_command_to_latte("enable")
 
 
@@ -48,22 +60,53 @@ async def tb_navigate_next() -> str:
     return next_command_json
 
 
-async def tb_perform_select() -> str:
+async def tb_perform_select() -> (str, str):
     print("Perform Select!")
     await talkback_nav_command("select")
-    await cat_local_android_file(FINAL_ACITON_FILE)
+    result = await cat_local_android_file(FINAL_ACITON_FILE)
     layout = await capture_layout()
-    return layout
+    return layout, result
 
 
-async def reg_perform_select(select_command) -> str:
-    print("Now with regular executor")
-    await setup_regular_executor()
-    # await asyncio.sleep(1)  # TODO: need to change
-    await do_step(select_command)
-    await asyncio.sleep(1.2)  # TODO: need to change
-    layout = await capture_layout()
-    return layout
+def analyze_execution_result(result: str) -> ExecutionResult:
+    if not result:
+        return ExecutionResult("FAILED", "", "", "", "", "","")
+    parts = result.split('$')
+    state = parts[1].split(':')[1].strip()
+    events = parts[2].split(':')[1].strip()
+    time = parts[3].split(':')[1].strip()
+    resourceId = parts[4].split('ID=')[1].split(',')[0].strip() if 'ID=' in parts[4] else 'null'
+    className = parts[4].split('CL=')[1].split(',')[0].strip() if 'CL=' in parts[4] else 'null'
+    contentDescription = parts[4].split('CD=')[1].split(',')[0].strip() if 'CD=' in parts[4] else 'null'
+    xpath = parts[4].split('xpath=')[1].strip() if 'xpath=' in parts[4] else ''
+    return ExecutionResult(state, events, time, resourceId, className, contentDescription, xpath)
+
+
+async def execute_command(command: str, executor_name: str = "reg") -> (str, ExecutionResult):
+    if executor_name == 'reg':
+        await setup_regular_executor()
+    elif executor_name == 'tb':
+        await setup_talkback_executor()
+    elif executor_name == 'stb':
+        await setup_sighted_talkback_executor()
+    await do_step(command)
+    result = await cat_local_android_file(CUSTOM_STEP_RESULT)
+    layout_coroutine = asyncio.create_task(capture_layout())
+    execution_result = analyze_execution_result(result)
+    layout = await layout_coroutine
+    return layout, execution_result
+
+
+async def reg_execute_command(command: str) -> (str, ExecutionResult):
+    return await execute_command(command, 'reg')
+
+
+async def tb_execute_command(command: str) -> (str, ExecutionResult):
+    return await execute_command(command, 'tb')
+
+
+async def stb_execute_command(command: str) -> (str, ExecutionResult):
+    return await execute_command(command, 'stb')
 
 
 def get_missing_actions(a_actions, b_actions, verbose=False):
@@ -76,8 +119,8 @@ def get_missing_actions(a_actions, b_actions, verbose=False):
     all_keys = set(a_dict.keys()).union(b_dict.keys())
     missing_actions = []
     for k in all_keys:
-        if k not in b_dict:
-            missing_actions.append(a_actions[k])
+        if k not in b_dict.keys():
+            missing_actions.append(a_dict[k])
         if verbose:
             print(k)
             print("A: ", a_dict.get(k, ""))

@@ -174,6 +174,7 @@ public class UseCaseExecutor{
             e.printStackTrace();
             Log.e(LatteService.TAG, "CustomStep cannot be created " + e.getLocalizedMessage());
         }
+        writeCustomStepResult();
         return false;
     }
 
@@ -236,11 +237,28 @@ public class UseCaseExecutor{
         FileWriter myWriter = null;
         try {
             myWriter = new FileWriter(file);
-            int number_of_actions = this.customStep instanceof LocatableStep ? ((LocatableStep) this.customStep).getNumberOfLocatingAttempts() + ((LocatableStep) this.customStep).getNumberOfActingAttempts() : 0;
-            String message = String.format(Locale.getDefault(),"   Custom Step $ State: %s $ #Events: %d $ Time: %d",
+            if(customStep == null || !customStep.isDone()) {
+                myWriter.write(String.format(Locale.getDefault(),"   Custom Step $ State: %s $ #Events: %d $ Time: %d $ ActingWidget: %s\n",
+                        StepState.FAILED.name(),
+                        -1,
+                        -1,
+                        ""
+                ));
+                return;
+            }
+            int number_of_actions = 0;
+            String actingWidget = "";
+            if (this.customStep instanceof LocatableStep) {
+                LocatableStep locatableStep = (LocatableStep) this.customStep;
+                number_of_actions = locatableStep.getNumberOfLocatingAttempts() + locatableStep.getNumberOfActingAttempts();
+                actingWidget = locatableStep.getActedWidget() != null ? locatableStep.getActedWidget().completeToString(true) : "";
+            }
+            String message = String.format(Locale.getDefault(),"   Custom Step $ State: %s $ #Events: %d $ Time: %d $ ActingWidget: %s\n",
                     this.customStep.getState().name(),
                     number_of_actions,
-                    this.customStep.getTotalTime());
+                    this.customStep.getTotalTime(),
+                    actingWidget
+                    );
             myWriter.write(message + "\n");
             myWriter.close();
         } catch (IOException ex) {

@@ -2,10 +2,21 @@ package dev.navids.latte.UseCase;
 
 import org.json.simple.JSONObject;
 
+import dev.navids.latte.ActualWidgetInfo;
 import dev.navids.latte.ConceivedWidgetInfo;
 
 public abstract class LocatableStep extends StepCommand {
     private ConceivedWidgetInfo targetWidget;
+
+    public ActualWidgetInfo getActedWidget() {
+        return actedWidget;
+    }
+
+    public void setActedWidget(ActualWidgetInfo actedWidget) {
+        this.actedWidget = actedWidget;
+    }
+
+    private ActualWidgetInfo actedWidget = null;
 
     public int getNumberOfLocatingAttempts() {
         return numberOfLocatingAttempts;

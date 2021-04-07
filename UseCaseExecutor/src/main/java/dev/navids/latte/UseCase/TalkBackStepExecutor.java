@@ -32,7 +32,7 @@ public class TalkBackStepExecutor implements StepExecutor {
     private Map<StepCommand, Map<WidgetInfo, Integer>> a11yNodeInfoTracker = new HashMap<>();
     @Override
     public boolean executeStep(StepCommand step) {
-        Log.i(LatteService.TAG, "Executing Step " + step);
+        Log.i(LatteService.TAG, "TB Executing Step " + step);
         if(step.getState() != StepState.RUNNING)
             return false;
         if(!step.shouldExecuteByA11yAssistantService())
@@ -62,7 +62,7 @@ public class TalkBackStepExecutor implements StepExecutor {
             }
             // matchedNodes.get(0) is our target
             List<AccessibilityNodeInfo> similarNodes = Utils.findSimilarNodes(locatableStep.getTargetWidgetInfo(), maskedAttributes);
-            if(!isFocusedNodeTarget(similarNodes)){
+            if(!ActionUtils.isFocusedNodeTarget(similarNodes)){
                 Log.i(LatteService.TAG, "Continue exploration!");
 //                performNext(null);
                 performNext();
@@ -73,6 +73,7 @@ public class TalkBackStepExecutor implements StepExecutor {
                 Log.i(LatteService.TAG, "The located widget is not correct, use regular executor");
                 return executeByRegularExecutor(step, locatableStep);
             }
+            locatableStep.setActedWidget(ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getFocusedNode()));
             if(locatableStep instanceof ClickStep){
                 ActionUtils.performDoubleTap();
                 locatableStep.setState(StepState.COMPLETED);
@@ -95,28 +96,7 @@ public class TalkBackStepExecutor implements StepExecutor {
         }
     }
 
-    private boolean isFocusedNodeTarget(List<AccessibilityNodeInfo> similarNodes) {
-        if(similarNodes.size() == 0)
-            return false;
-        AccessibilityNodeInfo targetNode = similarNodes.get(0); // TODO: This strategy works even we found multiple similar widgets
-        AccessibilityNodeInfo firstReachableNode = targetNode;
-        boolean isSimilar = firstReachableNode != null && firstReachableNode.equals(LatteService.getInstance().getFocusedNode());
-        if(!isSimilar) {
-            AccessibilityNodeInfo it = targetNode;
-            while (it != null) {
-                if (it.isClickable()) {
-                    firstReachableNode = it;
-                    break;
-                }
-                it = it.getParent();
-            }
-            Log.i(LatteService.TAG, "-- FIRST REACHABLE NODE IS " + firstReachableNode);
-            isSimilar = firstReachableNode != null && firstReachableNode.equals(LatteService.getInstance().getFocusedNode());
-        }
-        return isSimilar;
-    }
-
-    private boolean executeByRegularExecutor(StepCommand step, LocatableStep locatableStep) {
+    public static boolean executeByRegularExecutor(StepCommand step, LocatableStep locatableStep) {
         LatteService.getInstance().getStepExecutor("regular").executeStep(step);
         if(step.getState() == StepState.COMPLETED) {
             locatableStep.setState(StepState.COMPLETED_BY_HELP);

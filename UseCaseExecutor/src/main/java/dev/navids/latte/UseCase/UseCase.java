@@ -69,10 +69,12 @@ public class UseCase {
         for(int i=0; i<steps.size(); i++) {
             StepCommand step = steps.get(i);
             int number_of_actions = 0;
+            String actingWidget = "";
             if(step instanceof LocatableStep){
                 LocatableStep locatableStep = (LocatableStep) step;
                 totalEvents += locatableStep.getNumberOfLocatingAttempts() + locatableStep.getNumberOfActingAttempts();
                 number_of_actions = locatableStep.getNumberOfLocatingAttempts() + locatableStep.getNumberOfActingAttempts();
+                actingWidget = locatableStep.getActedWidget().completeToString(true);
             }
 
             if(step.getState() != StepState.COMPLETED && firstProbelmaticCommand < 0)
@@ -83,10 +85,11 @@ public class UseCase {
                 unlocatedCount++;
             else if(step.getState() == StepState.FAILED)
                 failedCount++;
-            String message = String.format(Locale.getDefault(),"   Step[%d] $ State: %s $ #Events: %d $ Time: %d",
+            String message = String.format(Locale.getDefault(),"   Step[%d] $ State: %s $ #Events: %d $ Time: %d $ ActingWidget: %s",
                     i + 1, step.getState().name(),
                     number_of_actions,
-                    step.getTotalTime());
+                    step.getTotalTime(),
+                    actingWidget);
             finalResult.append(message).append("\n");
         }
         String message = String.format(Locale.getDefault(), "Result: %s $ Steps: %d $ Completed: %d $ Failed: %d $ Unlocatable: %d $ Unreachable: %d $ FirstProblem: %d $ TotalEvents: %d $ TotalTime: %d",

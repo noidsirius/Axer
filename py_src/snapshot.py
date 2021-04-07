@@ -3,15 +3,15 @@ import json
 import shutil
 from collections import defaultdict
 from pathlib import Path
-from typing import List
+from typing import Callable, List
 from ppadb.client_async import ClientAsync as AdbClient
 
 from GUI_utils import get_elements
 from a11y_service import A11yServiceManager
 from adb_utils import capture_layout, load_snapshot, save_snapshot
 from latte_utils import is_navigation_done, \
-    talkback_nav_command, tb_navigate_next, tb_perform_select,\
-    reg_perform_select
+    talkback_nav_command, tb_navigate_next, tb_perform_select, \
+    reg_execute_command, stb_execute_command, get_missing_actions, ExecutionResult
 from padb_utils import ParallelADBLogger, save_screenshot
 
 
@@ -24,6 +24,8 @@ class Snapshot:
         self.output_path = Path(result_path).joinpath(self.initial_snapshot)
         self.regular_supp_path = self.output_path.joinpath("REG")
         self.talkback_supp_path = self.output_path.joinpath("TB")
+        self.explore_result_path = self.output_path.joinpath("explore.json")
+        self.stb_result_path = self.output_path.joinpath("stb_result.json")
         self.summary_path = self.output_path.joinpath("summary.txt")
         client = AdbClient(host="127.0.0.1", port=5037)
         self.device = asyncio.run(client.device("emulator-5554"))
@@ -45,6 +47,7 @@ class Snapshot:
         if not self.emulator_setup():
             print("Error in emulator setup!")
             return
+        initial_layout = asyncio.run(capture_layout())
         if self.output_path.exists():
             shutil.rmtree(self.output_path.absolute())
         self.output_path.mkdir()
@@ -65,6 +68,7 @@ class Snapshot:
         visited_resource_ids = set()
         visited_xpath_count = defaultdict(int)
         tb_commands = []
+        explore_result = {}
         reload_snapshot = True
         while not is_navigation_done():
             count += 1
@@ -101,7 +105,7 @@ class Snapshot:
             asyncio.run(save_screenshot(self.device, str(self.talkback_supp_path.joinpath(f"{count}.png"))))
             asyncio.run(save_snapshot(self.tmp_snapshot))
             tb_commands.append(next_command_str)
-            log_message, tb_layout = asyncio.run(padb_logger.execute_async_with_log(tb_perform_select()))
+            log_message, (tb_layout, tb_result) = asyncio.run(padb_logger.execute_async_with_log(tb_perform_select()))
             with open(self.talkback_supp_path.joinpath(f"{count}.xml"), mode='w') as f:
                 f.write(tb_layout)
             with open(self.talkback_supp_path.joinpath(f"{count}.log"), mode='w') as f:
@@ -109,14 +113,24 @@ class Snapshot:
             if not asyncio.run(load_snapshot(self.tmp_snapshot)):
                 print("Error in loading snapshot")
                 return False
-            log_message, reg_layout = asyncio.run(
-                padb_logger.execute_async_with_log(reg_perform_select(next_command_str)))
+            print("Now with regular executor")
+            log_message, (reg_layout, reg_result) = asyncio.run(
+                padb_logger.execute_async_with_log(reg_execute_command(next_command_str)))
             with open(self.regular_supp_path.joinpath(f"{count}.xml"), mode='w') as f:
                 f.write(reg_layout)
             with open(self.regular_supp_path.joinpath(f"{count}.log"), mode='w') as f:
                 f.write(log_message)
+            explore_result[count] = {'command': next_command_json,
+                                     'same': tb_layout == reg_layout,
+                                     'tb_result': tb_result,
+                                     'reg_result': reg_result,
+                                     'tb_no_change': tb_layout == initial_layout,
+                                     'reg_no_change': reg_result == initial_layout,
+                                     }
             print("Groundhug Day!")
         print("Done")
+        with open(self.explore_result_path, "w") as f:
+            json.dump(explore_result, f)
         return tb_commands
 
     def get_important_actions(self) -> List:
@@ -136,16 +150,14 @@ class Snapshot:
         return refined_list
 
     def get_tb_done_actions(self):
-        tb_visited = []
-        with open(self.summary_path) as f:
-            aa = f.read()
-            for x in aa.split('\n'):
-                x = x[x.find(':') + 1:].strip()
-                if x:
-                    tb_visited.append(json.loads(x))
-        return tb_visited
+        result = []
+        with open(self.explore_result_path) as f:
+            explore_result = json.load(f)
+        for index in explore_result:
+            result.append(explore_result[index]['command'])
+        return result
 
-    def get_meaningful_actions(self, action_list: List) -> List:
+    def get_meaningful_actions(self, action_list: List, executor: Callable = reg_execute_command) -> List:
         if not asyncio.run(load_snapshot(self.initial_snapshot)):
             print("Error in loading snapshot")
             return []
@@ -155,7 +167,61 @@ class Snapshot:
             if not asyncio.run(load_snapshot(self.initial_snapshot)):
                 print("Error in loading snapshot")
                 return []
-            reg_layout = asyncio.run(reg_perform_select(json.dumps(action)))
+            reg_layout, result = asyncio.run(executor(json.dumps(action)))
             if reg_layout != original_layout:
                 meaningful_actions.append(action)
         return meaningful_actions
+
+    def validate_by_stb(self):
+        important_actions = self.get_important_actions()
+        tb_done_actions = self.get_tb_done_actions()
+        tb_undone_actions = get_missing_actions(important_actions, tb_done_actions)
+        if not asyncio.run(load_snapshot(self.initial_snapshot)):
+            print("Error in loading snapshot")
+            return []
+        initial_layout = asyncio.run(capture_layout())
+        stb_result_list = {}
+        for action in tb_undone_actions:
+            if not asyncio.run(load_snapshot(self.initial_snapshot)):
+                print("Error in loading snapshot")
+                return []
+            reg_layout, reg_result = asyncio.run(reg_execute_command(json.dumps(action)))
+            if reg_layout == initial_layout or reg_result.state != 'COMPLETED':  # the action is not meaningful
+                continue
+            if not asyncio.run(load_snapshot(self.initial_snapshot)):
+                print("Error in loading snapshot")
+                return []
+            stb_layout, stb_result = asyncio.run(stb_execute_command(json.dumps(action)))
+            a_result = {'command': action,
+                        'same': reg_layout == stb_layout,
+                        'stb_no_change': stb_layout == initial_layout,
+                        'stb_result': stb_result}
+            stb_result_list[action['xpath']] = a_result
+        with open(self.stb_result_path, "w") as f:
+            json.dump(stb_result_list, f)
+
+    def report_issues(self):
+        different_behaviors = []
+        directional_unreachable = []
+        unlocatable = []
+        different_behaviors_directional_unreachable = []
+        tb_xpaths = {}
+        with open(self.explore_result_path) as f:
+            explore_result = json.load(f)
+            for index in explore_result:
+                tb_xpaths[explore_result[index]['command']['xpath']] = explore_result[index]['command']
+                if not explore_result[index]['same']:
+                    different_behaviors.append(explore_result[index]['command'])
+
+        with open(self.stb_result_path) as f:
+            stb_results = json.load(f)
+            for key in stb_results:
+                e = ExecutionResult(*stb_results[key]['stb_result'])
+                if e.state == 'COMPLETED_BY_HELP':
+                    unlocatable.append(stb_results[key]['command'])
+                elif e.state == 'FAILED' or not stb_results[key]['same']:
+                    different_behaviors_directional_unreachable.append(stb_results[key]['command'])
+                else:
+                    if e.xpath not in tb_xpaths.keys():
+                        directional_unreachable.append(stb_results[key]['command'])
+        return different_behaviors, directional_unreachable, unlocatable, different_behaviors_directional_unreachable

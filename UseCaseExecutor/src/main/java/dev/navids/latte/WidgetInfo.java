@@ -80,15 +80,17 @@ public abstract class WidgetInfo implements Serializable {
     }
     public abstract String getXpath();
 
-    @Override
-    public String toString() {
-        String xpath = "";
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-//            xpath = !getXpath().equals("")? " xpath: " + getXpath() : ""; // TODO: it's too long
+    public String completeToString(boolean has_xpath){
+        String xpath = has_xpath? " xpath= " + getXpath() : "";
         String id = hasAttr("resourceId") ? " ID= "+getAttr("resourceId")+", ": "";
         String cd = hasAttr("contentDescription") ? " CD= "+getAttr("contentDescription")+", ": "";
         String tx = hasAttr("text") ? " TX= "+getAttr("text")+", ": "";
         String cl = hasAttr("class") ? " CL= "+getAttr("class")+", ": "";
         return id + cd + tx + cl + xpath;
+    }
+
+    @Override
+    public String toString() {
+        return completeToString(false);
     }
 }

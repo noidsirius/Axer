@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import dev.navids.latte.UseCase.RegularStepExecutor;
+import dev.navids.latte.UseCase.SightedTalkBackStepExecutor;
 import dev.navids.latte.UseCase.StepExecutor;
 import dev.navids.latte.UseCase.TalkBackStepExecutor;
 
@@ -49,7 +50,6 @@ public class LatteService extends AccessibilityService {
     public StepExecutor getStepExecutor(String key){
         return stepExecutorsMap.getOrDefault(key, null);
     }
-    TalkBackStepExecutor talkBackStepExecutor;
     @Override
     protected void onServiceConnected() {
         Log.i(TAG, "Latte Service has started!");
@@ -61,9 +61,9 @@ public class LatteService extends AccessibilityService {
         registerReceiver(receiver, new IntentFilter(CommandReceiver.ACTION_COMMAND_INTENT));
         instance = this;
         connected = true;
-        talkBackStepExecutor = new TalkBackStepExecutor();
         addStepExecutor("regular", new RegularStepExecutor());
-        addStepExecutor("talkback", talkBackStepExecutor);
+        addStepExecutor("talkback", new TalkBackStepExecutor());
+        addStepExecutor("sighted_tb", new SightedTalkBackStepExecutor());
     }
 
     @Override

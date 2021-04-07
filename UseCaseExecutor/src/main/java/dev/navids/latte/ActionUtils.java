@@ -28,6 +28,28 @@ public class ActionUtils {
             super.onCancelled(gestureDescription);
         }
     };
+
+    public static boolean isFocusedNodeTarget(List<AccessibilityNodeInfo> similarNodes) {
+        if(similarNodes.size() == 0)
+            return false;
+        AccessibilityNodeInfo targetNode = similarNodes.get(0); // TODO: This strategy works even we found multiple similar widgets
+        AccessibilityNodeInfo firstReachableNode = targetNode;
+        boolean isSimilar = firstReachableNode != null && firstReachableNode.equals(LatteService.getInstance().getFocusedNode());
+        if(!isSimilar) {
+            AccessibilityNodeInfo it = targetNode;
+            while (it != null) {
+                if (it.isClickable()) {
+                    firstReachableNode = it;
+                    break;
+                }
+                it = it.getParent();
+            }
+            Log.i(LatteService.TAG, "-- FIRST REACHABLE NODE IS " + firstReachableNode);
+            isSimilar = firstReachableNode != null && firstReachableNode.equals(LatteService.getInstance().getFocusedNode());
+        }
+        return isSimilar;
+    }
+
     public static Pair<Integer, Integer> getClickableCoordinate(AccessibilityNodeInfo node){
         return getClickableCoordinate(node, true);
     }

@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, List
 import json
 import asyncio
 from lxml import etree
@@ -28,11 +28,13 @@ def get_xpath(node):
     return path
 
 
-def get_elements(query: Callable[[etree.Element], bool] = None):
+def get_elements(query: Callable[[etree.Element], bool] = None) -> List:
     dom = asyncio.run(capture_layout())
     dom_utf8 = dom.encode('utf-8')
     parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
     tree = etree.fromstring(dom_utf8, parser)
+    if tree is None:
+        return []
     commands = []
     for i, x in enumerate(tree.getiterator()):
         if query is not None and not query(x):

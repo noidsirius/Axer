@@ -20,7 +20,7 @@ public class RegularStepExecutor implements StepExecutor {
 
     @Override
     public boolean executeStep(StepCommand step) {
-        Log.i(LatteService.TAG, "Executing Step " + step);
+        Log.i(LatteService.TAG, "Reg Executing Step " + step);
         if(step.getState() != StepState.RUNNING)
             return false;
         if(step instanceof LocatableStep){
@@ -46,6 +46,7 @@ public class RegularStepExecutor implements StepExecutor {
                 AccessibilityNodeInfo node = similarNodes.get(0);
                 locatableStep.increaseActingAttempts();
                 ActualWidgetInfo currentNodeInfo = ActualWidgetInfo.createFromA11yNode(node);
+                locatableStep.setActedWidget(currentNodeInfo);
                 if(locatableStep instanceof ClickStep)
                     return executeClick((ClickStep) locatableStep, node);
                 else if(locatableStep instanceof TypeStep)
