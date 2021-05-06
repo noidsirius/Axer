@@ -1,5 +1,7 @@
 import asyncio
+import xmlformatter
 
+formatter = xmlformatter.Formatter(indent="1", indent_char="\t", encoding_output="UTF-8", preserve=["literal"])
 LATTE_PKG_NAME = "dev.navids.latte"
 
 
@@ -17,7 +19,9 @@ async def run_bash(cmd) -> (int, str, str):
 async def capture_layout() -> str:
     cmd = "adb exec-out uiautomator dump /dev/tty"
     _, stdout, _ = await run_bash(cmd)
-    return stdout.replace("UI hierchary dumped to: /dev/tty", "")
+    layout = stdout.replace("UI hierchary dumped to: /dev/tty", "")
+    layout = formatter.format_string(layout).decode("utf-8")
+    return layout
 
 
 async def load_snapshot(snapshot_name) -> bool:

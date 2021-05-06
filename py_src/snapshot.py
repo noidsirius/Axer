@@ -38,6 +38,7 @@ class Snapshot:
             await A11yServiceManager.setup_latte_a11y_services(tb=True)
             await talkback_nav_command("clear_history")
             print("Enabled A11y Services:", await A11yServiceManager.get_enabled_services())
+            await asyncio.sleep(3)
             await save_snapshot(self.tmp_snapshot)
             return True
 
