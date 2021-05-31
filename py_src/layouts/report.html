@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+
+    <title>Hello, world!</title>
+</head>
+<body>
+
+
+<main>
+    <div class="row">
+        <div class="col-1"></div>
+        <div class="col-10">
+            <div class="row">
+                <h1>Hello, world!</h1>
+            </div>
+            <div class="row">
+                <table class="table table-bordered">
+                    <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Action</th>
+                        <th scope="col">Inital</th>
+                        <th scope="col">Talkback</th>
+                        <th scope="col">Regular</th>
+                        <th scope="col">Result</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <th scope="row">1</th>
+                        <td>
+                            <table class="table">
+                                <tr>
+                                    <td class="text-end">ResourceId</td>
+                                    <td class="text-start">MM</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-end">Text</td>
+                                    <td class="text-start">MM</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-end">Content Description</td>
+                                    <td class="text-start">MM</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-end">Class</td>
+                                    <td class="text-start">MM</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-end">XPath</td>
+                                    <td class="text-start">
+                                        <button type="button" class="btn btn-light" data-bs-toggle="tooltip"
+                                                data-bs-placement="top" title="Tooltip on top">XPath
+                                        </button>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>
+                            <a href="#" class="enlarge">
+                                <img src="../../result/Budget_0/TB/1.png" class="rounded d-block mx-auto"
+                                     style="width: 10rem;">
+                            </a>
+                        </td>
+                        <td>
+                            <a href="#" class="enlarge">
+                                <img src="../../result/Budget_0/TB/2.png" class="rounded d-block mx-auto"
+                                     style="width: 10rem;">
+                            </a>
+                        </td>
+                        <td>
+                            <a href="#" class="enlarge">
+                                <img src="../../result/Budget_0/TB/3.png" class="rounded d-block mx-auto"
+                                     style="width: 10rem;">
+                            </a>
+                        </td>
+                        <td class="table-success">
+                            <ul>
+                                <li>Result: Passed</li>
+                                <li>: Failed</li>
+                            </ul>
+                            <a href="#" class="showdiff btn btn-secondary">
+                                Show Diff
+                                <div style="display: none; visibility: hidden" class="xml-a-content"> Salam&lt; ahaha &gt; bar to</div>
+                                <div style="display: none; visibility: hidden" class="xml-b-content"> Salam bar man</div>
+                            </a>
+
+                        </td>
+                    </tr>
+                    <!--                    <tr>-->
+                    <!--                        <th scope="row">2</th>-->
+                    <!--                        <td>Jacob</td>-->
+                    <!--                        <td>Thornton</td>-->
+                    <!--                        <td>@fat</td>-->
+                    <!--                    </tr>-->
+                    <!--                    <tr>-->
+                    <!--                        <th scope="row">3</th>-->
+                    <!--                        <td colspan="2">Larry the Bird</td>-->
+                    <!--                        <td>@twitter</td>-->
+                    <!--                    </tr>-->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-1"></div>
+    </div>
+</main>
+<!--XML Diff Modal-->
+<div class="modal fade" id="xmldiffmodal" tabindex="-1" role="dialog" aria-labelledby="myXMLModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-body">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="row">
+                    <div class="col-6" id="xml_A"></div>
+                    <div class="col-6" id="xml_B"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!--Enlarged Image Modal-->
+<div class="modal fade" id="imagemodal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <img src="" class="imagepreview" style="width: 100%;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Optional JavaScript; choose one of the two! -->
+
+<!-- Option 1: Bootstrap Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4"
+        crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"
+        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+<!-- Option 2: Separate Popper and Bootstrap JS -->
+<!--
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js" integrity="sha384-IQsoLXl5PILFhosVNubq5LC7Qb9DXgDA9i+tQ8Zj3iwWAwPtgFTxbJ8NT4GN1R8p" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.min.js" integrity="sha384-Atwg2Pkwv9vp0ygtn1JAojH0nYbwNJLPhwyoVbhoPwBhjQPR5VtM2+xf0Uwh9KtT" crossorigin="anonymous"></script>
+-->
+<script>
+    $(function () {
+        $('.enlarge').on('click', function () {
+            $('.imagepreview').attr('src', $(this).find('img').attr('src'));
+            $('#imagemodal').modal('show');
+        });
+        $('.showdiff').on('click', function () {
+            console.log("AHAH");
+            console.log($(this).find('.xml-a-content').html());
+            $('#xml_A').html($(this).find('.xml-a-content').html())
+            $('#xml_B').html($(this).find('.xml-b-content').html())
+            $('#xmldiffmodal').modal('show');
+        });
+        // Enabling Tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    });
+
+</script>
+</body>
+</html>
