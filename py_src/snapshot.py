@@ -24,6 +24,7 @@ class Snapshot:
         self.output_path = Path(result_path).joinpath(self.initial_snapshot)
         self.regular_supp_path = self.output_path.joinpath("REG")
         self.talkback_supp_path = self.output_path.joinpath("TB")
+        self.explore_supp_path = self.output_path.joinpath("EXP")
         self.explore_result_path = self.output_path.joinpath("explore.json")
         self.stb_result_path = self.output_path.joinpath("stb_result.json")
         self.summary_path = self.output_path.joinpath("summary.txt")
@@ -54,6 +55,7 @@ class Snapshot:
         self.output_path.mkdir()
         self.regular_supp_path.mkdir()
         self.talkback_supp_path.mkdir()
+        self.explore_supp_path.mkdir()
         with open(self.summary_path, mode='w') as f:
             f.write("")
         count = 0
@@ -103,7 +105,7 @@ class Snapshot:
             with open(self.summary_path, mode='a') as f:
                 f.write(f"{count}: {next_command_str}\n")
             print("Get another snapshot")
-            asyncio.run(save_screenshot(self.device, str(self.talkback_supp_path.joinpath(f"{count}.png"))))
+            asyncio.run(save_screenshot(self.device, str(self.explore_supp_path.joinpath(f"{count}.png"))))
             asyncio.run(save_snapshot(self.tmp_snapshot))
             tb_commands.append(next_command_str)
             log_message, (tb_layout, tb_result) = asyncio.run(padb_logger.execute_async_with_log(tb_perform_select()))
@@ -111,6 +113,7 @@ class Snapshot:
                 f.write(tb_layout)
             with open(self.talkback_supp_path.joinpath(f"{count}.log"), mode='w') as f:
                 f.write(log_message)
+            asyncio.run(save_screenshot(self.device, str(self.talkback_supp_path.joinpath(f"{count}.png"))))
             if not asyncio.run(load_snapshot(self.tmp_snapshot)):
                 print("Error in loading snapshot")
                 return False
@@ -121,12 +124,13 @@ class Snapshot:
                 f.write(reg_layout)
             with open(self.regular_supp_path.joinpath(f"{count}.log"), mode='w') as f:
                 f.write(log_message)
+            asyncio.run(save_screenshot(self.device, str(self.regular_supp_path.joinpath(f"{count}.png"))))
             explore_result[count] = {'command': next_command_json,
                                      'same': tb_layout == reg_layout,
                                      'tb_result': tb_result,
                                      'reg_result': reg_result,
                                      'tb_no_change': tb_layout == initial_layout,
-                                     'reg_no_change': reg_result == initial_layout,
+                                     'reg_no_change': reg_result == initial_layout, # TODO: possible bug (reg_result -> reg_layout)
                                      }
             print("Groundhug Day!")
         print("Done")
@@ -181,22 +185,32 @@ class Snapshot:
             print("Error in loading snapshot")
             return []
         initial_layout = asyncio.run(capture_layout())
+        asyncio.run(save_screenshot(self.device, str(self.explore_supp_path.joinpath(f"INITIAL.png"))))
         stb_result_list = {}
-        for action in tb_undone_actions:
+        for index, action in enumerate(tb_undone_actions):
             if not asyncio.run(load_snapshot(self.initial_snapshot)):
                 print("Error in loading snapshot")
                 return []
             reg_layout, reg_result = asyncio.run(reg_execute_command(json.dumps(action)))
             if reg_layout == initial_layout or reg_result.state != 'COMPLETED':  # the action is not meaningful
                 continue
+            asyncio.run(save_screenshot(self.device, str(self.regular_supp_path.joinpath(f"M_{index}.png"))))
+            with open(self.regular_supp_path.joinpath(f"M_{index}.xml"), mode='w') as f:
+                f.write(reg_layout)
             if not asyncio.run(load_snapshot(self.initial_snapshot)):
                 print("Error in loading snapshot")
                 return []
             stb_layout, stb_result = asyncio.run(stb_execute_command(json.dumps(action)))
-            a_result = {'command': action,
+            asyncio.run(save_screenshot(self.device, str(self.talkback_supp_path.joinpath(f"M_{index}.png"))))
+            with open(self.talkback_supp_path.joinpath(f"M_{index}.xml"), mode='w') as f:
+                f.write(stb_layout)
+            a_result = {'index': index,
+                        'command': action,
                         'same': reg_layout == stb_layout,
                         'stb_no_change': stb_layout == initial_layout,
-                        'stb_result': stb_result}
+                        'stb_result': stb_result,
+                        'reg_result': reg_result,
+                        }
             stb_result_list[action['xpath']] = a_result
         with open(self.stb_result_path, "w") as f:
             json.dump(stb_result_list, f)

@@ -19,7 +19,15 @@
         <div class="col-1"></div>
         <div class="col-10">
             <div class="row">
-                <h1>Hello, world!</h1>
+                <div class="col-8">
+                    <h1>TalkBack Exploration</h1>
+                </div>
+                <div class="col-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="tb_steps_switch">
+                        <label class="form-check-label" for="flexSwitchCheckDefault">Hide passed actions</label>
+                    </div>
+                </div>
             </div>
             <div class="row">
                 <table class="table table-bordered">
@@ -35,8 +43,8 @@
                     </thead>
                     <tbody>
                     {% for step in tb_steps %}
-                        <tr>
-                            <th scope="row">{{ loop.index }}</th>
+                        <tr class="tb-step-{{ "passed" if step.status else "failed" }}">
+                            <th scope="row">{{ step.index }}</th>
                             <td>
                                 <table class="table">
                                     <tr>
@@ -75,14 +83,14 @@
                                 <a href="#" class="enlarge">
                                     <img src="{{ step.tb_img }}" class="rounded d-block mx-auto"
                                          style="width: 10rem;" data-bs-toggle="tooltip"
-                                                    data-bs-placement="top" title="{{ step.tb_result|e }}">
+                                         data-bs-placement="top" title="{{ step.tb_result|e }}">
                                 </a>
                             </td>
                             <td>
                                 <a href="#" class="enlarge">
                                     <img src="{{ step.reg_img }}" class="rounded d-block mx-auto"
                                          style="width: 10rem;" data-bs-toggle="tooltip"
-                                                    data-bs-placement="top" title="{{ step.reg_result|e }}">
+                                         data-bs-placement="top" title="{{ step.reg_result|e }}">
                                 </a>
                             </td>
                             <td class="{{ 'table-success' if step.status else 'table-danger' }}">
@@ -91,9 +99,92 @@
                                 </ul>
                                 <a href="#" class="showdiff btn btn-secondary">
                                     Show Diff
-                                     <input type="hidden" class="snapshot-index" value="{{ loop.index }}">
-                                    <pre style="display: none; visibility: hidden" class="xml-a-content"> {{ step.xml_a|e }} </pre>
-                                    <pre style="display: none; visibility: hidden" class="xml-b-content"> {{ step.xml_b|e }} </pre>
+                                    <input type="hidden" class="snapshot-index" value="{{ step.index }}">
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="row">
+                <div class="col-8">
+                    <h1>Sighted TalkBack Checks</h1>
+                </div>
+                <div class="col-4">
+                </div>
+            </div>
+            <div class="row">
+                <table class="table table-bordered">
+                    <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Action</th>
+                        <th scope="col">Inital</th>
+                        <th scope="col">Sighted Talkback</th>
+                        <th scope="col">Regular</th>
+                        <th scope="col">Result</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for step in stb_steps %}
+                        <tr>
+                            <th scope="row">{{ step.index }}</th>
+                            <td>
+                                <table class="table">
+                                    <tr>
+                                        <td class="text-end">ResourceId</td>
+                                        <td class="text-start">{{ step.action.resourceId }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-end">Text</td>
+                                        <td class="text-start">{{ step.action.text }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-end">Content Description</td>
+                                        <td class="text-start">{{ step.action.contentDescription }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-end">Class</td>
+                                        <td class="text-start">{{ step.action.class }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-end">XPath</td>
+                                        <td class="text-start">
+                                            <button type="button" class="btn btn-light" data-bs-toggle="tooltip"
+                                                    data-bs-placement="top" title="{{ step.action.xpath }}">XPath
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td>
+                                <a href="#" class="enlarge">
+                                    <img src="{{ step.init_img }}" class="rounded d-block mx-auto"
+                                         style="width: 10rem;">
+                                </a>
+                            </td>
+                            <td>
+                                <a href="#" class="enlarge">
+                                    <img src="{{ step.tb_img }}" class="rounded d-block mx-auto"
+                                         style="width: 10rem;" data-bs-toggle="tooltip"
+                                         data-bs-placement="top" title="{{ step.tb_result|e }}">
+                                </a>
+                            </td>
+                            <td>
+                                <a href="#" class="enlarge">
+                                    <img src="{{ step.reg_img }}" class="rounded d-block mx-auto"
+                                         style="width: 10rem;" data-bs-toggle="tooltip"
+                                         data-bs-placement="top" title="{{ step.reg_result|e }}">
+                                </a>
+                            </td>
+                            <td class="{{ 'table-warning' if step.status else 'table-danger' }}">
+                                <ul>
+                                    <li>Result: {{ "Passed" if step.status else "Failed" }}</li>
+                                </ul>
+                                <a href="#" class="showdiff btn btn-secondary">
+                                    Show Diff
+                                    <input type="hidden" class="snapshot-index" value="M_{{ step.index }}">
                                 </a>
                             </td>
                         </tr>
@@ -113,10 +204,10 @@
             <div class="modal-body">
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 <iframe id="diff_iframe_id" style="width: 100%; height: 100%" src=""></iframe>
-{#                <div class="row">#}
-{#                    <pre class="col-6" id="xml_A"></pre>#}
-{#                    <pre class="col-6" id="xml_B"></pre>#}
-{#                </div>#}
+                {#                <div class="row">#}
+                {#                    <pre class="col-6" id="xml_A"></pre>#}
+                {#                    <pre class="col-6" id="xml_B"></pre>#}
+                {#                </div>#}
             </div>
         </div>
     </div>
@@ -148,13 +239,20 @@
 -->
 <script>
     $(function () {
+        $('#tb_steps_switch').change(function(){
+            if (this.checked){
+                $('.tb-step-passed').hide();
+            }
+            else
+                $('.tb-step-passed').show();
+        });
         $('.enlarge').on('click', function () {
             $('.imagepreview').attr('src', $(this).find('img').attr('src'));
             $('#imagemodal').modal('show');
         });
         $('.showdiff').on('click', function () {
             let index = $(this).find('.snapshot-index').attr('value');
-            $('#diff_iframe_id').attr('src', "/snapshot/diff/{{ name }}/"+index);
+            $('#diff_iframe_id').attr('src', "/snapshot/diff/{{ name }}/" + index);
             $('#xmldiffmodal').modal('show');
         });
         // Enabling Tooltips
