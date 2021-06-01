@@ -151,7 +151,15 @@ public class UseCaseExecutor{
         Log.i(LatteService.TAG, "UseCaseExecutor is stopped!");
     }
 
-    public synchronized boolean executeCustomStep(String stepJSONString){
+    public synchronized void interruptCustomStepExecution(){
+        stop();
+        customStep = null;
+        if(stepExecutor != null)
+            stepExecutor.interrupt();
+        writeCustomStepResult();
+    }
+
+    public synchronized boolean initiateCustomStep(String stepJSONString){
         stop();
         // Removing previous result file
         String fileName = custom_step_result_file_name;

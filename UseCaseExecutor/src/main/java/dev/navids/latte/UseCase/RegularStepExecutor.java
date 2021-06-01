@@ -65,6 +65,12 @@ public class RegularStepExecutor implements StepExecutor {
         }
     }
 
+    @Override
+    public boolean interrupt() {
+        // TODO
+        return false;
+    }
+
     private boolean executeClick(ClickStep clickStep, AccessibilityNodeInfo node){
         if(is_physical){
             Pair<Integer, Integer> clickableCoordinate = ActionUtils.getClickableCoordinate(node, false);

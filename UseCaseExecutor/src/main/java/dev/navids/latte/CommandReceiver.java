@@ -1,6 +1,5 @@
 package dev.navids.latte;
 
-import android.content.AsyncQueryHandler;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -22,12 +21,9 @@ import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -97,7 +93,10 @@ public class CommandReceiver extends BroadcastReceiver {
                 talkBackNavigator.selectFocus(null);
                 break;
             case "do_step":
-                UseCaseExecutor.v().executeCustomStep(extra);
+                UseCaseExecutor.v().initiateCustomStep(extra);
+                break;
+            case "interrupt": // TODO: do we need an interrupt for nav commands?
+                UseCaseExecutor.v().interruptCustomStepExecution();
                 break;
             case "report_a11y_issues":
             {

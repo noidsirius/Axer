@@ -2,11 +2,13 @@ from collections import namedtuple
 import asyncio
 from adb_utils import run_bash, local_android_file_exists, cat_local_android_file, capture_layout
 from a11y_service import A11yServiceManager
+
 LATTE_INTENT = "dev.navids.latte.COMMAND"
 FINAL_NAV_FILE = "finish_nav_result.txt"
 FINAL_ACITON_FILE = "finish_nav_action.txt"
 CUSTOM_STEP_RESULT = "custom_step_result.txt"
-ExecutionResult = namedtuple('ExecutionResult', ['state', 'events', 'time', 'resourceId', 'className', 'contentDescription', 'xpath'])
+ExecutionResult = namedtuple('ExecutionResult',
+                             ['state', 'events', 'time', 'resourceId', 'className', 'contentDescription', 'xpath'])
 
 
 async def send_command_to_latte(command: str, extra: str = "NONE") -> bool:
@@ -70,7 +72,7 @@ async def tb_perform_select() -> (str, str):
 
 def analyze_execution_result(result: str) -> ExecutionResult:
     if not result:
-        return ExecutionResult("FAILED", "", "", "", "", "","")
+        return ExecutionResult("FAILED", "", "", "", "", "", "")
     parts = result.split('$')
     state = parts[1].split(':')[1].strip()
     events = parts[2].split(':')[1].strip()
@@ -90,7 +92,12 @@ async def execute_command(command: str, executor_name: str = "reg") -> (str, Exe
     elif executor_name == 'stb':
         await setup_sighted_talkback_executor()
     await do_step(command)
-    result = await cat_local_android_file(CUSTOM_STEP_RESULT)
+    TIMEOUT_TIME = 10  # seconds TODO: configurable
+    result = await cat_local_android_file(CUSTOM_STEP_RESULT, wait_time=TIMEOUT_TIME)
+    if result is None:
+        print(f"Timeout, skipping {command} for executor {executor_name}")
+        result = ""
+        await send_command_to_latte("interrupt")
     layout_coroutine = asyncio.create_task(capture_layout())
     execution_result = analyze_execution_result(result)
     layout = await layout_coroutine

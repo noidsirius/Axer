@@ -21,7 +21,7 @@ import dev.navids.latte.Utils;
 import dev.navids.latte.WidgetInfo;
 
 public class TalkBackStepExecutor implements StepExecutor {
-    private Map<Integer, String> pendingActions = new HashMap<>();
+    private Map<Integer, String> pendingActions = new HashMap<>(); // TODO: It's buggy
     private int waitAttemptsForFocusChange = 0;
     private final int MAX_WAIT_FOR_FOCUS_CHANGE = 3; // TODO: Configurable
     private final int MAX_WAIT_FOR_FOCUS_CHANGE_AFTER_PERFORM_NEXT = MAX_WAIT_FOR_FOCUS_CHANGE + 2; // TODO: Configurable
@@ -94,6 +94,12 @@ public class TalkBackStepExecutor implements StepExecutor {
             step.setState(StepState.FAILED);
             return false;
         }
+    }
+
+    @Override
+    public boolean interrupt() {
+        pendingActions.clear();
+        return false;
     }
 
     public static boolean executeByRegularExecutor(StepCommand step, LocatableStep locatableStep) {
