@@ -3,7 +3,7 @@ import json
 import shutil
 from collections import defaultdict
 from pathlib import Path
-from typing import Callable, List
+from typing import Callable, List, Optional
 from ppadb.client_async import ClientAsync as AdbClient
 
 from GUI_utils import get_elements
@@ -13,6 +13,7 @@ from latte_utils import is_navigation_done, \
     talkback_nav_command, tb_navigate_next, tb_perform_select, \
     reg_execute_command, stb_execute_command, get_missing_actions, ExecutionResult
 from padb_utils import ParallelADBLogger, save_screenshot
+from utils import annotate_rectangle
 
 
 class Snapshot:
@@ -92,8 +93,8 @@ class Snapshot:
                 if visited_xpath_count[next_command_json['xpath']] > 3:
                     break
             if next_command_str in tb_commands \
-                    or next_command_json['resourceId'] in visited_resource_ids\
-                    or next_command_json['xpath'] not in valid_xpaths\
+                    or next_command_json['resourceId'] in visited_resource_ids \
+                    or next_command_json['xpath'] not in valid_xpaths \
                     or visited_xpath_count[next_command_json['xpath']] > 1:
                 print("Repetitive or unimportant element!")
                 count -= 1
@@ -109,34 +110,41 @@ class Snapshot:
             asyncio.run(save_snapshot(self.tmp_snapshot))
             tb_commands.append(next_command_str)
             log_message, (tb_layout, tb_result) = asyncio.run(padb_logger.execute_async_with_log(tb_perform_select()))
-            with open(self.talkback_supp_path.joinpath(f"{count}.xml"), mode='w') as f:
-                f.write(tb_layout)
-            with open(self.talkback_supp_path.joinpath(f"{count}.log"), mode='w') as f:
-                f.write(log_message)
-            asyncio.run(save_screenshot(self.device, str(self.talkback_supp_path.joinpath(f"{count}.png"))))
+            self.capture_current_state(str(count), tb_layout, self.talkback_supp_path, log_message=log_message)
             if not asyncio.run(load_snapshot(self.tmp_snapshot)):
                 print("Error in loading snapshot")
                 return False
             print("Now with regular executor")
             log_message, (reg_layout, reg_result) = asyncio.run(
                 padb_logger.execute_async_with_log(reg_execute_command(next_command_str)))
-            with open(self.regular_supp_path.joinpath(f"{count}.xml"), mode='w') as f:
-                f.write(reg_layout)
-            with open(self.regular_supp_path.joinpath(f"{count}.log"), mode='w') as f:
-                f.write(log_message)
-            asyncio.run(save_screenshot(self.device, str(self.regular_supp_path.joinpath(f"{count}.png"))))
+            self.capture_current_state(str(count), reg_layout, self.regular_supp_path, log_message=log_message)
+            annotate_rectangle(self.explore_supp_path.joinpath(f"{count}.png"),
+                               self.explore_supp_path.joinpath(f"{count}_edited.png"),
+                               reg_result.bound,
+                               outline=(0, 255, 255),
+                               scale=15,
+                               width=15, )
+
             explore_result[count] = {'command': next_command_json,
                                      'same': tb_layout == reg_layout,
                                      'tb_result': tb_result,
                                      'reg_result': reg_result,
                                      'tb_no_change': tb_layout == initial_layout,
-                                     'reg_no_change': reg_result == initial_layout, # TODO: possible bug (reg_result -> reg_layout)
+                                     'reg_no_change': reg_layout == initial_layout,
                                      }
             print("Groundhug Day!")
         print("Done")
         with open(self.explore_result_path, "w") as f:
             json.dump(explore_result, f)
         return tb_commands
+
+    def capture_current_state(self, file_name: str, layout: str, path: Path, log_message: Optional[str] = None):
+        with open(path.joinpath(f"{file_name}.xml"), mode='w') as f:
+            f.write(layout)
+        if log_message:
+            with open(path.joinpath(f"{file_name}.log"), mode='w') as f:
+                f.write(log_message)
+        asyncio.run(save_screenshot(self.device, str(path.joinpath(f"{file_name}.png"))))
 
     def get_important_actions(self) -> List:
         if not asyncio.run(load_snapshot(self.initial_snapshot)):
@@ -194,16 +202,24 @@ class Snapshot:
             reg_layout, reg_result = asyncio.run(reg_execute_command(json.dumps(action)))
             if reg_layout == initial_layout or reg_result.state != 'COMPLETED':  # the action is not meaningful
                 continue
-            asyncio.run(save_screenshot(self.device, str(self.regular_supp_path.joinpath(f"M_{index}.png"))))
-            with open(self.regular_supp_path.joinpath(f"M_{index}.xml"), mode='w') as f:
-                f.write(reg_layout)
+            self.capture_current_state(f"M_{index}", reg_layout, self.regular_supp_path)
+            annotate_rectangle(self.explore_supp_path.joinpath(f"INITIAL.png"),
+                               self.explore_supp_path.joinpath(f"I_{index}_R.png"),
+                               reg_result.bound,
+                               outline=(255, 0, 255),
+                               width=5,
+                               scale=1)
             if not asyncio.run(load_snapshot(self.initial_snapshot)):
                 print("Error in loading snapshot")
                 return []
             stb_layout, stb_result = asyncio.run(stb_execute_command(json.dumps(action)))
-            asyncio.run(save_screenshot(self.device, str(self.talkback_supp_path.joinpath(f"M_{index}.png"))))
-            with open(self.talkback_supp_path.joinpath(f"M_{index}.xml"), mode='w') as f:
-                f.write(stb_layout)
+            self.capture_current_state(f"M_{index}", stb_layout, self.talkback_supp_path)
+            annotate_rectangle(self.explore_supp_path.joinpath(f"I_{index}_R.png"),
+                               self.explore_supp_path.joinpath(f"I_{index}_RS.png"),
+                               stb_result.bound,
+                               outline=(255, 255, 0),
+                               width=15,
+                               scale=20)
             a_result = {'index': index,
                         'command': action,
                         'same': reg_layout == stb_layout,

@@ -95,7 +95,7 @@
                             </td>
                             <td class="{{ 'table-success' if step.status else 'table-danger' }}">
                                 <ul>
-                                    <li>Result: {{ "Passed" if step.status else "Failed" }}</li>
+                                    <li>Result: {{ "Accessible" if step.status else "Different Behavior" }}</li>
                                 </ul>
                                 <a href="#" class="showdiff btn btn-secondary">
                                     Show Diff
@@ -168,7 +168,7 @@
                                 <a href="#" class="enlarge">
                                     <img src="{{ step.tb_img }}" class="rounded d-block mx-auto"
                                          style="width: 10rem;" data-bs-toggle="tooltip"
-                                         data-bs-placement="top" title="{{ step.tb_result|e }}">
+                                         data-bs-placement="top" title="{{ step.stb_result|e }}">
                                 </a>
                             </td>
                             <td>
@@ -180,7 +180,7 @@
                             </td>
                             <td class="{{ 'table-warning' if step.status else 'table-danger' }}">
                                 <ul>
-                                    <li>Result: {{ "Passed" if step.status else "Failed" }}</li>
+                                    <li>Result: {{ "Unreachable" if step.status else "Different Behavior" }}</li>
                                 </ul>
                                 <a href="#" class="showdiff btn btn-secondary">
                                     Show Diff

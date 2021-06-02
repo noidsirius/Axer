@@ -1,5 +1,6 @@
 package dev.navids.latte;
 
+import android.graphics.Rect;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import java.util.ArrayList;
@@ -100,6 +101,15 @@ public class ActualWidgetInfo extends WidgetInfo {
         if(other instanceof ConceivedWidgetInfo)
             return other.isSimilar(this, myMaskedAttributes);
         return super.isSimilar(other, myMaskedAttributes);
+    }
+
+    @Override
+    public String completeToString(boolean has_xpath) {
+        String base_path = super.completeToString(has_xpath);
+        Rect boundBox = new Rect();
+        node.getBoundsInScreen(boundBox);
+        String str = String.format("%s, bound= %d-%d-%d-%d",base_path, boundBox.left, boundBox.top, boundBox.right, boundBox.bottom);
+        return str;
     }
 
     @Override

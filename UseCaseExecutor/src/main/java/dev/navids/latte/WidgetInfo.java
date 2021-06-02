@@ -86,6 +86,7 @@ public abstract class WidgetInfo implements Serializable {
         String cd = hasAttr("contentDescription") ? " CD= "+getAttr("contentDescription")+", ": "";
         String tx = hasAttr("text") ? " TX= "+getAttr("text")+", ": "";
         String cl = hasAttr("class") ? " CL= "+getAttr("class")+", ": "";
+        String bound = hasAttr("class") ? " CL= "+getAttr("class")+", ": "";
         return id + cd + tx + cl + xpath;
     }
 

@@ -47,7 +47,7 @@ def report(name):
         step['index'] = index
         step['action'] = explore_json[index]['command']
         step['init_img'] = RESULT_STATIC_URI + os.path.relpath(
-            explore_path.joinpath("EXP").joinpath(f"{index}.png").absolute(), RESULT_PATH)
+            explore_path.joinpath("EXP").joinpath(f"{index}_edited.png").absolute(), RESULT_PATH)
         step['tb_img'] = RESULT_STATIC_URI + os.path.relpath(
             explore_path.joinpath("TB").joinpath(f"{index}.png").absolute(),
             RESULT_PATH)
@@ -60,7 +60,6 @@ def report(name):
         tb_steps.append(step)
     with open(explore_path.joinpath("stb_result.json")) as f:
         stb_json = json.load(f)
-    print(stb_json)
     stb_steps = []
     for xpath in stb_json:
         step = {}
@@ -68,7 +67,7 @@ def report(name):
         step['index'] = index
         step['action'] = stb_json[xpath]['command']
         step['init_img'] = RESULT_STATIC_URI + os.path.relpath(
-            explore_path.joinpath("EXP").joinpath(f"INITIAL.png").absolute(), RESULT_PATH)
+            explore_path.joinpath("EXP").joinpath(f"I_{index}_RS.png").absolute(), RESULT_PATH)
         step['tb_img'] = RESULT_STATIC_URI + os.path.relpath(
             explore_path.joinpath("TB").joinpath(f"M_{index}.png").absolute(),
             RESULT_PATH)

@@ -8,7 +8,8 @@ FINAL_NAV_FILE = "finish_nav_result.txt"
 FINAL_ACITON_FILE = "finish_nav_action.txt"
 CUSTOM_STEP_RESULT = "custom_step_result.txt"
 ExecutionResult = namedtuple('ExecutionResult',
-                             ['state', 'events', 'time', 'resourceId', 'className', 'contentDescription', 'xpath'])
+                             ['state', 'events', 'time', 'resourceId', 'className', 'contentDescription',
+                              'xpath', 'bound'])
 
 
 async def send_command_to_latte(command: str, extra: str = "NONE") -> bool:
@@ -72,7 +73,7 @@ async def tb_perform_select() -> (str, str):
 
 def analyze_execution_result(result: str) -> ExecutionResult:
     if not result:
-        return ExecutionResult("FAILED", "", "", "", "", "", "")
+        return ExecutionResult("FAILED", "", "", "", "", "", "", tuple([0]*4))
     parts = result.split('$')
     state = parts[1].split(':')[1].strip()
     events = parts[2].split(':')[1].strip()
@@ -80,8 +81,9 @@ def analyze_execution_result(result: str) -> ExecutionResult:
     resourceId = parts[4].split('ID=')[1].split(',')[0].strip() if 'ID=' in parts[4] else 'null'
     className = parts[4].split('CL=')[1].split(',')[0].strip() if 'CL=' in parts[4] else 'null'
     contentDescription = parts[4].split('CD=')[1].split(',')[0].strip() if 'CD=' in parts[4] else 'null'
-    xpath = parts[4].split('xpath=')[1].strip() if 'xpath=' in parts[4] else ''
-    return ExecutionResult(state, events, time, resourceId, className, contentDescription, xpath)
+    xpath = parts[4].split('xpath=')[1].split(',')[0].strip() if 'xpath=' in parts[4] else ''
+    bound = tuple(int(x) for x in (parts[4].split('bound=')[1].strip()).split('-')) if 'bound=' in parts[4] else tuple([0]*4)
+    return ExecutionResult(state, events, time, resourceId, className, contentDescription, xpath, bound)
 
 
 async def execute_command(command: str, executor_name: str = "reg") -> (str, ExecutionResult):

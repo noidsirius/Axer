@@ -31,7 +31,7 @@ def bm_explore(snapshot_name):
 if __name__ == "__main__":
     # pass
     import sys
-    snapshot_name = "Yelp_0"
+    snapshot_name = "Checkout_N2"
     if len(sys.argv) > 1:
         snapshot_name = sys.argv[1]
     bm_explore(snapshot_name)
