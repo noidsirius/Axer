@@ -9,7 +9,7 @@ def bm_explore(snapshot_name):
     tb_done_actions = snapshot.get_tb_done_actions()
     tb_undone_actions = get_missing_actions(important_actions, tb_done_actions)
     snapshot.validate_by_stb()
-    different_behaviors, directional_unreachable, unlocatable, different_behaviors_directional_unreachable = snapshot.report_issues()
+    different_behaviors, directional_unreachable, unlocatable, different_behaviors_directional_unreachable, pending = snapshot.report_issues()
     print("Number of different behavior: ", len(different_behaviors))
     print("Number of directional unreachable: ", len(directional_unreachable))
     print("Number of unlocatable: ", len(unlocatable))

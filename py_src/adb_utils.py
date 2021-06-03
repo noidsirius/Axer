@@ -21,7 +21,11 @@ async def capture_layout() -> str:
     cmd = "adb exec-out uiautomator dump /dev/tty"
     _, stdout, _ = await run_bash(cmd)
     layout = stdout.replace("UI hierchary dumped to: /dev/tty", "")
-    layout = formatter.format_string(layout).decode("utf-8")
+    try:
+        layout = formatter.format_string(layout).decode("utf-8")
+    except:
+        import random
+        layout = f"PROBLEM_WITH_XML {random.random()}"
     return layout
 
 

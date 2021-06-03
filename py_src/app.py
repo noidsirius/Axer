@@ -1,14 +1,18 @@
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
+from snapshot import Snapshot
 import json
 import subprocess
+from collections import defaultdict
 import pathlib
 import os
+import datetime
 from flask import Flask, send_from_directory, render_template
-
 
 app = Flask(__name__, static_url_path='', )
 
 RESULT_STATIC_URI = '/result/'
-RESULT_PATH = pathlib.Path("../../result")
+RESULT_PATH = pathlib.Path("../result")
 
 
 @app.route(f'{RESULT_STATIC_URI}<path:path>')
@@ -17,8 +21,31 @@ def send_result_static(path):
 
 
 @app.route("/")
-def hello_world():
-    return "<p>Hello, World!</p>"
+def report_index():
+    app_list = defaultdict(list)
+    for snapshot_result_path in RESULT_PATH.iterdir():
+        snapshot_name = snapshot_result_path.name
+        if snapshot_result_path.is_dir() and '_' in snapshot_name:
+            app_name = "_".join(snapshot_name.split('_')[:-1])
+            snapshot = Snapshot(snapshot_name)
+            different_behaviors, directional_unreachable\
+                , unlocatable, different_behaviors_directional_unreachable, pending = snapshot.report_issues()
+            snapshot_info = {}
+            snapshot_info['id'] = snapshot_name
+            snapshot_info['different_behavior'] = "(pending)" if pending else len(different_behaviors) + len(different_behaviors_directional_unreachable)
+            snapshot_info['unreachable'] = "(pending)" if pending else len(unlocatable) + len(directional_unreachable)
+            snapshot_info['last_update'] = datetime.datetime.fromtimestamp(snapshot.output_path.stat().st_mtime)
+            app_list[app_name].append(snapshot_info)
+    apps = []
+    for app in app_list:
+        app_info = {}
+        app_info['name'] = app.replace(' ', '_')
+        app_info['snapshots'] = app_list[app]
+        app_info['different_behavior'] = "(pending)" if any(True for s in app_list[app] if not str(s['different_behavior']).isdecimal()) else sum(s['different_behavior'] for s in app_list[app])
+        app_info['unreachable'] = "(pending)" if any(True for s in app_list[app] if not str(s['unreachable']).isdecimal()) else sum(s['unreachable'] for s in app_list[app] if str(s['unreachable']).isdecimal())
+        app_info['last_update'] = max(s['last_update'] for s in app_list[app])
+        apps.append(app_info)
+    return render_template('index.html', apps=apps)
 
 
 # @app.route("/snapshot/diff/<name>/<index>", defaults={'stb': 'False'})

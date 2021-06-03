@@ -237,22 +237,29 @@ class Snapshot:
         unlocatable = []
         different_behaviors_directional_unreachable = []
         tb_xpaths = {}
-        with open(self.explore_result_path) as f:
-            explore_result = json.load(f)
-            for index in explore_result:
-                tb_xpaths[explore_result[index]['command']['xpath']] = explore_result[index]['command']
-                if not explore_result[index]['same']:
-                    different_behaviors.append(explore_result[index]['command'])
+        pending = False
+        if self.explore_result_path.exists():
+            with open(self.explore_result_path) as f:
+                explore_result = json.load(f)
+                for index in explore_result:
+                    tb_xpaths[explore_result[index]['command']['xpath']] = explore_result[index]['command']
+                    if not explore_result[index]['same']:
+                        different_behaviors.append(explore_result[index]['command'])
+        else:
+            pending = True
 
-        with open(self.stb_result_path) as f:
-            stb_results = json.load(f)
-            for key in stb_results:
-                e = ExecutionResult(*stb_results[key]['stb_result'])
-                if e.state == 'COMPLETED_BY_HELP':
-                    unlocatable.append(stb_results[key]['command'])
-                elif e.state == 'FAILED' or not stb_results[key]['same']:
-                    different_behaviors_directional_unreachable.append(stb_results[key]['command'])
-                else:
-                    if e.xpath not in tb_xpaths.keys():
-                        directional_unreachable.append(stb_results[key]['command'])
-        return different_behaviors, directional_unreachable, unlocatable, different_behaviors_directional_unreachable
+        if self.stb_result_path.exists():
+            with open(self.stb_result_path) as f:
+                stb_results = json.load(f)
+                for key in stb_results:
+                    e = ExecutionResult(*stb_results[key]['stb_result'])
+                    if e.state == 'COMPLETED_BY_HELP':
+                        unlocatable.append(stb_results[key]['command'])
+                    elif e.state == 'FAILED' or not stb_results[key]['same']:
+                        different_behaviors_directional_unreachable.append(stb_results[key]['command'])
+                    else:
+                        if e.xpath not in tb_xpaths.keys():
+                            directional_unreachable.append(stb_results[key]['command'])
+        else:
+            pending = True
+        return different_behaviors, directional_unreachable, unlocatable, different_behaviors_directional_unreachable, pending
