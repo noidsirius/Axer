@@ -9,8 +9,7 @@ from ppadb.client_async import ClientAsync as AdbClient
 from GUI_utils import get_elements
 from a11y_service import A11yServiceManager
 from adb_utils import capture_layout, load_snapshot, save_snapshot
-from latte_utils import is_navigation_done, \
-    talkback_nav_command, tb_navigate_next, tb_perform_select, \
+from latte_utils import talkback_nav_command, tb_navigate_next, tb_perform_select, \
     reg_execute_command, stb_execute_command, get_missing_actions, ExecutionResult
 from padb_utils import ParallelADBLogger, save_screenshot
 from utils import annotate_rectangle
@@ -74,7 +73,7 @@ class Snapshot:
         tb_commands = []
         explore_result = {}
         reload_snapshot = True
-        while not is_navigation_done():
+        while True:
             count += 1
             print("Count:", count)
             if reload_snapshot:
@@ -84,8 +83,7 @@ class Snapshot:
             next_command_str = asyncio.run(tb_navigate_next())
             reload_snapshot = True
             if next_command_str is None:
-                return
-            if is_navigation_done():
+                print("TalkBack cannot navigate to the next element")
                 break
             next_command_json = json.loads(next_command_str)
             if next_command_json['xpath'] != 'null':

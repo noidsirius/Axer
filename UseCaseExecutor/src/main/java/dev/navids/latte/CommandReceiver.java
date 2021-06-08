@@ -38,14 +38,16 @@ public class CommandReceiver extends BroadcastReceiver {
     static final String ACTION_COMMAND_INTENT = "dev.navids.latte.COMMAND";
     static final String ACTION_COMMAND_CODE = "command";
     static final String ACTION_COMMAND_EXTRA = "extra";
-    private TalkBackNavigator talkBackNavigator = new TalkBackNavigator();
 
     @Override
     public void onReceive(Context context, Intent intent) {
         String command = intent.getStringExtra(ACTION_COMMAND_CODE);
         String extra = intent.getStringExtra(ACTION_COMMAND_EXTRA);
         // De-sanitizing extra value ["\s\,]
-        extra = extra.replace("__^__", "\"").replace("__^^__", " ").replace("__^^^__", ",");
+        extra = extra.replace("__^__", "\"")
+                .replace("__^^__", " ")
+                .replace("__^^^__", ",")
+                .replace("__^^^^__", "'"); // TODO: Configurable
 
         if (command == null || extra == null) {
             Log.e(LatteService.TAG, "The command or extra message is null!");
@@ -84,18 +86,21 @@ public class CommandReceiver extends BroadcastReceiver {
                 UseCaseExecutor.v().stop();
                 break;
             case "nav_next":
-                talkBackNavigator.nextFocus(null);
+                TalkBackNavigator.v().nextFocus(null);
                 break;
             case "nav_clear_history":
-                talkBackNavigator.clearHistory();
+                TalkBackNavigator.v().clearHistory();
+                break;
+            case "nav_interrupt":
+                TalkBackNavigator.v().interrupt();
                 break;
             case "nav_select":
-                talkBackNavigator.selectFocus(null);
+                TalkBackNavigator.v().selectFocus(null);
                 break;
             case "do_step":
                 UseCaseExecutor.v().initiateCustomStep(extra);
                 break;
-            case "interrupt": // TODO: do we need an interrupt for nav commands?
+            case "interrupt":
                 UseCaseExecutor.v().interruptCustomStepExecution();
                 break;
             case "report_a11y_issues":

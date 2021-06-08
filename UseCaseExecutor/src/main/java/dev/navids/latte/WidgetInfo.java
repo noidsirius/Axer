@@ -3,6 +3,9 @@ package dev.navids.latte;
 
 import androidx.annotation.Nullable;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
@@ -88,6 +91,27 @@ public abstract class WidgetInfo implements Serializable {
         String cl = hasAttr("class") ? " CL= "+getAttr("class")+", ": "";
         String bound = hasAttr("class") ? " CL= "+getAttr("class")+", ": "";
         return id + cd + tx + cl + xpath;
+    }
+
+    public String getJSONCommand(String located_by, boolean skip, String action){
+        String jsonCommand;
+        try {
+            jsonCommand = new JSONObject()
+                    .put("resourceId", this.getAttr("resourceId"))
+                    .put("contentDescription", this.getAttr("contentDescription"))
+                    .put("text", this.getAttr("text"))
+                    .put("class", this.getAttr("class"))
+                    .put("xpath", this.getAttr("xpath"))
+                    .put("located_by", located_by)
+                    .put("skip", skip)
+                    .put("action", action)
+                    .toString();
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+            jsonCommand = "error in json";
+        }
+        return jsonCommand;
     }
 
     @Override

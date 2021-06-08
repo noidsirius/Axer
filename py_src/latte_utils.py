@@ -2,6 +2,7 @@ from collections import namedtuple
 import asyncio
 from adb_utils import run_bash, local_android_file_exists, cat_local_android_file, capture_layout
 from a11y_service import A11yServiceManager
+from utils import TIMEOUT_TIME
 
 LATTE_INTENT = "dev.navids.latte.COMMAND"
 FINAL_NAV_FILE = "finish_nav_result.txt"
@@ -13,7 +14,7 @@ ExecutionResult = namedtuple('ExecutionResult',
 
 
 async def send_command_to_latte(command: str, extra: str = "NONE") -> bool:
-    extra = extra.replace('"', "__^__").replace(" ", "__^^__").replace(",", "__^^^__")
+    extra = extra.replace('"', "__^__").replace(" ", "__^^__").replace(",", "__^^^__").replace("'", "__^^^^__")
     bash_cmd = f'adb shell am broadcast -a {LATTE_INTENT} --es command "{command}" --es extra "{extra}"'
     r_code, *_ = await run_bash(bash_cmd)
     return r_code == 0
@@ -51,22 +52,24 @@ async def do_step(json_cmd):
     await send_command_to_latte("do_step", json_cmd)
 
 
-def is_navigation_done() -> bool:
-    return asyncio.run(local_android_file_exists(FINAL_NAV_FILE))
-
-
 async def tb_navigate_next() -> str:
     print("Perform Next!")
     await A11yServiceManager.setup_latte_a11y_services(tb=True)
     await talkback_nav_command("next")
-    next_command_json = await cat_local_android_file(FINAL_ACITON_FILE)
+    next_command_json = await cat_local_android_file(FINAL_ACITON_FILE, wait_time=TIMEOUT_TIME)
+    if next_command_json is None:
+        print("Timeout for performing next using TalkBack")
     return next_command_json
 
 
 async def tb_perform_select() -> (str, str):
     print("Perform Select!")
     await talkback_nav_command("select")
-    result = await cat_local_android_file(FINAL_ACITON_FILE)
+    result = await cat_local_android_file(FINAL_ACITON_FILE, wait_time=TIMEOUT_TIME)
+    if result is None:
+        print(f"Timeout, skipping Select for executor TalkBack")
+        result = ""
+        await send_command_to_latte("nav_interrupt")
     layout = await capture_layout()
     return layout, result
 
@@ -94,7 +97,6 @@ async def execute_command(command: str, executor_name: str = "reg") -> (str, Exe
     elif executor_name == 'stb':
         await setup_sighted_talkback_executor()
     await do_step(command)
-    TIMEOUT_TIME = 10  # seconds TODO: configurable
     result = await cat_local_android_file(CUSTOM_STEP_RESULT, wait_time=TIMEOUT_TIME)
     if result is None:
         print(f"Timeout, skipping {command} for executor {executor_name}")

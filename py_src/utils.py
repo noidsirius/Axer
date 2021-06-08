@@ -1,5 +1,7 @@
 from PIL import Image, ImageDraw
 
+TIMEOUT_TIME = 10  # seconds TODO: configurable
+
 
 def dashed_line(draw, bound, width=1, fill=None, scale=5):
     dx = scale if bound[2] > bound[0] else -scale

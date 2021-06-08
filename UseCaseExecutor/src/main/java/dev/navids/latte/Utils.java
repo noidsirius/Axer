@@ -4,11 +4,38 @@ package dev.navids.latte;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class Utils {
+
+    // Files
+
+    public static void deleteFile(String fileName){
+        String dir = LatteService.getInstance().getBaseContext().getFilesDir().getPath();
+        File file = new File(dir, fileName);
+        file.delete();
+    }
+
+    public static void createFile(String fileName, String message){
+        String dir = LatteService.getInstance().getBaseContext().getFilesDir().getPath();
+
+        File file = new File(dir, fileName);
+        Log.i(LatteService.TAG, "Output Path: " + file.getAbsolutePath());
+        FileWriter myWriter = null;
+        try {
+            myWriter = new FileWriter(file);
+            myWriter.write(message);
+            myWriter.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            Log.e(LatteService.TAG + "_RESULT", "Error: " + ex.getMessage());
+        }
+    }
 
     // A11yNodeInfoUtils
 
