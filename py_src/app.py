@@ -26,7 +26,7 @@ def report_index():
     for snapshot_result_path in RESULT_PATH.iterdir():
         snapshot_name = snapshot_result_path.name
         if snapshot_result_path.is_dir() and '_' in snapshot_name:
-            app_name = "_".join(snapshot_name.split('_')[:-1])
+            app_name = ("_".join(snapshot_name.split('_')[:-1])).replace('.','_')
             snapshot = Snapshot(snapshot_name)
             different_behaviors, directional_unreachable\
                 , unlocatable, different_behaviors_directional_unreachable, pending = snapshot.report_issues()

@@ -8,7 +8,7 @@ from ppadb.client_async import ClientAsync as AdbClient
 
 from GUI_utils import get_elements
 from a11y_service import A11yServiceManager
-from adb_utils import capture_layout, load_snapshot, save_snapshot
+from adb_utils import capture_layout, load_snapshot, save_snapshot, get_current_activity_name
 from latte_utils import talkback_nav_command, tb_navigate_next, tb_perform_select, \
     reg_execute_command, stb_execute_command, get_missing_actions, ExecutionResult
 from padb_utils import ParallelADBLogger, save_screenshot
@@ -73,9 +73,12 @@ class Snapshot:
         tb_commands = []
         explore_result = {}
         reload_snapshot = True
-        while True:
+        all_activity_names = []
+        is_in_app_activity = "com.android.systemui.ImageWallpaper" not in asyncio.run(get_current_activity_name())
+        while True and is_in_app_activity:
             count += 1
             print("Count:", count)
+            all_activity_names.append(f"TB_N $ {count} $ {asyncio.run(get_current_activity_name())}")
             if reload_snapshot:
                 if not asyncio.run(load_snapshot(self.tmp_snapshot)):
                     print("Error in loading snapshot")
@@ -109,6 +112,7 @@ class Snapshot:
             tb_commands.append(next_command_str)
             log_message, (tb_layout, tb_result) = asyncio.run(padb_logger.execute_async_with_log(tb_perform_select()))
             self.capture_current_state(str(count), tb_layout, self.talkback_supp_path, log_message=log_message)
+            all_activity_names.append(f"TB_C $ {count} $ {asyncio.run(get_current_activity_name())}")
             if not asyncio.run(load_snapshot(self.tmp_snapshot)):
                 print("Error in loading snapshot")
                 return False
@@ -116,6 +120,7 @@ class Snapshot:
             log_message, (reg_layout, reg_result) = asyncio.run(
                 padb_logger.execute_async_with_log(reg_execute_command(next_command_str)))
             self.capture_current_state(str(count), reg_layout, self.regular_supp_path, log_message=log_message)
+            all_activity_names.append(f"RG_C $ {count} $ {asyncio.run(get_current_activity_name())}")
             annotate_rectangle(self.explore_supp_path.joinpath(f"{count}.png"),
                                self.explore_supp_path.joinpath(f"{count}_edited.png"),
                                reg_result.bound,
@@ -134,6 +139,8 @@ class Snapshot:
         print("Done")
         with open(self.explore_result_path, "w") as f:
             json.dump(explore_result, f)
+        with open(str(self.explore_result_path.absolute())+"_activities.txt", "w") as f:
+            f.writelines(all_activity_names)
         return tb_commands
 
     def capture_current_state(self, file_name: str, layout: str, path: Path, log_message: Optional[str] = None):
@@ -193,41 +200,48 @@ class Snapshot:
         initial_layout = asyncio.run(capture_layout())
         asyncio.run(save_screenshot(self.device, str(self.explore_supp_path.joinpath(f"INITIAL.png"))))
         stb_result_list = {}
-        for index, action in enumerate(tb_undone_actions):
-            if not asyncio.run(load_snapshot(self.initial_snapshot)):
-                print("Error in loading snapshot")
-                return []
-            reg_layout, reg_result = asyncio.run(reg_execute_command(json.dumps(action)))
-            if reg_layout == initial_layout or reg_result.state != 'COMPLETED':  # the action is not meaningful
-                continue
-            self.capture_current_state(f"M_{index}", reg_layout, self.regular_supp_path)
-            annotate_rectangle(self.explore_supp_path.joinpath(f"INITIAL.png"),
-                               self.explore_supp_path.joinpath(f"I_{index}_R.png"),
-                               reg_result.bound,
-                               outline=(255, 0, 255),
-                               width=5,
-                               scale=1)
-            if not asyncio.run(load_snapshot(self.initial_snapshot)):
-                print("Error in loading snapshot")
-                return []
-            stb_layout, stb_result = asyncio.run(stb_execute_command(json.dumps(action)))
-            self.capture_current_state(f"M_{index}", stb_layout, self.talkback_supp_path)
-            annotate_rectangle(self.explore_supp_path.joinpath(f"I_{index}_R.png"),
-                               self.explore_supp_path.joinpath(f"I_{index}_RS.png"),
-                               stb_result.bound,
-                               outline=(255, 255, 0),
-                               width=15,
-                               scale=20)
-            a_result = {'index': index,
-                        'command': action,
-                        'same': reg_layout == stb_layout,
-                        'stb_no_change': stb_layout == initial_layout,
-                        'stb_result': stb_result,
-                        'reg_result': reg_result,
-                        }
-            stb_result_list[action['xpath']] = a_result
+        all_activity_names = []
+        is_in_app_activity = "com.android.systemui.ImageWallpaper" not in asyncio.run(get_current_activity_name())
+        if is_in_app_activity:
+            for index, action in enumerate(tb_undone_actions):
+                if not asyncio.run(load_snapshot(self.initial_snapshot)):
+                    print("Error in loading snapshot")
+                    return []
+                reg_layout, reg_result = asyncio.run(reg_execute_command(json.dumps(action)))
+                if reg_layout == initial_layout or reg_result.state != 'COMPLETED':  # the action is not meaningful
+                    continue
+                self.capture_current_state(f"M_{index}", reg_layout, self.regular_supp_path)
+                all_activity_names.append(f"REG_C $ {index} $ {asyncio.run(get_current_activity_name())}")
+                annotate_rectangle(self.explore_supp_path.joinpath(f"INITIAL.png"),
+                                   self.explore_supp_path.joinpath(f"I_{index}_R.png"),
+                                   reg_result.bound,
+                                   outline=(255, 0, 255),
+                                   width=5,
+                                   scale=1)
+                if not asyncio.run(load_snapshot(self.initial_snapshot)):
+                    print("Error in loading snapshot")
+                    return []
+                stb_layout, stb_result = asyncio.run(stb_execute_command(json.dumps(action)))
+                self.capture_current_state(f"M_{index}", stb_layout, self.talkback_supp_path)
+                all_activity_names.append(f"STB_C $ {index} $ {asyncio.run(get_current_activity_name())}")
+                annotate_rectangle(self.explore_supp_path.joinpath(f"I_{index}_R.png"),
+                                   self.explore_supp_path.joinpath(f"I_{index}_RS.png"),
+                                   stb_result.bound,
+                                   outline=(255, 255, 0),
+                                   width=15,
+                                   scale=20)
+                a_result = {'index': index,
+                            'command': action,
+                            'same': reg_layout == stb_layout,
+                            'stb_no_change': stb_layout == initial_layout,
+                            'stb_result': stb_result,
+                            'reg_result': reg_result,
+                            }
+                stb_result_list[action['xpath']] = a_result
         with open(self.stb_result_path, "w") as f:
             json.dump(stb_result_list, f)
+        with open(str(self.stb_result_path.absolute())+"_activities.txt", "w") as f:
+            f.writelines(all_activity_names)
 
     def report_issues(self):
         different_behaviors = []

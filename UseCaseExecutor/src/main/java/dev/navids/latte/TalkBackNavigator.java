@@ -127,7 +127,8 @@ public class TalkBackNavigator {
             public void onCompleted(AccessibilityNodeInfo nodeInfo) {
                 WidgetInfo newWidgetNodeInfo = ActualWidgetInfo.createFromA11yNode(focusedNode);
                 Log.i(LatteService.TAG, "The focused node is tapped: " + focusedNode);
-                Utils.createFile(Config.v().FINISH_ACTION_FILE_PATH, String.format("Select is done $ %s $%s\n", newWidgetNodeInfo, newWidgetNodeInfo.getXpath())); // TODO: make consistent with custom step
+                Utils.createFile(Config.v().FINISH_ACTION_FILE_PATH,
+                        String.format("Custom Step $ State: COMPLETED $ #Events: 1 $ Time: - $ ActingWidget: %s",newWidgetNodeInfo.completeToString(true)));
                 if(doneCallback != null)
                     doneCallback.onCompleted(nodeInfo);
             }

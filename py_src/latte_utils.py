@@ -2,7 +2,7 @@ from collections import namedtuple
 import asyncio
 from adb_utils import run_bash, local_android_file_exists, cat_local_android_file, capture_layout
 from a11y_service import A11yServiceManager
-from utils import TIMEOUT_TIME
+from consts import TIMEOUT_TIME
 
 LATTE_INTENT = "dev.navids.latte.COMMAND"
 FINAL_NAV_FILE = "finish_nav_result.txt"
@@ -71,7 +71,8 @@ async def tb_perform_select() -> (str, str):
         result = ""
         await send_command_to_latte("nav_interrupt")
     layout = await capture_layout()
-    return layout, result
+    execution_result = analyze_execution_result(result)
+    return layout, execution_result
 
 
 def analyze_execution_result(result: str) -> ExecutionResult:

@@ -43,6 +43,12 @@ async def save_snapshot(snapshot_name) -> None:
     await run_bash(cmd)
 
 
+async def get_current_activity_name() -> str:
+    cmd = f"adb shell dumpsys window windows  | grep 'mObscuringWindow'"
+    r_code, stdout, stderr = await run_bash(cmd)
+    return stdout
+
+
 async def local_android_file_exists(file_path: str, pkg_name: str = LATTE_PKG_NAME) -> bool:
     cmd = f"adb exec-out run-as {pkg_name} ls files/{file_path}"
     _, stdout, _ = await run_bash(cmd)
