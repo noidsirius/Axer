@@ -23,3 +23,16 @@ from snapshot import Snapshot
 snapshot = Snapshot("Yelp_0")
 different_behaviors, directional_unreachable, unlocatable, different_behaviors_directional_unreachable = snapshot.report_issues()
 ```
+
+## Use Library
+- Create an app
+- Add dependency (AAR)
+- Add accessibility_service_config
+    - Add string in xml
+- Create a service and inherits from LatteService
+- if no activity, change the default launch option to nothing
+- TODO: Change enable-service and disable-service
+
+## Communication Service
+- Http android:usesCleartextTraffic="true"
+-
