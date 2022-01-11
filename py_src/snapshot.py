@@ -8,7 +8,8 @@ from ppadb.client_async import ClientAsync as AdbClient
 
 from GUI_utils import get_elements
 from a11y_service import A11yServiceManager
-from adb_utils import capture_layout, load_snapshot, save_snapshot, get_current_activity_name
+from adb_utils import capture_layout, load_snapshot, save_snapshot, get_current_activity_name, \
+    is_android_activity_on_top
 from latte_utils import talkback_nav_command, tb_navigate_next, tb_perform_select, \
     reg_execute_command, stb_execute_command, get_missing_actions, ExecutionResult
 from padb_utils import ParallelADBLogger, save_screenshot
@@ -28,14 +29,18 @@ class Snapshot:
         self.explore_result_path = self.output_path.joinpath("explore.json")
         self.stb_result_path = self.output_path.joinpath("stb_result.json")
         self.summary_path = self.output_path.joinpath("summary.txt")
-        client = AdbClient(host="127.0.0.1", port=5037)
-        self.device = asyncio.run(client.device("emulator-5554"))
+        self.device = None  # TODO: Not good
 
     def emulator_setup(self) -> bool:
         async def inner_setup():
             if not await load_snapshot(self.initial_snapshot):
                 print("Error in loading snapshot")
                 return False
+            if await is_android_activity_on_top():
+                print("The snapshot is broken!")
+                return False
+            client = AdbClient(host="127.0.0.1", port=5037)
+            self.device = await client.device("emulator-5554")  # TODO: Not good
             await A11yServiceManager.setup_latte_a11y_services(tb=True)
             await talkback_nav_command("clear_history")
             print("Enabled A11y Services:", await A11yServiceManager.get_enabled_services())
@@ -48,7 +53,7 @@ class Snapshot:
     def explore(self):
         if not self.emulator_setup():
             print("Error in emulator setup!")
-            return
+            return False
         initial_layout = asyncio.run(capture_layout())
         if self.output_path.exists():
             shutil.rmtree(self.output_path.absolute())
@@ -74,7 +79,7 @@ class Snapshot:
         explore_result = {}
         reload_snapshot = True
         all_activity_names = []
-        is_in_app_activity = "com.android.systemui.ImageWallpaper" not in asyncio.run(get_current_activity_name())
+        is_in_app_activity = not asyncio.run(is_android_activity_on_top())
         while True and is_in_app_activity:
             count += 1
             print("Count:", count)
@@ -139,7 +144,7 @@ class Snapshot:
         print("Done")
         with open(self.explore_result_path, "w") as f:
             json.dump(explore_result, f)
-        with open(str(self.explore_result_path.absolute())+"_activities.txt", "w") as f:
+        with open(str(self.explore_result_path.absolute()) + "_activities.txt", "w") as f:
             f.writelines(all_activity_names)
         return tb_commands
 
@@ -240,7 +245,7 @@ class Snapshot:
                 stb_result_list[action['xpath']] = a_result
         with open(self.stb_result_path, "w") as f:
             json.dump(stb_result_list, f)
-        with open(str(self.stb_result_path.absolute())+"_activities.txt", "w") as f:
+        with open(str(self.stb_result_path.absolute()) + "_activities.txt", "w") as f:
             f.writelines(all_activity_names)
 
     def report_issues(self):

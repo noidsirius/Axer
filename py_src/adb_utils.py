@@ -49,6 +49,15 @@ async def get_current_activity_name() -> str:
     return stdout
 
 
+async def is_android_activity_on_top() -> bool:
+    activity_name = await get_current_activity_name()
+    android_names = ["com.android.systemui", "com.google.android"]
+    for android_name in android_names:
+        if android_name in activity_name:
+            return True
+    return False
+
+
 async def local_android_file_exists(file_path: str, pkg_name: str = LATTE_PKG_NAME) -> bool:
     cmd = f"adb exec-out run-as {pkg_name} ls files/{file_path}"
     _, stdout, _ = await run_bash(cmd)

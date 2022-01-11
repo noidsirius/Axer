@@ -5,6 +5,9 @@ from snapshot import Snapshot
 def bm_explore(snapshot_name):
     snapshot = Snapshot(snapshot_name)
     tb_commands = snapshot.explore()
+    if not tb_commands:
+        print("Problem with explore!")
+        return
     important_actions = snapshot.get_important_actions()
     tb_done_actions = snapshot.get_tb_done_actions()
     tb_undone_actions = get_missing_actions(important_actions, tb_done_actions)
