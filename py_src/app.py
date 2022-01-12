@@ -12,7 +12,7 @@ from snapshot import Snapshot
 app = Flask(__name__, static_url_path='', )
 RESULT_STATIC_URI = '/result/'
 RESULT_PATH = pathlib.Path("../result")
-
+# RESULT_PATH = pathlib.Path("../old_result_jan_12")
 
 @app.route(f'{RESULT_STATIC_URI}<path:path>')
 def send_result_static(path):

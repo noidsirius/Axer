@@ -93,8 +93,8 @@ public abstract class WidgetInfo implements Serializable {
         return id + cd + tx + cl + xpath;
     }
 
-    public String getJSONCommand(String located_by, boolean skip, String action){
-        String jsonCommand;
+    public JSONObject getJSONCommand(String located_by, boolean skip, String action){
+        JSONObject jsonCommand = null;
         try {
             jsonCommand = new JSONObject()
                     .put("resourceId", this.getAttr("resourceId"))
@@ -104,12 +104,10 @@ public abstract class WidgetInfo implements Serializable {
                     .put("xpath", this.getAttr("xpath"))
                     .put("located_by", located_by)
                     .put("skip", skip)
-                    .put("action", action)
-                    .toString();
+                    .put("action", action);
 
         } catch (JSONException e) {
             e.printStackTrace();
-            jsonCommand = "error in json";
         }
         return jsonCommand;
     }

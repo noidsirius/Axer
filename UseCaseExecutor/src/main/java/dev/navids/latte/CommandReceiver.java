@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
+import android.util.Xml;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckPreset;
@@ -20,10 +21,12 @@ import com.google.android.apps.common.testing.accessibility.framework.uielement.
 import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.xmlpull.v1.XmlSerializer;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -102,6 +105,22 @@ public class CommandReceiver extends BroadcastReceiver {
                 break;
             case "interrupt":
                 UseCaseExecutor.v().interruptCustomStepExecution();
+                break;
+            case "capture_layout":
+                try {
+                    XmlSerializer serializer = Xml.newSerializer();
+                    StringWriter stringWriter = new StringWriter();
+                    serializer.setOutput(stringWriter);
+                    serializer.startDocument("UTF-8", true);
+                    serializer.startTag("", "hierarchy");
+                    serializer.attribute("", "rotation", "0"); // TODO:
+                    Utils.dumpNodeRec(serializer, 0);
+                    serializer.endTag("", "hierarchy");
+                    serializer.endDocument();
+                    Utils.createFile(Config.v().LAYOUT_FILE_PATH, stringWriter.toString());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 break;
             case "report_a11y_issues":
             {

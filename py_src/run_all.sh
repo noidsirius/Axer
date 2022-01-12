@@ -1,7 +1,7 @@
 #!/bin/bash
-FLAG=0
+FLAG=1
 LAST_APK_FILE="me.lyft.android"
-for APK_FILE in `ls ../BM_APKs/large_apks/*.apk`; do
+for APK_FILE in `ls ../BM_APKs/small_apks/*.apk`; do
 	if [ `basename $APK_FILE` = "$LAST_APK_FILE.apk" ]; then
 		FLAG=1
 	fi
@@ -19,7 +19,7 @@ for APK_FILE in `ls ../BM_APKs/large_apks/*.apk`; do
 	source ../.env/bin/activate
 	for x in `../scripts/list_snapshots.sh`; do
 		echo "Snapshot: $x"
-		python main.py $x
+		python main.py --snapshot $x
 		A=$x"_TMP"
 		adb emu avd snapshot delete $A
 		rm -rf ~/.android/avd/Pixel_Stoat.avd/snapshots/$A

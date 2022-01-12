@@ -3,6 +3,9 @@ package dev.navids.latte;
 import android.graphics.Rect;
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -110,6 +113,21 @@ public class ActualWidgetInfo extends WidgetInfo {
         node.getBoundsInScreen(boundBox);
         String str = String.format("%s, bound= %d-%d-%d-%d",base_path, boundBox.left, boundBox.top, boundBox.right, boundBox.bottom);
         return str;
+    }
+
+    @Override
+    public JSONObject getJSONCommand(String located_by, boolean skip, String action){
+        JSONObject result = super.getJSONCommand(located_by, skip, action);
+        if (result == null)
+            return result;
+        Rect boundBox = new Rect();
+        node.getBoundsInScreen(boundBox);
+        try {
+            result.put("bound", String.format("%d-%d-%d-%d", boundBox.left, boundBox.top, boundBox.right, boundBox.bottom));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return result;
     }
 
     @Override

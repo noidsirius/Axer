@@ -1,6 +1,8 @@
+import random
 import logging
 from collections import namedtuple
 import asyncio
+import xmlformatter
 from adb_utils import run_bash, local_android_file_exists, cat_local_android_file, capture_layout
 from a11y_service import A11yServiceManager
 from consts import TIMEOUT_TIME
@@ -13,9 +15,11 @@ LATTE_INTENT = "dev.navids.latte.COMMAND"
 FINAL_NAV_FILE = "finish_nav_result.txt"
 FINAL_ACITON_FILE = "finish_nav_action.txt"
 CUSTOM_STEP_RESULT = "custom_step_result.txt"
+LAYOUT_FILE_PATH = "a11y_layout.xml";
 ExecutionResult = namedtuple('ExecutionResult',
                              ['state', 'events', 'time', 'resourceId', 'className', 'contentDescription',
                               'xpath', 'bound'])
+formatter = xmlformatter.Formatter(indent="1", indent_char="\t", encoding_output="UTF-8", preserve=["literal"])
 
 
 async def send_command_to_latte(command: str, extra: str = "NONE") -> bool:
@@ -47,6 +51,22 @@ async def setup_regular_executor(physical_touch=True):
     await send_command_to_latte("set_delay", "1000")
     await send_command_to_latte("set_physical_touch", "true" if physical_touch else "false")
     await send_command_to_latte("enable")
+
+
+async def latte_capture_layout():
+    logger.info("In Latte capture_layout")
+    await A11yServiceManager.setup_latte_a11y_services(tb=False)
+    await send_command_to_latte("capture_layout")
+    layout = await cat_local_android_file(LAYOUT_FILE_PATH, wait_time=TIMEOUT_TIME)
+    if layout is None:
+        logger.error("Timeout for capturing layout")
+        layout = f"PROBLEM_WITH_XML {random.random()}"
+    try:
+        layout = formatter.format_string(layout).decode("utf-8")
+    except Exception as e:
+        logger.error(f"Exception during capturing layout in Latte: {e}")
+        layout = f"PROBLEM_WITH_XML {random.random()}"
+    return layout
 
 
 async def talkback_nav_command(command):

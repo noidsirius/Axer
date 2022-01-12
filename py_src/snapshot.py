@@ -9,8 +9,10 @@ from ppadb.client_async import ClientAsync as AdbClient
 
 from GUI_utils import get_elements
 from a11y_service import A11yServiceManager
-from adb_utils import capture_layout, load_snapshot, save_snapshot, get_current_activity_name, \
+from adb_utils import load_snapshot, save_snapshot, get_current_activity_name, \
     is_android_activity_on_top
+# from adb_utils import capture_layout
+from latte_utils import latte_capture_layout as capture_layout
 from latte_utils import talkback_nav_command, tb_navigate_next, tb_perform_select, \
     reg_execute_command, stb_execute_command, get_missing_actions, ExecutionResult
 from padb_utils import ParallelADBLogger, save_screenshot
@@ -56,7 +58,10 @@ class ResultWriter:
         await save_screenshot(device, str(r_path.joinpath(f"{file_name}.png")))
         layout = ""
         if has_layout:
-            layout = await capture_layout()
+            padb_logger = ParallelADBLogger(device)
+            log, layout = await padb_logger.execute_async_with_log(capture_layout())
+            with open(r_path.joinpath(f"{file_name}_layout_log.txt"), mode='w') as f:
+                f.write(log)
             with open(r_path.joinpath(f"{file_name}.xml"), mode='w') as f:
                 f.write(layout)
         if log_message:
@@ -171,6 +176,10 @@ class Snapshot:
             # with open(self.summary_path, mode='a') as f:
             #     f.write(f"{count}: {next_command_str}\n")
             await self.writer.capture_current_state(self.device, "exp", str(count), has_layout=False)
+            # if 'bound' in json.loads(click_command_str):
+            #     bound = tuple(int(x) for x in (json.loads(click_command_str)['bound'].strip()).split('-'))
+            # else:
+            #     logger.error(f"The focused element doesn't have a bound! Element: {click_command_str}")
             logger.info("Get another snapshot")
             await save_snapshot(self.tmp_snapshot)
             self.tb_commands.append(click_command_str)
@@ -253,12 +262,15 @@ class Snapshot:
         return meaningful_actions
 
     def validate_by_stb(self):
+        logger.info("Validating remaining actions.")
         important_actions = self.get_important_actions()
         tb_done_actions = self.get_tb_done_actions()
         tb_undone_actions = get_missing_actions(important_actions, tb_done_actions)
+        logger.info(f"There are {len(tb_undone_actions)} missing actions in explore!")
         if not asyncio.run(load_snapshot(self.initial_snapshot)):
             logger.error("Error in loading snapshot")
             return []
+        asyncio.run(asyncio.sleep(2))
         initial_layout = asyncio.run(capture_layout())
         asyncio.run(save_screenshot(self.device, str(self.writer.explore_supp_path.joinpath(f"INITIAL.png"))))
         stb_result_list = {}
@@ -266,6 +278,7 @@ class Snapshot:
         is_in_app_activity = not asyncio.run(is_android_activity_on_top())
         if is_in_app_activity:
             for index, action in enumerate(tb_undone_actions):
+                logger.info(f"Missing action {index}")
                 if not asyncio.run(load_snapshot(self.initial_snapshot)):
                     logger.error("Error in loading snapshot")
                     return []

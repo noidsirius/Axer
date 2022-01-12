@@ -157,8 +157,9 @@ public class TalkBackNavigator {
             public void onCompleted(AccessibilityNodeInfo nodeInfo) {
                 WidgetInfo newWidgetNodeInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo, true);
                 Log.i(LatteService.TAG, "The next focused node is: " + newWidgetNodeInfo + " Xpath: " + newWidgetNodeInfo.getXpath());
-                String jsonCommand = newWidgetNodeInfo.getJSONCommand("xpath", false, "click");
-                Utils.createFile(Config.v().FINISH_ACTION_FILE_PATH, jsonCommand);
+                JSONObject jsonCommand = newWidgetNodeInfo.getJSONCommand("xpath", false, "click");
+                String jsonCommandStr = jsonCommand != null ? jsonCommand.toString() : "Error";
+                Utils.createFile(Config.v().FINISH_ACTION_FILE_PATH, jsonCommandStr);
                 if(callback != null)
                     callback.onCompleted(nodeInfo);
             }
