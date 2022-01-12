@@ -67,7 +67,7 @@ async def tb_navigate_next() -> str:
     return next_command_json
 
 
-async def tb_perform_select() -> (str, str):
+async def tb_perform_select() -> (str, ExecutionResult):
     logger.info("Perform Select!")
     await talkback_nav_command("select")
     result = await cat_local_android_file(FINAL_ACITON_FILE, wait_time=TIMEOUT_TIME)

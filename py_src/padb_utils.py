@@ -6,7 +6,7 @@ from consts import BLIND_MONKEY_TAG
 
 async def save_screenshot(device, file_name) -> None:
     result = await device.screencap()
-    await asyncio.sleep(2)
+    await asyncio.sleep(2) # TODO: Configurable
     async with aiofiles.open(file_name, mode='wb') as f:
         await asyncio.sleep(2)
         await f.write(result)
