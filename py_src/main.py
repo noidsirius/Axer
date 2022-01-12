@@ -1,3 +1,5 @@
+import argparse
+import asyncio
 import logging
 from latte_utils import get_missing_actions
 from snapshot import Snapshot
@@ -5,8 +7,8 @@ from snapshot import Snapshot
 
 def bm_explore(snapshot_name):
     snapshot = Snapshot(snapshot_name)
-    tb_commands = snapshot.explore()
-    if not tb_commands:
+    success_explore = asyncio.run(snapshot.explore())
+    if not success_explore:
         print("Problem with explore!")
         return
     important_actions = snapshot.get_important_actions()
@@ -33,10 +35,15 @@ def bm_explore(snapshot_name):
 
 
 if __name__ == "__main__":
-    # pass
-    import sys
-    snapshot_name = "Checkout_N2"
-    if len(sys.argv) > 1:
-        snapshot_name = sys.argv[1]
-    logging.basicConfig(level=logging.INFO)
-    bm_explore(snapshot_name)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--snapshot', type=str, required=True, help='Name of the snapshot on the running AVD')
+    parser.add_argument('--debug', action='store_true')
+    args = parser.parse_args()
+
+    if args.debug:
+        level = logging.DEBUG
+    else:
+        level = logging.INFO
+    logging.basicConfig(level=level)
+
+    bm_explore(args.snapshot)

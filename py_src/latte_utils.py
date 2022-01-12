@@ -67,7 +67,7 @@ async def tb_navigate_next() -> str:
     return next_command_json
 
 
-async def tb_perform_select() -> (str, ExecutionResult):
+async def tb_perform_select() -> ExecutionResult:
     logger.info("Perform Select!")
     await talkback_nav_command("select")
     result = await cat_local_android_file(FINAL_ACITON_FILE, wait_time=TIMEOUT_TIME)
@@ -75,9 +75,8 @@ async def tb_perform_select() -> (str, ExecutionResult):
         logger.error(f"Timeout, skipping Select for executor TalkBack")
         result = ""
         await send_command_to_latte("nav_interrupt")
-    layout = await capture_layout()
     execution_result = analyze_execution_result(result)
-    return layout, execution_result
+    return execution_result
 
 
 def analyze_execution_result(result: str) -> ExecutionResult:
@@ -95,7 +94,7 @@ def analyze_execution_result(result: str) -> ExecutionResult:
     return ExecutionResult(state, events, time, resourceId, className, contentDescription, xpath, bound)
 
 
-async def execute_command(command: str, executor_name: str = "reg") -> (str, ExecutionResult):
+async def execute_command(command: str, executor_name: str = "reg") -> ExecutionResult:
     if executor_name == 'reg':
         await setup_regular_executor()
     elif executor_name == 'tb':
@@ -110,19 +109,18 @@ async def execute_command(command: str, executor_name: str = "reg") -> (str, Exe
         await send_command_to_latte("interrupt")
     layout_coroutine = asyncio.create_task(capture_layout())
     execution_result = analyze_execution_result(result)
-    layout = await layout_coroutine
-    return layout, execution_result
+    return execution_result
 
 
-async def reg_execute_command(command: str) -> (str, ExecutionResult):
+async def reg_execute_command(command: str) -> ExecutionResult:
     return await execute_command(command, 'reg')
 
 
-async def tb_execute_command(command: str) -> (str, ExecutionResult):
+async def tb_execute_command(command: str) -> ExecutionResult:
     return await execute_command(command, 'tb')
 
 
-async def stb_execute_command(command: str) -> (str, ExecutionResult):
+async def stb_execute_command(command: str) -> ExecutionResult:
     return await execute_command(command, 'stb')
 
 
@@ -139,7 +137,7 @@ def get_missing_actions(a_actions, b_actions):
         if k not in b_dict.keys():
             missing_actions.append(a_dict[k])
         logger.debug(k)
-        logger.debug("A: ", a_dict.get(k, ""))
-        logger.debug("B: ", b_dict.get(k, ""))
+        logger.debug(f"A: {a_dict.get(k, '')}")
+        logger.debug(f"B: {b_dict.get(k, '')}")
         logger.debug("-----\n")
     return missing_actions

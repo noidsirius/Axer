@@ -27,7 +27,8 @@ async def capture_layout() -> str:
     layout = stdout.replace("UI hierchary dumped to: /dev/tty", "")
     try:
         layout = formatter.format_string(layout).decode("utf-8")
-    except:
+    except Exception as e:
+        logger.error(f"Exception during capturing layout: {e}")
         import random
         layout = f"PROBLEM_WITH_XML {random.random()}"
     return layout

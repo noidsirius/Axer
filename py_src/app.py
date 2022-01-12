@@ -34,7 +34,7 @@ def report_index():
             snapshot_info['different_behavior'] = "(pending)" if pending else len(different_behaviors) + len(
                 different_behaviors_directional_unreachable)
             snapshot_info['unreachable'] = "(pending)" if pending else len(unlocatable) + len(directional_unreachable)
-            snapshot_info['last_update'] = datetime.datetime.fromtimestamp(snapshot.output_path.stat().st_mtime)
+            snapshot_info['last_update'] = datetime.datetime.fromtimestamp(snapshot.writer.output_path.stat().st_mtime)
             app_list[app_name].append(snapshot_info)
     apps = []
     for app in app_list:
@@ -91,7 +91,19 @@ def report(name):
                 RESULT_PATH)
             step['tb_result'] = explore_json[index]['tb_result']
             step['reg_result'] = explore_json[index]['reg_result']
-            step['status'] = 1 if explore_json[index]['same'] else 0
+            xml_name = f"{index}.xml"
+            tb_xml_path = result_path.joinpath("TB").joinpath(xml_name)
+            reg_xml_path = result_path.joinpath("REG").joinpath(xml_name)
+            xml_problem = False
+            with open(tb_xml_path, "r") as f:
+                tb_xml = f.read()
+                if "PROBLEM_WITH_XML" in tb_xml:
+                    xml_problem = True
+            with open(reg_xml_path, "r") as f:
+                reg_xml = f.read()
+                if "PROBLEM_WITH_XML" in reg_xml:
+                    xml_problem = True
+            step['status'] = 1 if (tb_xml == reg_xml) else 0
             step['status_message'] = "Accessible"
             if step['status'] == 0:
                 if "FAILED" in step['tb_result'][0]:
@@ -100,23 +112,11 @@ def report(name):
                 elif "FAILED" in step['reg_result'][0]:
                     step['status_message'] = "Regular Failed"
                     step['status'] = 2
+                elif xml_problem:
+                    step['status_message'] = "Problem with XML"
+                    step['status'] = 2
                 else:
-                    xml_problem = False
-                    xml_name = f"{index}.xml"
-                    tb_xml_path = result_path.joinpath("TB").joinpath(xml_name)
-                    reg_xml_path = result_path.joinpath("REG").joinpath(xml_name)
-                    with open(tb_xml_path, "r") as f:
-                        if "PROBLEM_WITH_XML" in f.read():
-                            xml_problem = True
-                    if not xml_problem:
-                        with open(reg_xml_path, "r") as f:
-                            if "PROBLEM_WITH_XML" in f.read():
-                                xml_problem = True
-                    if xml_problem:
-                        step['status_message'] = "Problem with XML"
-                        step['status'] = 2
-                    else:
-                        step['status_message'] = "Different Behavior"
+                    step['status_message'] = "Different Behavior"
 
             tb_steps.append(step)
     stb_result_path = result_path.joinpath("stb_result.json")

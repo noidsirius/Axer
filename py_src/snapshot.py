@@ -32,7 +32,7 @@ class ResultWriter:
         self.stb_result_path = self.output_path.joinpath("stb_result.json")
         self.summary_path = self.output_path.joinpath("summary.txt")
 
-    def start_explore(self, snapshot_name: str):
+    async def start_explore(self, snapshot_name: str):
         if self.output_path.exists():
             shutil.rmtree(self.output_path.absolute())
         self.output_path.mkdir()
@@ -42,7 +42,7 @@ class ResultWriter:
         with open(self.summary_path, mode='w') as f:
             f.write("")
 
-    def capture_current_state(self, device, file_name: str, layout: str, code: str, log_message: Optional[str] = None):
+    async def capture_current_state(self, device, code: str, file_name: str, has_layout=True,  log_message: Optional[str] = None) -> str:
         r_path = ""
         if code == "tb":
             r_path = self.talkback_supp_path
@@ -51,13 +51,18 @@ class ResultWriter:
         elif code == "exp":
             r_path = self.explore_supp_path
         else:
-            return
-        with open(r_path.joinpath(f"{file_name}.xml"), mode='w') as f:
-            f.write(layout)
+            return ""
+
+        await save_screenshot(device, str(r_path.joinpath(f"{file_name}.png")))
+        layout = ""
+        if has_layout:
+            layout = await capture_layout()
+            with open(r_path.joinpath(f"{file_name}.xml"), mode='w') as f:
+                f.write(layout)
         if log_message:
             with open(r_path.joinpath(f"{file_name}.log"), mode='w') as f:
                 f.write(log_message)
-        asyncio.run(save_screenshot(device, str(r_path.joinpath(f"{file_name}.png"))))
+        return layout  # TODO: Remove it
 
 
 class Snapshot:
@@ -75,45 +80,42 @@ class Snapshot:
         # -------------
         self.device = None  # TODO: Not good
 
-    def emulator_setup(self) -> bool:
-        async def inner_setup():
-            if not await load_snapshot(self.initial_snapshot):
-                logger.error("Error in loading snapshot")
-                return False
-            if await is_android_activity_on_top():
-                logger.error("The snapshot is broken!")
-                return False
-            client = AdbClient(host="127.0.0.1", port=5037)  # TODO: Should be configured
-            self.device = await client.device("emulator-5554")  # TODO: Not good
-            await A11yServiceManager.setup_latte_a11y_services(tb=True)
-            await talkback_nav_command("clear_history")
-            logger.info("Enabled A11y Services:" + str(await A11yServiceManager.get_enabled_services()))
-            await asyncio.sleep(3)
-            await save_snapshot(self.tmp_snapshot)
-            # -------------
-            dom = await capture_layout()
-            self.visible_elements = get_elements(dom)
-            self.valid_resource_ids = set()
-            self.valid_xpaths = set()
-            for element in self.visible_elements:
-                if element['resourceId']:
-                    self.valid_resource_ids.add(element['resourceId'])
-                if element['xpath']:
-                    self.valid_xpaths.add(element['xpath'])
-            self.visited_resource_ids = set()
-            self.visited_xpath_count = defaultdict(int)
-            self.tb_commands = []
-            # -------------
-            return True
+    async def emulator_setup(self) -> bool:
+        if not await load_snapshot(self.initial_snapshot):
+            logger.error("Error in loading snapshot")
+            return False
+        if await is_android_activity_on_top():
+            logger.error("The snapshot is broken!")
+            return False
+        client = AdbClient(host="127.0.0.1", port=5037)  # TODO: Should be configured
+        self.device = await client.device("emulator-5554")  # TODO: Not good
+        await A11yServiceManager.setup_latte_a11y_services(tb=True)
+        await talkback_nav_command("clear_history")
+        logger.info("Enabled A11y Services:" + str(await A11yServiceManager.get_enabled_services()))
+        await asyncio.sleep(3)
+        await save_snapshot(self.tmp_snapshot)
+        # ------------- TODO: think about it later ----------
+        dom = await capture_layout()
+        self.visible_elements = get_elements(dom)
+        self.valid_resource_ids = set()
+        self.valid_xpaths = set()
+        for element in self.visible_elements:
+            if element['resourceId']:
+                self.valid_resource_ids.add(element['resourceId'])
+            if element['xpath']:
+                self.valid_xpaths.add(element['xpath'])
+        self.visited_resource_ids = set()
+        self.visited_xpath_count = defaultdict(int)
+        self.tb_commands = []
+        # -------------
+        return True
 
-        return asyncio.run(inner_setup())
-
-    def navigate_next(self) -> Optional[str]:
-        if not asyncio.run(load_snapshot(self.tmp_snapshot)):
+    async def navigate_next(self) -> Optional[str]:
+        if not await load_snapshot(self.tmp_snapshot):
             logger.debug("Error in loading snapshot")
             return None
         while True:
-            next_command_str = asyncio.run(tb_navigate_next())
+            next_command_str = await tb_navigate_next()
             if next_command_str is None:
                 logger.error("TalkBack cannot navigate to the next element")
                 return None
@@ -127,11 +129,17 @@ class Snapshot:
             # TODO: Write the result of next_command_json somewhere
             # TODO: Update visited* with next_command_json
             # TODO: Skip if the position is also the same
-            if next_command_str in self.tb_commands \
-                    or next_command_json['resourceId'] in self.visited_resource_ids \
-                    or next_command_json['xpath'] not in self.valid_xpaths \
-                    or self.visited_xpath_count[next_command_json['xpath']] > 1:  # TODO: Configurable
-                logger.info("Repetitive or unimportant element!")
+            if next_command_str in self.tb_commands:
+                logger.info("Has seen this command before!")
+                continue
+            if next_command_json['resourceId'] in self.visited_resource_ids:
+                logger.info("Has seen this resourceId")
+                continue
+            if next_command_json['xpath'] not in self.valid_xpaths:
+                logger.info("Not a valid xpath!")
+                continue
+            if self.visited_xpath_count[next_command_json['xpath']] > 1:  # TODO: Configurable
+                logger.info("Has seen this xpath more than twice")
                 continue
             # TODO: make it a counter
             if next_command_json['resourceId'] != 'null':
@@ -139,48 +147,47 @@ class Snapshot:
             break
         return next_command_str
 
-    def explore(self) -> bool:
-        if not self.emulator_setup():
+    async def explore(self) -> bool:
+        if not await self.emulator_setup():
             logger.error("Error in emulator setup!")
             return False
-        initial_layout = asyncio.run(capture_layout())
-        self.writer.start_explore(self.initial_snapshot)
+        initial_layout = await capture_layout()
+        await self.writer.start_explore(self.initial_snapshot)
         count = 0
         padb_logger = ParallelADBLogger(self.device)
         explore_result = {}
         all_activity_names = []
-        is_in_app_activity = not asyncio.run(is_android_activity_on_top())
+        is_in_app_activity = not await is_android_activity_on_top()
         while True and is_in_app_activity:
             count += 1
             logger.info(f"Count: {count}")
-            all_activity_names.append(f"TB_N $ {count} $ {asyncio.run(get_current_activity_name())}")
+            all_activity_names.append(f"TB_N $ {count} $ {await get_current_activity_name()}")
             # ------------------- Navigate Next -------------------
-            click_command_str = self.navigate_next()
+            click_command_str = await self.navigate_next()
             if not click_command_str:
                 logger.info("Navigation is finished!")
                 break
             logger.debug("Click Command is " + click_command_str)
             # with open(self.summary_path, mode='a') as f:
             #     f.write(f"{count}: {next_command_str}\n")
+            await self.writer.capture_current_state(self.device, "exp", str(count), has_layout=False)
             logger.info("Get another snapshot")
-            asyncio.run(save_screenshot(self.device, str(self.writer.explore_supp_path.joinpath(f"{count}.png"))))
-            asyncio.run(save_snapshot(self.tmp_snapshot))
+            await save_snapshot(self.tmp_snapshot)
             self.tb_commands.append(click_command_str)
             # ------------------- End Navigate Next -------------------
             # ------------------- Start TalkBack Select ---------------
-            log_message, (tb_layout, tb_result) = asyncio.run(padb_logger.execute_async_with_log(tb_perform_select()))
-            self.writer.capture_current_state(self.device, str(count), tb_layout, "tb", log_message=log_message)
-            all_activity_names.append(f"TB_C $ {count} $ {asyncio.run(get_current_activity_name())}")
+            log_message, tb_result = await padb_logger.execute_async_with_log(tb_perform_select())
+            tb_layout = await self.writer.capture_current_state(self.device, "tb", str(count), log_message=log_message)
+            all_activity_names.append(f"TB_C $ {count} $ {await get_current_activity_name()}")
             # ------------------- End TalkBack Select ---------------
             # ------------------- Start Regular Select ---------------
-            if not asyncio.run(load_snapshot(self.tmp_snapshot)):
+            if not await load_snapshot(self.tmp_snapshot):
                 logger.error("Error in loading snapshot")
                 return False
             logger.info("Now with regular executor")
-            log_message, (reg_layout, reg_result) = asyncio.run(
-                padb_logger.execute_async_with_log(reg_execute_command(click_command_str)))
-            self.writer.capture_current_state(self.device, str(count), reg_layout, "reg", log_message=log_message)
-            all_activity_names.append(f"RG_C $ {count} $ {asyncio.run(get_current_activity_name())}")
+            log_message, reg_result = await padb_logger.execute_async_with_log(reg_execute_command(click_command_str))
+            reg_layout = await self.writer.capture_current_state(self.device, "reg", str(count), log_message=log_message)
+            all_activity_names.append(f"RG_C $ {count} $ {await get_current_activity_name()}")
             # ------------------- End Regular Select ---------------
             annotate_rectangle(self.writer.explore_supp_path.joinpath(f"{count}.png"),
                                self.writer.explore_supp_path.joinpath(f"{count}_edited.png"),
@@ -262,10 +269,10 @@ class Snapshot:
                 if not asyncio.run(load_snapshot(self.initial_snapshot)):
                     logger.error("Error in loading snapshot")
                     return []
-                reg_layout, reg_result = asyncio.run(reg_execute_command(json.dumps(action)))
+                reg_result = asyncio.run(reg_execute_command(json.dumps(action)))
+                reg_layout = asyncio.run(self.writer.capture_current_state(self.device, "reg", f"M_{index}"))
                 if reg_layout == initial_layout or reg_result.state != 'COMPLETED':  # the action is not meaningful
                     continue
-                self.writer.capture_current_state(self.device, f"M_{index}", reg_layout, "reg")
                 all_activity_names.append(f"REG_C $ {index} $ {asyncio.run(get_current_activity_name())}")
                 annotate_rectangle(self.writer.explore_supp_path.joinpath(f"INITIAL.png"),
                                    self.writer.explore_supp_path.joinpath(f"I_{index}_R.png"),
@@ -276,8 +283,8 @@ class Snapshot:
                 if not asyncio.run(load_snapshot(self.initial_snapshot)):
                     logger.error("Error in loading snapshot")
                     return []
-                stb_layout, stb_result = asyncio.run(stb_execute_command(json.dumps(action)))
-                self.writer.capture_current_state(self.device, f"M_{index}", stb_layout, "tb")
+                stb_result = asyncio.run(stb_execute_command(json.dumps(action)))
+                stb_layout = asyncio.run(self.writer.capture_current_state(self.device, "tb", f"M_{index}"))
                 all_activity_names.append(f"STB_C $ {index} $ {asyncio.run(get_current_activity_name())}")
                 annotate_rectangle(self.writer.explore_supp_path.joinpath(f"I_{index}_R.png"),
                                    self.writer.explore_supp_path.joinpath(f"I_{index}_RS.png"),
