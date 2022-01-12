@@ -1,8 +1,12 @@
+import logging
 from typing import Callable, List
 import json
 import asyncio
 from lxml import etree
 from adb_utils import capture_layout
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_element_class(node):

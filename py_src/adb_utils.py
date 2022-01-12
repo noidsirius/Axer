@@ -1,6 +1,10 @@
+import logging
 import asyncio
 import xmlformatter
 from typing import Optional
+
+
+logger = logging.getLogger(__name__)
 
 formatter = xmlformatter.Formatter(indent="1", indent_char="\t", encoding_output="UTF-8", preserve=["literal"])
 LATTE_PKG_NAME = "dev.navids.latte"
@@ -66,7 +70,6 @@ async def local_android_file_exists(file_path: str, pkg_name: str = LATTE_PKG_NA
 
 async def cat_local_android_file(file_path: str,
                                  pkg_name: str = LATTE_PKG_NAME,
-                                 verbose: bool = False,
                                  wait_time: int = -1) -> Optional[str]:
     sleep_time = 1
     index = 0
@@ -74,8 +77,7 @@ async def cat_local_android_file(file_path: str,
         if 0 < wait_time < index * sleep_time:
             return None
         index += 1
-        if verbose:
-            print(f"Waiting for {file_path}")
+        logger.debug(f"Waiting for {file_path}")
         await asyncio.sleep(sleep_time)
     cmd = f"adb exec-out run-as {pkg_name} cat files/{file_path}"
     _, stdout, _ = await run_bash(cmd)

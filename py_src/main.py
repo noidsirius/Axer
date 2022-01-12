@@ -1,3 +1,4 @@
+import logging
 from latte_utils import get_missing_actions
 from snapshot import Snapshot
 
@@ -37,4 +38,5 @@ if __name__ == "__main__":
     snapshot_name = "Checkout_N2"
     if len(sys.argv) > 1:
         snapshot_name = sys.argv[1]
+    logging.basicConfig(level=logging.INFO)
     bm_explore(snapshot_name)

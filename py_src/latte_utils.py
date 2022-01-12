@@ -1,8 +1,13 @@
+import logging
 from collections import namedtuple
 import asyncio
 from adb_utils import run_bash, local_android_file_exists, cat_local_android_file, capture_layout
 from a11y_service import A11yServiceManager
 from consts import TIMEOUT_TIME
+
+
+logger = logging.getLogger(__name__)
+
 
 LATTE_INTENT = "dev.navids.latte.COMMAND"
 FINAL_NAV_FILE = "finish_nav_result.txt"
@@ -53,21 +58,21 @@ async def do_step(json_cmd):
 
 
 async def tb_navigate_next() -> str:
-    print("Perform Next!")
+    logger.info("Perform Next!")
     await A11yServiceManager.setup_latte_a11y_services(tb=True)
     await talkback_nav_command("next")
     next_command_json = await cat_local_android_file(FINAL_ACITON_FILE, wait_time=TIMEOUT_TIME)
     if next_command_json is None:
-        print("Timeout for performing next using TalkBack")
+        logger.error("Timeout for performing next using TalkBack")
     return next_command_json
 
 
 async def tb_perform_select() -> (str, str):
-    print("Perform Select!")
+    logger.info("Perform Select!")
     await talkback_nav_command("select")
     result = await cat_local_android_file(FINAL_ACITON_FILE, wait_time=TIMEOUT_TIME)
     if result is None:
-        print(f"Timeout, skipping Select for executor TalkBack")
+        logger.error(f"Timeout, skipping Select for executor TalkBack")
         result = ""
         await send_command_to_latte("nav_interrupt")
     layout = await capture_layout()
@@ -100,7 +105,7 @@ async def execute_command(command: str, executor_name: str = "reg") -> (str, Exe
     await do_step(command)
     result = await cat_local_android_file(CUSTOM_STEP_RESULT, wait_time=TIMEOUT_TIME)
     if result is None:
-        print(f"Timeout, skipping {command} for executor {executor_name}")
+        logger.error(f"Timeout, skipping {command} for executor {executor_name}")
         result = ""
         await send_command_to_latte("interrupt")
     layout_coroutine = asyncio.create_task(capture_layout())
@@ -121,7 +126,7 @@ async def stb_execute_command(command: str) -> (str, ExecutionResult):
     return await execute_command(command, 'stb')
 
 
-def get_missing_actions(a_actions, b_actions, verbose=False):
+def get_missing_actions(a_actions, b_actions):
     a_dict = {}
     b_dict = {}
     for x in a_actions:
@@ -133,9 +138,8 @@ def get_missing_actions(a_actions, b_actions, verbose=False):
     for k in all_keys:
         if k not in b_dict.keys():
             missing_actions.append(a_dict[k])
-        if verbose:
-            print(k)
-            print("A: ", a_dict.get(k, ""))
-            print("B: ", b_dict.get(k, ""))
-            print("-----\n")
+        logger.debug(k)
+        logger.debug("A: ", a_dict.get(k, ""))
+        logger.debug("B: ", b_dict.get(k, ""))
+        logger.debug("-----\n")
     return missing_actions

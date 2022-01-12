@@ -1,4 +1,8 @@
+import logging
 from PIL import Image, ImageDraw
+
+
+logger = logging.getLogger(__name__)
 
 
 def dashed_line(draw, bound, width=1, fill=None, scale=5):
@@ -30,5 +34,5 @@ def annotate_rectangle(source_img, target_img, bound, outline=None, width=10, sc
         # draw.rectangle(reg_result.bound, fill=(255, 255, 0, 20), outline=(100, 100, 100))
         dashed_rectangle(draw, bound, outline=outline, width=width, scale=scale)
         im.save(target_img, quality=95)
-    except:
-        print("A problem with image annotation")
+    except Exception as e:
+        logger.error(f"A problem with image annotation, Exception: {e}")
