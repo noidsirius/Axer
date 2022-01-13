@@ -81,5 +81,7 @@ async def cat_local_android_file(file_path: str,
         logger.debug(f"Waiting for {file_path}")
         await asyncio.sleep(sleep_time)
     cmd = f"adb exec-out run-as {pkg_name} cat files/{file_path}"
-    _, stdout, _ = await run_bash(cmd)
-    return stdout
+    _, content, _ = await run_bash(cmd)
+    rm_cmd = f"adb exec-out run-as {pkg_name} rm files/{file_path}"
+    await run_bash(rm_cmd)
+    return content

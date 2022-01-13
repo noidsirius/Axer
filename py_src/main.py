@@ -37,6 +37,8 @@ def bm_explore(snapshot_name):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--snapshot', type=str, required=True, help='Name of the snapshot on the running AVD')
+    parser.add_argument('--log-path', type=str,
+                        help='Write the logs into this path if provided, otherwise write in std')
     parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
 
@@ -44,6 +46,12 @@ if __name__ == "__main__":
         level = logging.DEBUG
     else:
         level = logging.INFO
-    logging.basicConfig(level=level)
+
+    if args.log_path:
+        logging.basicConfig(filename=args.log_path,
+                            filemode='w',
+                            level=level)
+    else:
+        logging.basicConfig(level=level)
 
     bm_explore(args.snapshot)

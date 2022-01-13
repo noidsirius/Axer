@@ -1,21 +1,19 @@
 import random
 import logging
 from collections import namedtuple
-import asyncio
 import xmlformatter
-from adb_utils import run_bash, local_android_file_exists, cat_local_android_file, capture_layout
+from adb_utils import run_bash, cat_local_android_file
 from a11y_service import A11yServiceManager
-from consts import TIMEOUT_TIME
+from consts import TIMEOUT_TIME, LAYOUT_TIMEOUT_TIME
 
 
 logger = logging.getLogger(__name__)
-
 
 LATTE_INTENT = "dev.navids.latte.COMMAND"
 FINAL_NAV_FILE = "finish_nav_result.txt"
 FINAL_ACITON_FILE = "finish_nav_action.txt"
 CUSTOM_STEP_RESULT = "custom_step_result.txt"
-LAYOUT_FILE_PATH = "a11y_layout.xml";
+LAYOUT_FILE_PATH = "a11y_layout.xml"
 ExecutionResult = namedtuple('ExecutionResult',
                              ['state', 'events', 'time', 'resourceId', 'className', 'contentDescription',
                               'xpath', 'bound'])
@@ -56,16 +54,24 @@ async def setup_regular_executor(physical_touch=True):
 async def latte_capture_layout():
     logger.info("In Latte capture_layout")
     await A11yServiceManager.setup_latte_a11y_services(tb=False)
-    await send_command_to_latte("capture_layout")
-    layout = await cat_local_android_file(LAYOUT_FILE_PATH, wait_time=TIMEOUT_TIME)
+    layout = None
+    for i in range(3):
+        logger.info(f"Capturing layout, Try: {i}")
+        await send_command_to_latte("capture_layout")
+        layout = await cat_local_android_file(LAYOUT_FILE_PATH, wait_time=LAYOUT_TIMEOUT_TIME)
+        if layout:
+            break
+
     if layout is None:
-        logger.error("Timeout for capturing layout")
+        logger.error(f"Timeout for capturing layout.")
         layout = f"PROBLEM_WITH_XML {random.random()}"
+
     try:
         layout = formatter.format_string(layout).decode("utf-8")
     except Exception as e:
         logger.error(f"Exception during capturing layout in Latte: {e}")
         layout = f"PROBLEM_WITH_XML {random.random()}"
+
     return layout
 
 
@@ -127,7 +133,6 @@ async def execute_command(command: str, executor_name: str = "reg") -> Execution
         logger.error(f"Timeout, skipping {command} for executor {executor_name}")
         result = ""
         await send_command_to_latte("interrupt")
-    layout_coroutine = asyncio.create_task(capture_layout())
     execution_result = analyze_execution_result(result)
     return execution_result
 
