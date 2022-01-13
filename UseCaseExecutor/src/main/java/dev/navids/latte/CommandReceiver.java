@@ -50,6 +50,9 @@ public class CommandReceiver extends BroadcastReceiver {
         extra = extra.replace("__^__", "\"")
                 .replace("__^^__", " ")
                 .replace("__^^^__", ",")
+                .replace("__^_^__", "*")
+                .replace("__^^_^__", "+")
+                .replace("__^_^^__", "|")
                 .replace("__^^^^__", "'"); // TODO: Configurable
 
         if (command == null || extra == null) {
