@@ -17,12 +17,14 @@ for APK_FILE in `ls ../BM_APKs/small_apks/*.apk`; do
 	sleep 5
 	~/Workspaces/python/Stoat/explore.sh $APK_PATH
 	source ../.env/bin/activate
-	for x in `../scripts/list_snapshots.sh`; do
-		echo "Snapshot: $x"
-		python main.py --snapshot $x
-		A=$x"_TMP"
-		adb emu avd snapshot delete $A
-		rm -rf ~/.android/avd/Pixel_Stoat.avd/snapshots/$A
-		echo "REMOVE $A"
+	for SNAPSHOT in `../scripts/list_snapshots.sh`; do
+	  APP_NAME=${SNAPSHOT%%_*}
+		echo "Snapshot $SNAPSHOT in App $APP_NAME"
+#		python main.py --snapshot $SNAPSHOT
+		python main.py --app-name $APP_NAME --output-path `realpath ../new_format_result` --snapshot $SNAPSHOT --debug
+		TMP_SNAPSHOT=$SNAPSHOT"_TMP"
+		adb emu avd snapshot delete $TMP_SNAPSHOT
+		rm -rf ~/.android/avd/Pixel_Stoat.avd/snapshots/$TMP_SNAPSHOT
+		echo "REMOVE $TMP_SNAPSHOT"
 	done
 done
