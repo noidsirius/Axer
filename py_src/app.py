@@ -311,7 +311,7 @@ def report_v2(result_path, app_name, snapshot_name):
             step['index'] = index
             step['action'] = explore_json[index]['element']
 
-            step['init_img'] = address_book.get_screenshot_path('s_exp', index, extension='RS').relative_to(
+            step['init_img'] = address_book.get_screenshot_path('s_exp', index, extension='edited').relative_to(
                 result_path.parent)
             step['tb_img'] = address_book.get_screenshot_path('s_tb', index).relative_to(result_path.parent)
             step['reg_img'] = address_book.get_screenshot_path('s_reg', index).relative_to(result_path.parent)

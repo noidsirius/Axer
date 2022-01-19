@@ -107,7 +107,7 @@ class ResultWriter:
                                    width=5,
                                    scale=1)
                 annotate_rectangle(self.address_book.get_screenshot_path('s_exp', action_index, extension="R"),
-                                   self.address_book.get_screenshot_path('s_exp', action_index, extension="RS"),
+                                   self.address_book.get_screenshot_path('s_exp', action_index, extension="edited"),
                                    tb_action_result.bound,
                                    outline=(255, 255, 0),
                                    width=15,
