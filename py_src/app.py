@@ -11,19 +11,19 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
 from snapshot import Snapshot, AddressBook
 
 logger = logging.getLogger(__name__)
-app = Flask(__name__, static_url_path='', )
+flask_app = Flask(__name__, static_url_path='', )
 
 # ---------------------------- For Legacy Results ---------------------
 RESULT_STATIC_URI = '/old_result_jan_12/'
 RESULT_PATH = pathlib.Path("../old_result_jan_12")
 # RESULT_PATH = pathlib.Path("../old_result_jan_12")
 
-@app.route(f'{RESULT_STATIC_URI}<path:path>')
+@flask_app.route(f'{RESULT_STATIC_URI}<path:path>')
 def send_result_static(path):
     return send_from_directory(RESULT_PATH, path)
 
 
-@app.route("/")
+@flask_app.route("/")
 def report_index():
     app_list = defaultdict(list)
     for snapshot_result_path in RESULT_PATH.iterdir():
@@ -57,7 +57,7 @@ def report_index():
 
 
 # @app.route("/snapshot/diff/<name>/<index>", defaults={'stb': 'False'})
-@app.route("/snapshot/diff/<name>/<index>")
+@flask_app.route("/snapshot/diff/<name>/<index>")
 def xml_diff(name, index):
     explore_path = RESULT_PATH.joinpath(name)
     # xml_name = f"M_{index}.xml" if stb == 'True' else f"{index}.xml"
@@ -69,7 +69,7 @@ def xml_diff(name, index):
     return render_template('xml_diff.html', diff_string=[diff_string])
 
 
-@app.route("/snapshot/report/<name>")
+@flask_app.route("/snapshot/report/<name>")
 def report(name):
     result_path = RESULT_PATH.joinpath(name)
     if not result_path.exists():
@@ -152,7 +152,7 @@ def report(name):
 
 # ---------------------------- End Legacy Results ---------------------
 
-@app.route(f'/v2/static/<path:path>')
+@flask_app.route(f'/v2/static/<path:path>')
 def send_result_static_v2(path):
     # TODO: Not secure at all
     result_path = pathlib.Path(f"../{path}")
@@ -161,7 +161,7 @@ def send_result_static_v2(path):
     return send_from_directory(result_path.parent.resolve(),result_path.name)
 
 
-@app.route("/v2/<result_path_str>/")
+@flask_app.route("/v2/<result_path_str>/")
 def report_index_v2(result_path_str: str):
     result_path = pathlib.Path(f"../{result_path_str}")
     if not (result_path.is_dir() and result_path.exists()):
@@ -228,7 +228,7 @@ def report_index_v2(result_path_str: str):
 
 
 # @app.route("/snapshot/diff/<name>/<index>", defaults={'stb': 'False'})
-@app.route("/v2/<result_path>/<app_name>/snapshot/<snapshot_name>/diff/<index>")
+@flask_app.route("/v2/<result_path>/<app_name>/snapshot/<snapshot_name>/diff/<index>")
 def xml_diff_v2(result_path, app_name, snapshot_name, index):
     result_path = pathlib.Path(f"../{result_path}")
     if not (result_path.is_dir() and result_path.exists()):
@@ -243,7 +243,7 @@ def xml_diff_v2(result_path, app_name, snapshot_name, index):
     return render_template('xml_diff.html', diff_string=[diff_string])
 
 
-@app.route("/v2/<result_path>/<app_name>/snapshot/<snapshot_name>/report")
+@flask_app.route("/v2/<result_path>/<app_name>/snapshot/<snapshot_name>/report")
 def report_v2(result_path, app_name, snapshot_name):
     result_path_str = result_path
     result_path = pathlib.Path(f"../{result_path}")
@@ -271,7 +271,7 @@ def report_v2(result_path, app_name, snapshot_name):
             step['tb_result'] = explore_json[index]['tb_action_result']
             step['reg_result'] = explore_json[index]['reg_action_result']
             tb_xml_path = address_book.get_layout_path('tb', index)
-            reg_xml_path = address_book.get_layout_path('tb', index)
+            reg_xml_path = address_book.get_layout_path('reg', index)
             xml_problem = False
             with open(tb_xml_path, "r") as f:
                 tb_xml = f.read()
@@ -297,28 +297,51 @@ def report_v2(result_path, app_name, snapshot_name):
                     step['status_message'] = "Different Behavior"
 
             tb_steps.append(step)
-    stb_result_path = result_path.joinpath("stb_result.json")
+    stb_result_path = address_book.s_action_path
     stb_steps = []
     if not stb_result_path.exists():
         errors.append("Sighted TalkBack result doesn't exist!")
     else:
-        with open(stb_result_path) as f:
-            stb_json = json.load(f)
-        for xpath in stb_json:
+        explore_json = []
+        with open(address_book.s_action_path) as f:
+            for line in f.readlines():
+                explore_json.append(json.loads(line))
+        for index, _ in enumerate(explore_json):
             step = {}
-            index = stb_json[xpath]['index']
             step['index'] = index
-            step['action'] = stb_json[xpath]['command']
-            step['init_img'] = RESULT_STATIC_URI + os.path.relpath(
-                result_path.joinpath("EXP").joinpath(f"I_{index}_RS.png").absolute(), RESULT_PATH)
-            step['tb_img'] = RESULT_STATIC_URI + os.path.relpath(
-                result_path.joinpath("TB").joinpath(f"M_{index}.png").absolute(),
-                RESULT_PATH)
-            step['reg_img'] = RESULT_STATIC_URI + os.path.relpath(
-                result_path.joinpath("REG").joinpath(f"M_{index}.png").absolute(),
-                RESULT_PATH)
-            step['status'] = stb_json[xpath].get('same', False)
-            step['stb_result'] = stb_json[xpath].get('stb_result', '')
-            step['reg_result'] = stb_json[xpath].get('reg_result', '')
+            step['action'] = explore_json[index]['element']
+
+            step['init_img'] = address_book.get_screenshot_path('s_exp', index, extension='RS').relative_to(
+                result_path.parent)
+            step['tb_img'] = address_book.get_screenshot_path('s_tb', index).relative_to(result_path.parent)
+            step['reg_img'] = address_book.get_screenshot_path('s_reg', index).relative_to(result_path.parent)
+            step['tb_result'] = explore_json[index]['tb_action_result']
+            step['reg_result'] = explore_json[index]['reg_action_result']
+            tb_xml_path = address_book.get_layout_path('s_tb', index)
+            reg_xml_path = address_book.get_layout_path('s_reg', index)
+            xml_problem = False
+            with open(tb_xml_path, "r") as f:
+                tb_xml = f.read()
+                if "PROBLEM_WITH_XML" in tb_xml:
+                    xml_problem = True
+            with open(reg_xml_path, "r") as f:
+                reg_xml = f.read()
+                if "PROBLEM_WITH_XML" in reg_xml:
+                    xml_problem = True
+            step['status'] = 1 if (tb_xml == reg_xml) else 0
+            step['status_message'] = "Accessible"
+            if step['status'] == 0:
+                if "FAILED" in step['tb_result'][0]:
+                    step['status_message'] = "TalkBack Failed"
+                    step['status'] = 2
+                elif "FAILED" in step['reg_result'][0]:
+                    step['status_message'] = "Regular Failed"
+                    step['status'] = 2
+                elif xml_problem:
+                    step['status_message'] = "Problem with XML"
+                    step['status'] = 2
+                else:
+                    step['status_message'] = "Different Behavior"
+
             stb_steps.append(step)
     return render_template('v2_report.html', result_path=result_path_str, app_name=app_name, tb_steps=tb_steps, name=snapshot_name, stb_steps=stb_steps, errors=errors)

@@ -14,7 +14,7 @@ def bm_explore(snapshot_result_path: Path, snapshot_name: str):
     if not success_explore:
         logger.error("Problem with explore!")
         return
-    snapshot.validate_by_stb()
+    asyncio.run(snapshot.validate_by_stb())
 
 
 if __name__ == "__main__":

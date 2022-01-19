@@ -26,8 +26,6 @@ class AddressBook:
         if isinstance(snapshot_result_path, str):
             snapshot_result_path = Path(snapshot_result_path)
         self.snapshot_result_path = snapshot_result_path
-        self.visited_elements = []
-        self.actions = []
         navigate_modes = ["tb", "reg", "exp", "s_reg", "s_tb", "s_exp"]
         self.mode_path_map = {}
         for mode in navigate_modes:
@@ -86,30 +84,53 @@ class ResultWriter:
 
     def add_action(self,
                    element: dict,
-                   tb_action_result: str,
-                   reg_action_result: ExecutionResult):
+                   tb_action_result: Union[str, ExecutionResult],
+                   reg_action_result: ExecutionResult,
+                   is_sighted: bool = False):
         action_index = self.get_action_index()
-        exp_screenshot_path = self.address_book.get_screenshot_path('exp', action_index, should_exists=True)
-        if exp_screenshot_path:
-            annotate_rectangle(exp_screenshot_path,
-                               self.address_book.get_screenshot_path('exp', action_index, extension="edited"),
-                               reg_action_result.bound,
-                               outline=(0, 255, 255),
-                               scale=15,
-                               width=15,)
+        if not is_sighted:
+            exp_screenshot_path = self.address_book.get_screenshot_path('exp', action_index, should_exists=True)
+            if exp_screenshot_path:
+                annotate_rectangle(exp_screenshot_path,
+                                   self.address_book.get_screenshot_path('exp', action_index, extension="edited"),
+                                   reg_action_result.bound,
+                                   outline=(0, 255, 255),
+                                   scale=15,
+                                   width=15,)
+        else:
+            initial_path = self.address_book.get_screenshot_path('s_exp', 'INITIAL', should_exists=True)
+            if initial_path is not None and isinstance(tb_action_result, ExecutionResult):
+                annotate_rectangle(initial_path,
+                                   self.address_book.get_screenshot_path('s_exp', action_index, extension="R"),
+                                   reg_action_result.bound,
+                                   outline=(255, 0, 255),
+                                   width=5,
+                                   scale=1)
+                annotate_rectangle(self.address_book.get_screenshot_path('s_exp', action_index, extension="R"),
+                                   self.address_book.get_screenshot_path('s_exp', action_index, extension="RS"),
+                                   tb_action_result.bound,
+                                   outline=(255, 255, 0),
+                                   width=15,
+                                   scale=20)
         new_action = {'index': action_index,
                       'element': element,
                       'tb_action_result': tb_action_result,
                       'reg_action_result': reg_action_result,
                       }
         self.actions.append(new_action)
-        with open(self.address_book.action_path, "a") as f:
+        action_path = self.address_book.s_action_path if is_sighted else self.address_book.action_path
+        with open(action_path, "a") as f:
             f.write(f"{json.dumps(new_action)}\n")
 
     def start_explore(self):
         self.address_book.initiate()
+        self.visited_elements = []
+        self.actions = []
 
-    async def capture_current_state(self, device, mode: str, index: int, has_layout=True,  log_message: Optional[str] = None) -> str:
+    def start_stb(self):
+        self.actions = []
+
+    async def capture_current_state(self, device, mode: str, index: Union[int, str], has_layout=True,  log_message: Optional[str] = None) -> str:
         await save_screenshot(device, self.address_book.get_screenshot_path(mode, index))
         activity_name = await get_current_activity_name()
         with open(self.address_book.get_activity_name_path(mode, index), mode='w') as f:
@@ -259,11 +280,11 @@ class Snapshot:
         logger.info("Done Exploring!")
         return True
 
-    def get_important_actions(self) -> List:
-        if not asyncio.run(load_snapshot(self.initial_snapshot)):
+    async def get_important_actions(self) -> List:
+        if not await load_snapshot(self.initial_snapshot):
             logger.error("Error in loading snapshot")
             return []
-        dom = asyncio.run(capture_layout())
+        dom = await capture_layout()
         important_elements = get_elements(dom,
                                           filter_query=lambda x: x.attrib.get('clickable', 'false') == 'true'
                                                                  or x.attrib.get('NAF', 'false') == 'true')
@@ -287,77 +308,54 @@ class Snapshot:
             result.append(action['element'])
         return result
 
-    def get_meaningful_actions(self, action_list: List, executor: Callable = reg_execute_command) -> List:
-        if not asyncio.run(load_snapshot(self.initial_snapshot)):
+    async def get_meaningful_actions(self, action_list: List, executor: Callable = reg_execute_command) -> List:
+        if not await load_snapshot(self.initial_snapshot):
             logger.error("Error in loading snapshot")
             return []
-        original_layout = asyncio.run(capture_layout())
+        original_layout = await capture_layout()
         meaningful_actions = []
         for action in action_list:
-            if not asyncio.run(load_snapshot(self.initial_snapshot)):
+            if not await load_snapshot(self.initial_snapshot):
                 logger.error("Error in loading snapshot")
                 return []
-            reg_layout, result = asyncio.run(executor(json.dumps(action)))
+            reg_layout, result = await executor(json.dumps(action))
             if reg_layout != original_layout:
                 meaningful_actions.append(action)
         return meaningful_actions
 
-    def validate_by_stb(self):
+    async def validate_by_stb(self):
         logger.info("Validating remaining actions.")
-        important_actions = self.get_important_actions()
+        self.writer.start_stb()
+        important_actions = await self.get_important_actions()
         tb_done_actions = self.get_tb_done_actions()
         tb_undone_actions = get_missing_actions(important_actions, tb_done_actions)
         logger.info(f"There are {len(tb_undone_actions)} missing actions in explore!")
-        if not asyncio.run(load_snapshot(self.initial_snapshot)):
+        if not await load_snapshot(self.initial_snapshot):
             logger.error("Error in loading snapshot")
             return []
-        asyncio.run(asyncio.sleep(2))
-        initial_layout = asyncio.run(capture_layout())
-        asyncio.run(save_screenshot(self.device, self.address_book.get_screenshot_path('s_exp', 'INITIAL')))
-        stb_result_list = {}
-        all_activity_names = []
-        is_in_app_activity = not asyncio.run(is_android_activity_on_top())
+        await asyncio.sleep(2)
+        initial_layout = await self.writer.capture_current_state(self.device, 's_exp', 'INITIAL')
+        is_in_app_activity = not await is_android_activity_on_top()
         if is_in_app_activity:
             for index, action in enumerate(tb_undone_actions):
-                logger.info(f"Missing action {index}")
-                if not asyncio.run(load_snapshot(self.initial_snapshot)):
+                logger.info(f"Missing action {self.writer.get_action_index()}")
+                if not await load_snapshot(self.initial_snapshot):
                     logger.error("Error in loading snapshot")
                     return []
-                reg_result = asyncio.run(reg_execute_command(json.dumps(action)))
-                reg_layout = asyncio.run(self.writer.capture_current_state(self.device, "s_reg", index))
+                reg_result = await reg_execute_command(json.dumps(action))
+                reg_layout = await self.writer.capture_current_state(self.device, "s_reg", self.writer.get_action_index())
                 if reg_layout == initial_layout or reg_result.state != 'COMPLETED':  # the action is not meaningful
                     continue
-                all_activity_names.append(f"REG_C $ {index} $ {asyncio.run(get_current_activity_name())}")
-                annotate_rectangle(self.address_book.get_screenshot_path('s_exp', 'INITIAL'),
-                                   self.address_book.get_screenshot_path('s_exp', 'INITIAL', extension="R"),
-                                   reg_result.bound,
-                                   outline=(255, 0, 255),
-                                   width=5,
-                                   scale=1)
-                if not asyncio.run(load_snapshot(self.initial_snapshot)):
+
+                if not await load_snapshot(self.initial_snapshot):
                     logger.error("Error in loading snapshot")
                     return []
-                stb_result = asyncio.run(stb_execute_command(json.dumps(action)))
-                stb_layout = asyncio.run(self.writer.capture_current_state(self.device, "s_tb", index))
-                all_activity_names.append(f"STB_C $ {index} $ {asyncio.run(get_current_activity_name())}")
-                annotate_rectangle(self.address_book.get_screenshot_path('s_exp', 'INITIAL', extension="R"),
-                                   self.address_book.get_screenshot_path('s_exp', 'INITIAL', extension="RS"),
-                                   stb_result.bound,
-                                   outline=(255, 255, 0),
-                                   width=15,
-                                   scale=20)
-                a_result = {'index': index,
-                            'command': action,
-                            'same': reg_layout == stb_layout,
-                            'stb_no_change': stb_layout == initial_layout,
-                            'stb_result': stb_result,
-                            'reg_result': reg_result,
-                            }
-                stb_result_list[action['xpath']] = a_result
-        with open(self.address_book.s_action_path, "w") as f:
-            json.dump(stb_result_list, f)
-        with open(str(self.address_book.mode_path_map['s_tb'].absolute()) + "_activities.txt", "w") as f:
-            f.writelines(all_activity_names)
+
+                stb_result = await stb_execute_command(json.dumps(action))
+                stb_layout = await self.writer.capture_current_state(self.device, "s_tb", self.writer.get_action_index())
+
+                logger.info(f"Writing action {self.writer.get_action_index()}")
+                self.writer.add_action(action, stb_result, reg_result, is_sighted=True)
 
     def old_report_issues(self):
         different_behaviors = []

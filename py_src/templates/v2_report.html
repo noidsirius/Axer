@@ -189,20 +189,20 @@
                             </td>
                             <td>
                                 <a href="#" class="enlarge">
-                                    <img src="{{ step.init_img }}" class="rounded d-block mx-auto"
+                                    <img src="{{ url_for('send_result_static_v2', path=step.init_img) }}" class="rounded d-block mx-auto"
                                          style="width: 10rem;">
                                 </a>
                             </td>
                             <td>
                                 <a href="#" class="enlarge">
-                                    <img src="{{ step.tb_img }}" class="rounded d-block mx-auto"
+                                    <img src="{{ url_for('send_result_static_v2', path=step.tb_img) }}" class="rounded d-block mx-auto"
                                          style="width: 10rem;" data-bs-toggle="tooltip"
-                                         data-bs-placement="top" title="{{ step.stb_result|e }}">
+                                         data-bs-placement="top" title="{{ step.tb_result|e }}">
                                 </a>
                             </td>
                             <td>
                                 <a href="#" class="enlarge">
-                                    <img src="{{ step.reg_img }}" class="rounded d-block mx-auto"
+                                    <img src="{{ url_for('send_result_static_v2', path=step.reg_img) }}" class="rounded d-block mx-auto"
                                          style="width: 10rem;" data-bs-toggle="tooltip"
                                          data-bs-placement="top" title="{{ step.reg_result|e }}">
                                 </a>
