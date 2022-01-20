@@ -5,10 +5,12 @@ import subprocess
 from collections import defaultdict
 import pathlib
 import os
+import math
 import datetime
 from flask import Flask, send_from_directory, render_template
 sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
-from snapshot import Snapshot, AddressBook
+from snapshot import AddressBook
+from post_analysis import POST_ANALYSIS_PREFIX, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, XML_PROBLEM, DIFFERENT_BEHAVIOR, UNREACHABLE
 
 logger = logging.getLogger(__name__)
 flask_app = Flask(__name__, static_url_path='', )
@@ -31,9 +33,9 @@ def report_index():
         if snapshot_result_path.is_dir() and '_' in snapshot_name:
             app_name = ("_".join(snapshot_name.split('_')[:-1])).replace('.', '_')
             address_book = AddressBook(snapshot_result_path)
-            snapshot = Snapshot(snapshot_name, address_book)
+            # snapshot = Snapshot(snapshot_name, address_book)
             different_behaviors, directional_unreachable \
-                , unlocatable, different_behaviors_directional_unreachable, pending = snapshot.old_report_issues()
+                , unlocatable, different_behaviors_directional_unreachable, pending = old_report_issues(address_book)
             snapshot_info = {}
             snapshot_info['id'] = snapshot_name
             snapshot_info['different_behavior'] = "(pending)" if pending else len(different_behaviors) + len(
@@ -170,7 +172,7 @@ def report_index_v2(result_path_str: str):
     for app_path in result_path.iterdir():
         if not app_path.is_dir():
             continue
-        app_name = app_path.name#.replace('.', '_')
+        app_name = app_path.name
         app_list[app_name] = []
         for snapshot_path in app_path.iterdir():
             if not snapshot_path.is_dir():
@@ -178,56 +180,60 @@ def report_index_v2(result_path_str: str):
             snapshot_name = snapshot_path.name
             address_book = AddressBook(snapshot_path)
             snapshot_info = {}
+            action_count = 0
+            different_behaviors = 0
+            unreachable = 0
+            other = 0
+            analysis_count = 0
+            for post_result_path in snapshot_path.iterdir():
+                if post_result_path.name.startswith(POST_ANALYSIS_PREFIX):
+                    analysis_count += 1
+                    with open(str(post_result_path), "r") as f:
+                        for line in f.readlines():
+                            action_count += 1
+                            result = json.loads(line)
+                            if result['issue_status'] == XML_PROBLEM:
+                                other += 1
+                            elif result['issue_status'] == REG_FAILURE:
+                                other += 1
+                            elif result['issue_status'] == TB_FAILURE:
+                                other += 1
+                            elif result['issue_status'] == UNREACHABLE:
+                                unreachable += 1
+                            elif result['issue_status'] == DIFFERENT_BEHAVIOR:
+                                different_behaviors += 1
+                            elif result['issue_status'] == SUCCESS:
+                                continue
+                            else:
+                                other += 100000
+
             snapshot_info['id'] = snapshot_name
-            snapshot_info['different_behavior'] = "(pending)"
-            snapshot_info['unreachable'] = "(pending)"
+            snapshot_info['actions'] = "(pending)" if analysis_count == 0 else math.floor(action_count / analysis_count)
+            snapshot_info['different_behavior'] = "(pending)" if analysis_count == 0 else math.floor(different_behaviors / analysis_count)
+            snapshot_info['unreachable'] = "(pending)" if analysis_count == 0 else math.floor(unreachable / analysis_count)
+            snapshot_info['other'] = "(pending)" if analysis_count == 0 else math.floor(other / analysis_count)
             snapshot_info['last_update'] = datetime.datetime.fromtimestamp(address_book.snapshot_result_path.stat().st_mtime)
             app_list[app_name].append(snapshot_info)
+        app_list[app_name].sort(key=lambda s: s['last_update'], reverse=True)
     apps = []
     for app in app_list:
         app_info = {}
         app_info['name'] = app.replace(' ', '_')
         app_info['snapshots'] = app_list[app]
+        app_info['actions'] = sum(
+            [0] + [s['actions'] for s in app_list[app] if str(s['actions']).isdecimal()])
         app_info['different_behavior'] = sum(
             [0] + [s['different_behavior'] for s in app_list[app] if str(s['different_behavior']).isdecimal()])
         app_info['unreachable'] = sum(
             [0] + [s['unreachable'] for s in app_list[app] if str(s['unreachable']).isdecimal()])
+        app_info['other'] = sum(
+            [0] + [s['other'] for s in app_list[app] if str(s['other']).isdecimal()])
         app_info['last_update'] = max(s['last_update'] for s in app_list[app])
         apps.append(app_info)
     apps.sort(key=lambda a: a['last_update'], reverse=True)
     return render_template('v2_index.html', apps=apps, result_path=result_path_str)
-    # return app_list
-    # return "Empty"
-    # for snapshot_result_path in result_path.iterdir():
-    #     snapshot_name = snapshot_result_path.name
-    #     if snapshot_result_path.is_dir() and '_' in snapshot_name:
-    #         app_name = ("_".join(snapshot_name.split('_')[:-1])).replace('.', '_')
-    #         snapshot = Snapshot(snapshot_name)
-    #         different_behaviors, directional_unreachable \
-    #             , unlocatable, different_behaviors_directional_unreachable, pending = snapshot.report_issues()
-    #         snapshot_info = {}
-    #         snapshot_info['id'] = snapshot_name
-    #         snapshot_info['different_behavior'] = "(pending)" if pending else len(different_behaviors) + len(
-    #             different_behaviors_directional_unreachable)
-    #         snapshot_info['unreachable'] = "(pending)" if pending else len(unlocatable) + len(directional_unreachable)
-    #         snapshot_info['last_update'] = datetime.datetime.fromtimestamp(snapshot.writer.snapshot_result_path.stat().st_mtime)
-    #         app_list[app_name].append(snapshot_info)
-    # apps = []
-    # for app in app_list:
-    #     app_info = {}
-    #     app_info['name'] = app.replace(' ', '_')
-    #     app_info['snapshots'] = app_list[app]
-    #     app_info['different_behavior'] = sum(
-    #         [0] + [s['different_behavior'] for s in app_list[app] if str(s['different_behavior']).isdecimal()])
-    #     app_info['unreachable'] = sum(
-    #         [0] + [s['unreachable'] for s in app_list[app] if str(s['unreachable']).isdecimal()])
-    #     app_info['last_update'] = max(s['last_update'] for s in app_list[app])
-    #     apps.append(app_info)
-    # apps.sort(key=lambda a: a['last_update'], reverse=True)
-    # return render_template('index.html', apps=apps)
 
 
-# @app.route("/snapshot/diff/<name>/<index>", defaults={'stb': 'False'})
 @flask_app.route("/v2/<result_path>/<app_name>/snapshot/<snapshot_name>/diff/<index>")
 def xml_diff_v2(result_path, app_name, snapshot_name, index):
     result_path = pathlib.Path(f"../{result_path}")
@@ -243,6 +249,24 @@ def xml_diff_v2(result_path, app_name, snapshot_name, index):
     return render_template('xml_diff.html', diff_string=[diff_string])
 
 
+def create_step(address_book: AddressBook, static_root_path: pathlib.Path, action: dict, post_analysis_results_sub: dict, is_sighted: bool) -> dict:
+    prefix = "s_" if is_sighted else ""
+    step = {}
+    step['index'] = action['index']
+    step['action'] = action['element']
+    step['init_img'] = address_book.get_screenshot_path(f'{prefix}exp', action['index'], extension='edited').relative_to(static_root_path)
+    step['tb_img'] = address_book.get_screenshot_path(f'{prefix}tb', action['index']).relative_to(static_root_path)
+    step['reg_img'] = address_book.get_screenshot_path(f'{prefix}reg', action['index']).relative_to(static_root_path)
+    step['tb_result'] = action['tb_action_result']
+    step['reg_result'] = action['reg_action_result']
+    step['status'] = min(
+        [100] + [post_analysis_results_sub[ana_name][action['index']]['issue_status'] for ana_name in
+                post_analysis_results_sub])
+    step['status_messages'] = [
+        f"{ana_name}: {post_analysis_results_sub[ana_name][action['index']]['message']}" for ana_name in
+        post_analysis_results_sub]
+    return step
+
 @flask_app.route("/v2/<result_path>/<app_name>/snapshot/<snapshot_name>/report")
 def report_v2(result_path, app_name, snapshot_name):
     result_path_str = result_path
@@ -253,95 +277,42 @@ def report_v2(result_path, app_name, snapshot_name):
     address_book = AddressBook(snapshot_path)
     tb_steps = []
     errors = []
-    if not snapshot_path.exists():
-        errors.append("Explore result doesn't exist!")
+    post_analysis_results = {'sighted': {}, 'unsighted': {}}
+    for post_result_path in snapshot_path.iterdir():
+        if post_result_path.name.startswith(POST_ANALYSIS_PREFIX):
+            analysis_name = post_result_path.name[len(POST_ANALYSIS_PREFIX)+1:-len('.jsonl')]
+            post_analysis_results['sighted'][analysis_name] = {}
+            post_analysis_results['unsighted'][analysis_name] = {}
+            with open(str(post_result_path), "r") as f:
+                for line in f.readlines():
+                    result = json.loads(line)
+                    if result['is_sighted']:
+                        post_analysis_results['sighted'][analysis_name][result['index']] = result
+                    else:
+                        post_analysis_results['unsighted'][analysis_name][result['index']] = result
+    if len(post_analysis_results['unsighted']) == 0:
+        errors.append("No post-analysis result is available!")
+
+    if not address_book.action_path.exists():
+        errors.append("Explore data doesn't exist!")
     else:
         explore_json = []
         with open(address_book.action_path) as f:
             for line in f.readlines():
                 explore_json.append(json.loads(line))
-        for index, _ in enumerate(explore_json):
-            step = {}
-            step['index'] = index
-            step['action'] = explore_json[index]['element']
-
-            step['init_img'] = address_book.get_screenshot_path('exp', index, extension='edited').relative_to(result_path.parent)
-            step['tb_img'] = address_book.get_screenshot_path('tb', index).relative_to(result_path.parent)
-            step['reg_img'] = address_book.get_screenshot_path('reg', index).relative_to(result_path.parent)
-            step['tb_result'] = explore_json[index]['tb_action_result']
-            step['reg_result'] = explore_json[index]['reg_action_result']
-            tb_xml_path = address_book.get_layout_path('tb', index)
-            reg_xml_path = address_book.get_layout_path('reg', index)
-            xml_problem = False
-            with open(tb_xml_path, "r") as f:
-                tb_xml = f.read()
-                if "PROBLEM_WITH_XML" in tb_xml:
-                    xml_problem = True
-            with open(reg_xml_path, "r") as f:
-                reg_xml = f.read()
-                if "PROBLEM_WITH_XML" in reg_xml:
-                    xml_problem = True
-            step['status'] = 1 if (tb_xml == reg_xml) else 0
-            step['status_message'] = "Accessible"
-            if step['status'] == 0:
-                if "FAILED" in step['tb_result'][0]:
-                    step['status_message'] = "TalkBack Failed"
-                    step['status'] = 2
-                elif "FAILED" in step['reg_result'][0]:
-                    step['status_message'] = "Regular Failed"
-                    step['status'] = 2
-                elif xml_problem:
-                    step['status_message'] = "Problem with XML"
-                    step['status'] = 2
-                else:
-                    step['status_message'] = "Different Behavior"
-
+        for action in explore_json:
+            step = create_step(address_book, result_path.parent, action, post_analysis_results['unsighted'], is_sighted=False)
             tb_steps.append(step)
-    stb_result_path = address_book.s_action_path
     stb_steps = []
-    if not stb_result_path.exists():
-        errors.append("Sighted TalkBack result doesn't exist!")
+    if not address_book.s_action_path.exists():
+        errors.append("Sighted TalkBack data doesn't exist!")
     else:
         explore_json = []
         with open(address_book.s_action_path) as f:
             for line in f.readlines():
                 explore_json.append(json.loads(line))
-        for index, _ in enumerate(explore_json):
-            step = {}
-            step['index'] = index
-            step['action'] = explore_json[index]['element']
-
-            step['init_img'] = address_book.get_screenshot_path('s_exp', index, extension='edited').relative_to(
-                result_path.parent)
-            step['tb_img'] = address_book.get_screenshot_path('s_tb', index).relative_to(result_path.parent)
-            step['reg_img'] = address_book.get_screenshot_path('s_reg', index).relative_to(result_path.parent)
-            step['tb_result'] = explore_json[index]['tb_action_result']
-            step['reg_result'] = explore_json[index]['reg_action_result']
-            tb_xml_path = address_book.get_layout_path('s_tb', index)
-            reg_xml_path = address_book.get_layout_path('s_reg', index)
-            xml_problem = False
-            with open(tb_xml_path, "r") as f:
-                tb_xml = f.read()
-                if "PROBLEM_WITH_XML" in tb_xml:
-                    xml_problem = True
-            with open(reg_xml_path, "r") as f:
-                reg_xml = f.read()
-                if "PROBLEM_WITH_XML" in reg_xml:
-                    xml_problem = True
-            step['status'] = 1 if (tb_xml == reg_xml) else 0
-            step['status_message'] = "Accessible"
-            if step['status'] == 0:
-                if "FAILED" in step['tb_result'][0]:
-                    step['status_message'] = "TalkBack Failed"
-                    step['status'] = 2
-                elif "FAILED" in step['reg_result'][0]:
-                    step['status_message'] = "Regular Failed"
-                    step['status'] = 2
-                elif xml_problem:
-                    step['status_message'] = "Problem with XML"
-                    step['status'] = 2
-                else:
-                    step['status_message'] = "Different Behavior"
-
+        for action in explore_json:
+            step = create_step(address_book, result_path.parent, action, post_analysis_results['sighted'], is_sighted=True)
             stb_steps.append(step)
-    return render_template('v2_report.html', result_path=result_path_str, app_name=app_name, tb_steps=tb_steps, name=snapshot_name, stb_steps=stb_steps, errors=errors)
+    all_steps = {'TalkBack Exploration': tb_steps, 'Sighted TalkBack Checks': stb_steps}
+    return render_template('v2_report.html', result_path=result_path_str, app_name=app_name, all_steps=all_steps, name=snapshot_name, errors=errors)

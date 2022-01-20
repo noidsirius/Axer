@@ -55,8 +55,10 @@
                     <tr class="table-primary">
                         <th>Name</th>
                         <th>#Snapshots</th>
+                        <th>#Actions</th>
                         <th>#DifferentBehavior</th>
                         <th>#Unreachable</th>
+                        <th>#Other</th>
                         <th>Last update</th>
                     </tr>
                     </thead>
@@ -67,12 +69,14 @@
                             aria-controls="{{ app.name }}_row">
                             <td>{{ app.name }}</td>
                             <td>{{ app.snapshots|length }}</td>
+                            <td>{{ app.actions }}</td>
                             <td>{{ app.different_behavior }}</td>
                             <td>{{ app.unreachable }}</td>
+                            <td>{{ app.other }}</td>
                             <td>{{ app.last_update }}</td>
                         </tr>
                         <tr>
-                            <td colspan="5">
+                            <td colspan="8">
                                 <div class="collapse" id="{{ app.name.replace('.', '_') }}_row">
                                     <div class="row">
                                         <div class="col-1"></div>
@@ -81,8 +85,10 @@
                                                 <thead>
                                                 <tr>
                                                     <th>Id</th>
+                                                    <th>#Actions</th>
                                                     <th>#DifferentBehavior</th>
                                                     <th>#Unreachable</th>
+                                                    <th>#Other</th>
                                                     <th>Last update</th>
                                                 </tr>
                                                 </thead>
@@ -92,8 +98,10 @@
                                                         <td>
                                                             <a href="{{ url_for('report_v2', result_path=result_path, app_name=app.name, snapshot_name=snapshot.id) }}">{{ snapshot.id }}</a>
                                                         </td>
+                                                        <td>{{ snapshot.actions }}</td>
                                                         <td>{{ snapshot.different_behavior }}</td>
                                                         <td>{{ snapshot.unreachable }}</td>
+                                                        <td>{{ snapshot.other }}</td>
                                                         <td>{{ snapshot.last_update }}</td>
                                                     </tr>
                                                 {% endfor %}

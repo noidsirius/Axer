@@ -49,7 +49,6 @@
         <div class="col-10">
             <div class="row">
                 <div class="col-8">
-                    <h1>TalkBack Exploration</h1>
                 </div>
                 <div class="col-4">
                     <div class="form-check form-switch">
@@ -58,169 +57,107 @@
                     </div>
                 </div>
             </div>
-            <div class="row">
-                <table class="table table-bordered">
-                    <thead>
-                    <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Action</th>
-                        <th scope="col">Inital</th>
-                        <th scope="col">Talkback</th>
-                        <th scope="col">Regular</th>
-                        <th scope="col">Result</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for step in tb_steps %}
-                        <tr class="tb-step-{{ "passed" if step.status == 1 else "failed" }}">
-                            <th scope="row">{{ step.index }}</th>
-                            <td>
-                                <table class="table">
-                                    <tr>
-                                        <td class="text-end">ResourceId</td>
-                                        <td class="text-start">{{ step.action.resourceId }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-end">Text</td>
-                                        <td class="text-start">{{ step.action.text }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-end">Content Description</td>
-                                        <td class="text-start">{{ step.action.contentDescription }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-end">Class</td>
-                                        <td class="text-start">{{ step.action.class }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-end">XPath</td>
-                                        <td class="text-start">
-                                            <button type="button" class="btn btn-light" data-bs-toggle="tooltip"
-                                                    data-bs-placement="top" title="{{ step.action.xpath }}">XPath
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-                            <td>
-                                <a href="#" class="enlarge">
-                                    <img src="{{ url_for('send_result_static_v2', path=step.init_img) }}" class="rounded d-block mx-auto"
-                                         style="width: 10rem;">
-                                </a>
-                            </td>
-                            <td>
-                                <a href="#" class="enlarge">
-                                    <img src="{{ url_for('send_result_static_v2', path=step.tb_img) }}" class="rounded d-block mx-auto"
-                                         style="width: 10rem;" data-bs-toggle="tooltip"
-                                         data-bs-placement="top" title="{{ step.tb_result|e }}">
-                                </a>
-                            </td>
-                            <td>
-                                <a href="#" class="enlarge">
-                                    <img src="{{ url_for('send_result_static_v2', path=step.reg_img) }}" class="rounded d-block mx-auto"
-                                         style="width: 10rem;" data-bs-toggle="tooltip"
-                                         data-bs-placement="top" title="{{ step.reg_result|e }}">
-                                </a>
-                            </td>
-                            <td class="{{ 'table-success' if step.status == 1 else ('table-warning' if step.status == 2 else 'table-danger') }}">
-                                <ul>
-                                    <li>Result: {{ step.status_message }}</li>
-                                </ul>
-                                <a href="#" class="showdiff btn btn-secondary">
-                                    Show Diff
-                                    <input type="hidden" class="snapshot-index" value="{{ step.index }}">
-                                </a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            <div class="row">
-                <div class="col-8">
-                    <h1>Sighted TalkBack Checks</h1>
+            {% for (header_name, steps) in all_steps.items() %}
+                <div class="row">
+                    <div class="col-8">
+                        <h1>{{ header_name }}</h1>
+                    </div>
+                    <div class="col-4">
+                    </div>
                 </div>
-                <div class="col-4">
-                </div>
-            </div>
-            <div class="row">
-                <table class="table table-bordered">
-                    <thead>
-                    <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Action</th>
-                        <th scope="col">Inital</th>
-                        <th scope="col">Sighted Talkback</th>
-                        <th scope="col">Regular</th>
-                        <th scope="col">Result</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for step in stb_steps %}
+                <div class="row">
+                    <table class="table table-bordered">
+                        <thead>
                         <tr>
-                            <th scope="row">{{ step.index }}</th>
-                            <td>
-                                <table class="table">
-                                    <tr>
-                                        <td class="text-end">ResourceId</td>
-                                        <td class="text-start">{{ step.action.resourceId }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-end">Text</td>
-                                        <td class="text-start">{{ step.action.text }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-end">Content Description</td>
-                                        <td class="text-start">{{ step.action.contentDescription }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-end">Class</td>
-                                        <td class="text-start">{{ step.action.class }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-end">XPath</td>
-                                        <td class="text-start">
-                                            <button type="button" class="btn btn-light" data-bs-toggle="tooltip"
-                                                    data-bs-placement="top" title="{{ step.action.xpath }}">XPath
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-                            <td>
-                                <a href="#" class="enlarge">
-                                    <img src="{{ url_for('send_result_static_v2', path=step.init_img) }}" class="rounded d-block mx-auto"
-                                         style="width: 10rem;">
-                                </a>
-                            </td>
-                            <td>
-                                <a href="#" class="enlarge">
-                                    <img src="{{ url_for('send_result_static_v2', path=step.tb_img) }}" class="rounded d-block mx-auto"
-                                         style="width: 10rem;" data-bs-toggle="tooltip"
-                                         data-bs-placement="top" title="{{ step.tb_result|e }}">
-                                </a>
-                            </td>
-                            <td>
-                                <a href="#" class="enlarge">
-                                    <img src="{{ url_for('send_result_static_v2', path=step.reg_img) }}" class="rounded d-block mx-auto"
-                                         style="width: 10rem;" data-bs-toggle="tooltip"
-                                         data-bs-placement="top" title="{{ step.reg_result|e }}">
-                                </a>
-                            </td>
-                            <td class="{{ 'table-warning' if step.status else 'table-danger' }}">
-                                <ul>
-                                    <li>Result: {{ "Unreachable" if step.status else "Different Behavior" }}</li>
-                                </ul>
-                                <a href="#" class="showdiff btn btn-secondary">
-                                    Show Diff
-                                    <input type="hidden" class="snapshot-index" value="M_{{ step.index }}">
-                                </a>
-                            </td>
+                            <th scope="col">#</th>
+                            <th scope="col">Action</th>
+                            <th scope="col">Inital</th>
+                            <th scope="col">Talkback</th>
+                            <th scope="col">Regular</th>
+                            <th scope="col">Result</th>
                         </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                        {% for step in steps %}
+                            <tr class="tb-step-{{ "passed" if step.status == 10 else "failed" }}">
+                                <th scope="row">{{ step.index }}</th>
+                                <td>
+                                    <table class="table">
+                                        <tr>
+                                            <td class="text-end">ResourceId</td>
+                                            <td class="text-start">{{ step.action.resourceId }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-end">Text</td>
+                                            <td class="text-start">{{ step.action.text }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-end">Content Description</td>
+                                            <td class="text-start">{{ step.action.contentDescription }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-end">Class</td>
+                                            <td class="text-start">{{ step.action.class }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-end">XPath</td>
+                                            <td class="text-start">
+                                                <button type="button" class="btn btn-light" data-bs-toggle="tooltip"
+                                                        data-bs-placement="top" title="{{ step.action.xpath }}">XPath
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td>
+                                    <a href="#" class="enlarge">
+                                        <img src="{{ url_for('send_result_static_v2', path=step.init_img) }}" class="rounded d-block mx-auto"
+                                             style="width: 10rem;">
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="#" class="enlarge">
+                                        <img src="{{ url_for('send_result_static_v2', path=step.tb_img) }}" class="rounded d-block mx-auto"
+                                             style="width: 10rem;" data-bs-toggle="tooltip"
+                                             data-bs-placement="top" title="{{ step.tb_result|e }}">
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="#" class="enlarge">
+                                        <img src="{{ url_for('send_result_static_v2', path=step.reg_img) }}" class="rounded d-block mx-auto"
+                                             style="width: 10rem;" data-bs-toggle="tooltip"
+                                             data-bs-placement="top" title="{{ step.reg_result|e }}">
+                                    </a>
+                                </td>
+                                {% if step.status == 10 %}
+                                     <td class="table-success">
+                                {% elif step.status == 2 %}
+                                     <td class="table-warning">
+                                {% elif step.status == 0 %}
+                                     <td class="table-danger">
+                                {% elif step.status == 100 %}
+                                     <td class="table-secondary">
+                                {% elif 3 <= step.status <= 5  %}
+                                     <td class="table-info">
+                                {% else %}
+                                    <td class="table-light">
+                                {% endif %}
+                                    <ul>
+                                        {% for message in step.status_messages %}
+                                            <li>{{ message }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                    <a href="#" class="showdiff btn btn-secondary">
+                                        Show Diff
+                                        <input type="hidden" class="snapshot-index" value="{{ step.index }}">
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endfor %}
         </div>
         <div class="col-1"></div>
     </div>

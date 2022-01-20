@@ -356,37 +356,3 @@ class Snapshot:
 
                 logger.info(f"Writing action {self.writer.get_action_index()}")
                 self.writer.add_action(action, stb_result, reg_result, is_sighted=True)
-
-    def old_report_issues(self):
-        different_behaviors = []
-        directional_unreachable = []
-        unlocatable = []
-        different_behaviors_directional_unreachable = []
-        tb_xpaths = {}
-        pending = False
-        if self.address_book.snapshot_result_path.joinpath("explore.json").exists():
-            with open(self.address_book.snapshot_result_path.joinpath("explore.json")) as f:
-                explore_result = json.load(f)
-                for index in explore_result:
-                    tb_xpaths[explore_result[index]['command']['xpath']] = explore_result[index]['command']
-                    if not explore_result[index]['same']:
-                        different_behaviors.append(explore_result[index]['command'])
-        else:
-            pending = True
-
-        if self.address_book.snapshot_result_path.joinpath("stb_result.json").exists():
-            with open(self.address_book.snapshot_result_path.joinpath("stb_result.json")) as f:
-                stb_results = json.load(f)
-                for key in stb_results:
-                    e = ExecutionResult(*stb_results[key]['stb_result'])
-                    if e.state == 'COMPLETED_BY_HELP':
-                        unlocatable.append(stb_results[key]['command'])
-                    elif e.state == 'FAILED' or not stb_results[key]['same']:
-                        different_behaviors_directional_unreachable.append(stb_results[key]['command'])
-                    else:
-                        if e.xpath not in tb_xpaths.keys():
-                            directional_unreachable.append(stb_results[key]['command'])
-        else:
-            pending = True
-        return different_behaviors, directional_unreachable, unlocatable, \
-               different_behaviors_directional_unreachable, pending
