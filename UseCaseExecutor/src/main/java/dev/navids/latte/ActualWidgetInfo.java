@@ -1,6 +1,10 @@
 package dev.navids.latte;
 
+import android.graphics.Rect;
 import android.view.accessibility.AccessibilityNodeInfo;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +18,13 @@ public class ActualWidgetInfo extends WidgetInfo {
     }
 
     public static ActualWidgetInfo createFromA11yNode(AccessibilityNodeInfo node){
+        return createFromA11yNode(node, true);
+    }
+
+    /**
+     * @param fix_text "If it's true, it will create content description or text for parent views like Layout
+     */
+    public static ActualWidgetInfo createFromA11yNode(AccessibilityNodeInfo node, boolean fix_text){
         if (node == null){
             return null;
         }
@@ -21,15 +32,17 @@ public class ActualWidgetInfo extends WidgetInfo {
         String contentDescription = String.valueOf(node.getContentDescription());
         String text = String.valueOf(node.getText());
         String clsName = String.valueOf(node.getClassName());
-        if (clsName.endsWith("Layout")){
-            if (text.equals("null") && contentDescription.equals("null")) {
-                String tmp = Utils.getFirstText(node);
-                if (tmp != null)
-                    text = tmp;
-                else {
-                    tmp = Utils.getFirstContentDescription(node);
+        if(fix_text) {
+            if (clsName.endsWith("Layout")) {
+                if (text.equals("null") && contentDescription.equals("null")) {
+                    String tmp = Utils.getFirstText(node);
                     if (tmp != null)
-                        contentDescription = tmp;
+                        text = tmp;
+                    else {
+                        tmp = Utils.getFirstContentDescription(node);
+                        if (tmp != null)
+                            contentDescription = tmp;
+                    }
                 }
             }
         }
@@ -94,6 +107,30 @@ public class ActualWidgetInfo extends WidgetInfo {
         if(other instanceof ConceivedWidgetInfo)
             return other.isSimilar(this, myMaskedAttributes);
         return super.isSimilar(other, myMaskedAttributes);
+    }
+
+    @Override
+    public String completeToString(boolean has_xpath) {
+        String base_path = super.completeToString(has_xpath);
+        Rect boundBox = new Rect();
+        node.getBoundsInScreen(boundBox);
+        String str = String.format("%s, bound= %d-%d-%d-%d",base_path, boundBox.left, boundBox.top, boundBox.right, boundBox.bottom);
+        return str;
+    }
+
+    @Override
+    public JSONObject getJSONCommand(String located_by, boolean skip, String action){
+        JSONObject result = super.getJSONCommand(located_by, skip, action);
+        if (result == null)
+            return result;
+        Rect boundBox = new Rect();
+        node.getBoundsInScreen(boundBox);
+        try {
+            result.put("bound", String.format("%d-%d-%d-%d", boundBox.left, boundBox.top, boundBox.right, boundBox.bottom));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return result;
     }
 
     @Override

@@ -1,13 +1,20 @@
 package dev.navids.latte;
 
 
+import androidx.annotation.Nullable;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public abstract class WidgetInfo {
+// TODO: Why WidgetInfo is Serializable?
+public abstract class WidgetInfo implements Serializable {
     List<String> attributeNames = Arrays.asList(
             "resourceId", "contentDescription", "text", "class", "xpath");
     Map<String, String> attributes = new HashMap<>();
@@ -22,6 +29,22 @@ public abstract class WidgetInfo {
         attributes.put(attributeNames.get(3), clsName);
     }
 
+
+    @Override
+    public int hashCode() {
+        int prime = 31;
+        int result = 1;
+        for(String attrName : attributeNames)
+            result = result * prime + getAttr(attrName).hashCode();
+        return result;
+    }
+
+    @Override
+    public boolean equals(@Nullable Object obj) {
+        if(!(obj instanceof  WidgetInfo))
+            return false;
+        return this.isSimilar((WidgetInfo) obj);
+    }
 
     protected String getAttr(String attributeName){
         return attributes.getOrDefault(attributeName, "");
@@ -61,15 +84,37 @@ public abstract class WidgetInfo {
     }
     public abstract String getXpath();
 
-    @Override
-    public String toString() {
-        String xpath = "";
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-//            xpath = !getXpath().equals("")? " xpath: " + getXpath() : ""; // TODO: it's too long
+    public String completeToString(boolean has_xpath){
+        String xpath = has_xpath? " xpath= " + getXpath() : "";
         String id = hasAttr("resourceId") ? " ID= "+getAttr("resourceId")+", ": "";
         String cd = hasAttr("contentDescription") ? " CD= "+getAttr("contentDescription")+", ": "";
         String tx = hasAttr("text") ? " TX= "+getAttr("text")+", ": "";
         String cl = hasAttr("class") ? " CL= "+getAttr("class")+", ": "";
+        String bound = hasAttr("class") ? " CL= "+getAttr("class")+", ": "";
         return id + cd + tx + cl + xpath;
+    }
+
+    public JSONObject getJSONCommand(String located_by, boolean skip, String action){
+        JSONObject jsonCommand = null;
+        try {
+            jsonCommand = new JSONObject()
+                    .put("resourceId", this.getAttr("resourceId"))
+                    .put("contentDescription", this.getAttr("contentDescription"))
+                    .put("text", this.getAttr("text"))
+                    .put("class", this.getAttr("class"))
+                    .put("xpath", this.getAttr("xpath"))
+                    .put("located_by", located_by)
+                    .put("skip", skip)
+                    .put("action", action);
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return jsonCommand;
+    }
+
+    @Override
+    public String toString() {
+        return completeToString(false);
     }
 }
