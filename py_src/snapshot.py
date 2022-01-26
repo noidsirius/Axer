@@ -131,6 +131,7 @@ class ResultWriter:
         self.actions = []
 
     async def capture_current_state(self, device, mode: str, index: Union[int, str], has_layout=True,  log_message: Optional[str] = None) -> str:
+        await asyncio.sleep(3)
         await save_screenshot(device, self.address_book.get_screenshot_path(mode, index))
         activity_name = await get_current_activity_name()
         with open(self.address_book.get_activity_name_path(mode, index), mode='w') as f:

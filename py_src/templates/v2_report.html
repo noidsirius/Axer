@@ -150,6 +150,7 @@
                                     <a href="#" class="showdiff btn btn-secondary">
                                         Show Diff
                                         <input type="hidden" class="snapshot-index" value="{{ step.index }}">
+                                        <input type="hidden" class="snapshot-sighted" value="{{ 'sighted' if step.is_sighted else 'unsighted' }}">
                                     </a>
                                 </td>
                             </tr>
@@ -218,7 +219,10 @@
         });
         $('.showdiff').on('click', function () {
             let index = $(this).find('.snapshot-index').attr('value');
-            $('#diff_iframe_id').attr('src', "/v2/{{ result_path }}/{{ app_name }}/snapshot/{{ name }}/diff/" + index);
+            let sighted_str = $(this).find('.snapshot-sighted').attr('value');
+            let iframe_link = "/v2/{{ result_path }}/{{ app_name }}/snapshot/{{ name }}/diff/" + index +"/"+ sighted_str
+            console.log("Iframe Link: " + iframe_link)
+            $('#diff_iframe_id').attr('src', iframe_link);
             $('#xmldiffmodal').modal('show');
         });
         // Enabling Tooltips

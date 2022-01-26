@@ -86,7 +86,7 @@ def analyze_action(action, address_book: AddressBook, is_sighted: bool) -> dict:
                 message = "Different Behavior"
                 issue_status = DIFFERENT_BEHAVIOR
         else:
-            if tb_xml == reg_xml:
+            if tb_xml != reg_xml:
                 message = "Different Behavior"
                 issue_status = DIFFERENT_BEHAVIOR
 

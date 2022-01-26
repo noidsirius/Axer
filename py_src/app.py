@@ -234,16 +234,19 @@ def report_index_v2(result_path_str: str):
     return render_template('v2_index.html', apps=apps, result_path=result_path_str)
 
 
-@flask_app.route("/v2/<result_path>/<app_name>/snapshot/<snapshot_name>/diff/<index>")
-def xml_diff_v2(result_path, app_name, snapshot_name, index):
+@flask_app.route("/v2/<result_path>/<app_name>/snapshot/<snapshot_name>/diff/<index>/<sighted_str>")
+def xml_diff_v2(result_path, app_name, snapshot_name, index, sighted_str):
+    is_sighted = sighted_str == "sighted"
     result_path = pathlib.Path(f"../{result_path}")
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is inccorrect!"
     snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)
+    flask_app.logger.info(f"Xml Diff for Snapshot_path: {snapshot_path}, index: {index}, is_sighted: {is_sighted}")
     address_book = AddressBook(snapshot_path)
     # xml_name = f"M_{index}.xml" if stb == 'True' else f"{index}.xml"
-    tb_xml_path = address_book.get_layout_path('tb', index)
-    reg_xml_path = address_book.get_layout_path('reg', index)
+    prefix = "s_" if is_sighted else ""
+    tb_xml_path = address_book.get_layout_path(f'{prefix}tb', index)
+    reg_xml_path = address_book.get_layout_path(f'{prefix}reg', index)
     cmd = f"diff --unified {tb_xml_path} {reg_xml_path}"
     diff_string = subprocess.run(cmd.split(), stdout=subprocess.PIPE).stdout.decode('utf-8')
     return render_template('xml_diff.html', diff_string=[diff_string])
@@ -259,6 +262,7 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
     step['reg_img'] = address_book.get_screenshot_path(f'{prefix}reg', action['index']).relative_to(static_root_path)
     step['tb_result'] = action['tb_action_result']
     step['reg_result'] = action['reg_action_result']
+    step['is_sighted'] = is_sighted
     step['status'] = min(
         [100] + [post_analysis_results_sub[ana_name][action['index']]['issue_status'] for ana_name in
                 post_analysis_results_sub])
