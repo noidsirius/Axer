@@ -168,8 +168,4 @@ def get_missing_actions(a_actions, b_actions):
     for k in all_keys:
         if k not in b_dict.keys():
             missing_actions.append(a_dict[k])
-        logger.debug(k)
-        logger.debug(f"A: {a_dict.get(k, '')}")
-        logger.debug(f"B: {b_dict.get(k, '')}")
-        logger.debug("-----\n")
     return missing_actions

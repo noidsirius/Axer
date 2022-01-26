@@ -16,7 +16,7 @@ for APK_FILE in `ls ../BM_APKs/small_apks/*.apk`; do
 	../scripts/remove_snapshots.sh YES
 	echo "Sleep 5 seconds"
 	sleep 5
-	~/Workspaces/python/Stoat/explore.sh $APK_PATH
+	~/Workspaces/python/Stoat/explore.sh $APK_PATH # TODO: Make the path variable
 	source ../.env/bin/activate
 	for SNAPSHOT in `../scripts/list_snapshots.sh`; do
 	  APP_NAME=${SNAPSHOT%%_*}

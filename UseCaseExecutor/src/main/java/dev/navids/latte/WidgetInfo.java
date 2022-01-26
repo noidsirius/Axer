@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// TODO: Why WidgetInfo is Serializable?
 public abstract class WidgetInfo implements Serializable {
     List<String> attributeNames = Arrays.asList(
             "resourceId", "contentDescription", "text", "class", "xpath");
