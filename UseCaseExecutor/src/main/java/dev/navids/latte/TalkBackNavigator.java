@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+// TODO: Why it doesn't use Navigator interface?
 public class TalkBackNavigator {
     private static TalkBackNavigator instance;
     private TalkBackNavigator(){}
@@ -127,6 +128,7 @@ public class TalkBackNavigator {
             public void onCompleted(AccessibilityNodeInfo nodeInfo) {
                 WidgetInfo newWidgetNodeInfo = ActualWidgetInfo.createFromA11yNode(focusedNode);
                 Log.i(LatteService.TAG, "The focused node is tapped: " + focusedNode);
+                // TODO: Change the formatting to use JSON
                 Utils.createFile(Config.v().FINISH_ACTION_FILE_PATH,
                         String.format("Custom Step $ State: COMPLETED $ #Events: 1 $ Time: - $ ActingWidget: %s",newWidgetNodeInfo.completeToString(true)));
                 if(doneCallback != null)

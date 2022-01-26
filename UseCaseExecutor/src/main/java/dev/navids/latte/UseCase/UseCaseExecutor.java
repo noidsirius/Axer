@@ -261,6 +261,7 @@ public class UseCaseExecutor{
                 number_of_actions = locatableStep.getNumberOfLocatingAttempts() + locatableStep.getNumberOfActingAttempts();
                 actingWidget = locatableStep.getActedWidget() != null ? locatableStep.getActedWidget().completeToString(true) : "";
             }
+            // TODO: Change the formatting to use JSON
             String message = String.format(Locale.getDefault(),"   Custom Step $ State: %s $ #Events: %d $ Time: %d $ ActingWidget: %s\n",
                     this.customStep.getState().name(),
                     number_of_actions,

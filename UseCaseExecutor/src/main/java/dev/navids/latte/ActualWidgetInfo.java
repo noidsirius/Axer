@@ -21,6 +21,9 @@ public class ActualWidgetInfo extends WidgetInfo {
         return createFromA11yNode(node, true);
     }
 
+    /**
+     * @param fix_text "If it's true, it will create content description or text for parent views like Layout
+     */
     public static ActualWidgetInfo createFromA11yNode(AccessibilityNodeInfo node, boolean fix_text){
         if (node == null){
             return null;
