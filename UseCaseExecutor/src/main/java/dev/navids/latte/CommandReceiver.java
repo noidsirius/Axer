@@ -1,10 +1,10 @@
 package dev.navids.latte;
 
-import android.content.AsyncQueryHandler;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
+import android.util.Xml;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckPreset;
@@ -21,13 +21,12 @@ import com.google.android.apps.common.testing.accessibility.framework.uielement.
 import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.xmlpull.v1.XmlSerializer;
 
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -42,14 +41,19 @@ public class CommandReceiver extends BroadcastReceiver {
     static final String ACTION_COMMAND_INTENT = "dev.navids.latte.COMMAND";
     static final String ACTION_COMMAND_CODE = "command";
     static final String ACTION_COMMAND_EXTRA = "extra";
-    private TalkBackNavigator talkBackNavigator = new TalkBackNavigator();
 
     @Override
     public void onReceive(Context context, Intent intent) {
         String command = intent.getStringExtra(ACTION_COMMAND_CODE);
         String extra = intent.getStringExtra(ACTION_COMMAND_EXTRA);
         // De-sanitizing extra value ["\s\,]
-        extra = extra.replace("__^__", "\"").replace("__^^__", " ").replace("__^^^__", ",");
+        extra = extra.replace("__^__", "\"")
+                .replace("__^^__", " ")
+                .replace("__^^^__", ",")
+                .replace("__^_^__", "*")
+                .replace("__^^_^__", "+")
+                .replace("__^_^^__", "|")
+                .replace("__^^^^__", "'"); // TODO: Configurable
 
         if (command == null || extra == null) {
             Log.e(LatteService.TAG, "The command or extra message is null!");
@@ -57,47 +61,9 @@ public class CommandReceiver extends BroadcastReceiver {
         }
         Log.i(LatteService.TAG, String.format("The command %s received!", command + (extra.equals("NONE") ? "" : " - " + extra)));
         switch (command) {
+            // ----------- General ----------------
             case "log":
                 Utils.getAllA11yNodeInfo(true);
-                break;
-            case "init":
-                String usecase_path = extra;
-                File file = new File(usecase_path);
-                JSONParser jsonParser = new JSONParser();
-                JSONArray commandsJson = null;
-                try (FileReader reader = new FileReader(file)) {
-                    // TODO: tons of refactor!
-                    //Read JSON file
-                    Object obj = jsonParser.parse(reader);
-                    commandsJson = (JSONArray) obj;
-                    UseCaseExecutor.v().init(commandsJson);
-                } catch (IOException | ParseException e) {
-                    e.printStackTrace();
-                }
-                break;
-            case "enable":
-                UseCaseExecutor.v().enable();
-                break;
-            case "disable":
-                UseCaseExecutor.v().disable();
-                break;
-            case "start":
-                UseCaseExecutor.v().start();
-                break;
-            case "stop":
-                UseCaseExecutor.v().stop();
-                break;
-            case "nav_next":
-                talkBackNavigator.nextFocus(null);
-                break;
-            case "nav_clear_history":
-                talkBackNavigator.clearHistory();
-                break;
-            case "nav_select":
-                talkBackNavigator.selectFocus(null);
-                break;
-            case "do_step":
-                UseCaseExecutor.v().executeCustomStep(extra);
                 break;
             case "report_a11y_issues":
             {
@@ -134,7 +100,70 @@ public class CommandReceiver extends BroadcastReceiver {
 //                    Log.i(LatteService.TAG, "    " + res.getType().name() + " " + res.getShortMessage(Locale.getDefault()) + " " + res.getElement().getClassName());
 //                }
             }
-            break;
+                break;
+            case "capture_layout":
+                try {
+                    XmlSerializer serializer = Xml.newSerializer();
+                    StringWriter stringWriter = new StringWriter();
+                    serializer.setOutput(stringWriter);
+                    serializer.startDocument("UTF-8", true);
+                    serializer.startTag("", "hierarchy");
+                    serializer.attribute("", "rotation", "0"); // TODO:
+                    Utils.dumpNodeRec(serializer, 0);
+                    serializer.endTag("", "hierarchy");
+                    serializer.endDocument();
+                    Utils.createFile(Config.v().LAYOUT_FILE_PATH, stringWriter.toString());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                break;
+            // ---------------------------- TalkBack Navigation -----------
+            case "nav_next":
+                TalkBackNavigator.v().nextFocus(null);
+                break;
+            case "nav_clear_history":
+                TalkBackNavigator.v().clearHistory();
+                break;
+            case "nav_interrupt":
+                TalkBackNavigator.v().interrupt();
+                break;
+            case "nav_select":
+                TalkBackNavigator.v().selectFocus(null);
+                break;
+            // --------------------------- UseCase Executor ----------------
+            case "enable":
+                UseCaseExecutor.v().enable();
+                break;
+            case "disable":
+                UseCaseExecutor.v().disable();
+                break;
+            case "init":
+                String usecase_path = extra;
+                File file = new File(usecase_path);
+                JSONParser jsonParser = new JSONParser();
+                JSONArray commandsJson = null;
+                try (FileReader reader = new FileReader(file)) {
+                    // TODO: tons of refactor!
+                    //Read JSON file
+                    Object obj = jsonParser.parse(reader);
+                    commandsJson = (JSONArray) obj;
+                    UseCaseExecutor.v().init(commandsJson);
+                } catch (IOException | ParseException e) {
+                    e.printStackTrace();
+                }
+                break;
+            case "start":
+                UseCaseExecutor.v().start();
+                break;
+            case "stop":
+                UseCaseExecutor.v().stop();
+                break;
+            case "do_step":
+                UseCaseExecutor.v().initiateCustomStep(extra);
+                break;
+            case "interrupt":
+                UseCaseExecutor.v().interruptCustomStepExecution();
+                break;
             case "set_delay":
                 long delay = Long.valueOf(extra);
                 UseCaseExecutor.v().setDelay(delay);

@@ -71,4 +71,10 @@ public class SightedTalkBackStepExecutor implements StepExecutor {
             return false;
         }
     }
+
+    @Override
+    public boolean interrupt() {
+        // TODO
+        return false;
+    }
 }

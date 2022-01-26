@@ -13,8 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ActionUtils {
-
-    public static final int tapDuration = 100;
     private static AccessibilityService.GestureResultCallback defaultCallBack= new AccessibilityService.GestureResultCallback() {
         @Override
         public void onCompleted(GestureDescription gestureDescription) {
@@ -105,7 +103,7 @@ public class ActionUtils {
         return new Pair<>(x,y);
     }
 
-    public static boolean performTap(int x, int y){ return performTap(x, y, tapDuration); }
+    public static boolean performTap(int x, int y){ return performTap(x, y, Config.v().TAP_DURATION); }
     public static boolean performTap(int x, int y, int duration){ return performTap(x, y, 0, duration); }
     public static boolean performTap(int x, int y, int startTime, int duration){ return performTap(x, y, startTime, duration, defaultCallBack); }
     public static boolean performTap(int x, int y, int startTime, int duration, AccessibilityService.GestureResultCallback callback){
@@ -133,14 +131,13 @@ public class ActionUtils {
     public static boolean performDoubleTap(final AccessibilityService.GestureResultCallback callback){
         Log.i(LatteService.TAG, "performDoubleTap");
         try {
-            Thread.sleep(300); // TODO
+            Thread.sleep(300); // TODO: What is this?
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         return performDoubleTap(0, 0, callback);
     }
-
-    public static boolean performDoubleTap(int x, int y, final AccessibilityService.GestureResultCallback callback){ return performDoubleTap(x, y, tapDuration, callback); }
+    public static boolean performDoubleTap(int x, int y, final AccessibilityService.GestureResultCallback callback){ return performDoubleTap(x, y, Config.v().TAP_DURATION, callback); }
     public static boolean performDoubleTap(int x, int y, int duration, final AccessibilityService.GestureResultCallback callback){ return performDoubleTap(x, y, 0, duration, callback); }
     public static boolean performDoubleTap(final int x, final int y, final int startTime, final int duration, final AccessibilityService.GestureResultCallback callback){
         AccessibilityService.GestureResultCallback newClickCallBack = new AccessibilityService.GestureResultCallback() {
@@ -149,7 +146,7 @@ public class ActionUtils {
                 Log.i(LatteService.TAG, "Complete Gesture " + gestureDescription.getStrokeCount());
                 super.onCompleted(gestureDescription);
                 try {
-                    Thread.sleep(100); // TODO
+                    Thread.sleep(Config.v().DOUBLE_TAP_BETWEEN_TIME);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -160,6 +157,8 @@ public class ActionUtils {
             public void onCancelled(GestureDescription gestureDescription) {
                 Log.i(LatteService.TAG, "Cancel Gesture");
                 super.onCancelled(gestureDescription);
+                if(callback != null)
+                    callback.onCancelled(gestureDescription);
             }
         };
         return performTap(x, y, startTime, duration, newClickCallBack);

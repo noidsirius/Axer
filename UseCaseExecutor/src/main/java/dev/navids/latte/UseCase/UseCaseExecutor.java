@@ -151,7 +151,15 @@ public class UseCaseExecutor{
         Log.i(LatteService.TAG, "UseCaseExecutor is stopped!");
     }
 
-    public synchronized boolean executeCustomStep(String stepJSONString){
+    public synchronized void interruptCustomStepExecution(){
+        stop();
+        customStep = null;
+        if(stepExecutor != null)
+            stepExecutor.interrupt();
+        writeCustomStepResult();
+    }
+
+    public synchronized boolean initiateCustomStep(String stepJSONString){
         stop();
         // Removing previous result file
         String fileName = custom_step_result_file_name;
@@ -253,6 +261,7 @@ public class UseCaseExecutor{
                 number_of_actions = locatableStep.getNumberOfLocatingAttempts() + locatableStep.getNumberOfActingAttempts();
                 actingWidget = locatableStep.getActedWidget() != null ? locatableStep.getActedWidget().completeToString(true) : "";
             }
+            // TODO: Change the formatting to use JSON
             String message = String.format(Locale.getDefault(),"   Custom Step $ State: %s $ #Events: %d $ Time: %d $ ActingWidget: %s\n",
                     this.customStep.getState().name(),
                     number_of_actions,

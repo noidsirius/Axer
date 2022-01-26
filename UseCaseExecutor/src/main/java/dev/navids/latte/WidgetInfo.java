@@ -3,6 +3,9 @@ package dev.navids.latte;
 
 import androidx.annotation.Nullable;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
@@ -10,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// TODO: Why WidgetInfo is Serializable?
 public abstract class WidgetInfo implements Serializable {
     List<String> attributeNames = Arrays.asList(
             "resourceId", "contentDescription", "text", "class", "xpath");
@@ -86,7 +90,27 @@ public abstract class WidgetInfo implements Serializable {
         String cd = hasAttr("contentDescription") ? " CD= "+getAttr("contentDescription")+", ": "";
         String tx = hasAttr("text") ? " TX= "+getAttr("text")+", ": "";
         String cl = hasAttr("class") ? " CL= "+getAttr("class")+", ": "";
+        String bound = hasAttr("class") ? " CL= "+getAttr("class")+", ": "";
         return id + cd + tx + cl + xpath;
+    }
+
+    public JSONObject getJSONCommand(String located_by, boolean skip, String action){
+        JSONObject jsonCommand = null;
+        try {
+            jsonCommand = new JSONObject()
+                    .put("resourceId", this.getAttr("resourceId"))
+                    .put("contentDescription", this.getAttr("contentDescription"))
+                    .put("text", this.getAttr("text"))
+                    .put("class", this.getAttr("class"))
+                    .put("xpath", this.getAttr("xpath"))
+                    .put("located_by", located_by)
+                    .put("skip", skip)
+                    .put("action", action);
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return jsonCommand;
     }
 
     @Override

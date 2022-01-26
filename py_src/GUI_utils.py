@@ -1,8 +1,12 @@
+import logging
 from typing import Callable, List
 import json
 import asyncio
 from lxml import etree
 from adb_utils import capture_layout
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_element_class(node):
@@ -28,8 +32,7 @@ def get_xpath(node):
     return path
 
 
-def get_elements(query: Callable[[etree.Element], bool] = None) -> List:
-    dom = asyncio.run(capture_layout())
+def get_elements(dom: str, filter_query: Callable[[etree.Element], bool] = None) -> List:
     dom_utf8 = dom.encode('utf-8')
     parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
     tree = etree.fromstring(dom_utf8, parser)
@@ -37,7 +40,7 @@ def get_elements(query: Callable[[etree.Element], bool] = None) -> List:
         return []
     commands = []
     for i, x in enumerate(tree.getiterator()):
-        if query is not None and not query(x):
+        if filter_query is not None and not filter_query(x):
             continue
         x_attrs = dict(x.attrib.items())
         info = {'resourceId': x_attrs.get('resource-id', ''),
