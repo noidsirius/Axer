@@ -1,16 +1,14 @@
 from typing import Any
 import asyncio
 import aiofiles
-from consts import BLIND_MONKEY_TAG
+from consts import BLIND_MONKEY_TAG, CAPTURE_SCREENSHOT_DELAY
 
 
 async def save_screenshot(device, file_name) -> None:
     result = await device.screencap()
-    await asyncio.sleep(2) # TODO: Configurable
+    await asyncio.sleep(CAPTURE_SCREENSHOT_DELAY)
     async with aiofiles.open(file_name, mode='wb') as f:
-        await asyncio.sleep(2)
         await f.write(result)
-    await asyncio.sleep(2)
     return file_name
 
 

@@ -2,7 +2,8 @@ from pathlib import Path
 import argparse
 import asyncio
 import logging
-from snapshot import Snapshot, AddressBook
+from results_utils import AddressBook
+from snapshot import Snapshot
 
 logger = logging.getLogger(__name__)
 

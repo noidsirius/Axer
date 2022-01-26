@@ -9,13 +9,15 @@ import math
 import datetime
 from flask import Flask, send_from_directory, render_template
 sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
-from snapshot import AddressBook
-from post_analysis import POST_ANALYSIS_PREFIX, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, XML_PROBLEM, DIFFERENT_BEHAVIOR, UNREACHABLE
+from results_utils import AddressBook
+from post_analysis import POST_ANALYSIS_PREFIX, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, XML_PROBLEM\
+    , DIFFERENT_BEHAVIOR, UNREACHABLE
 
 logger = logging.getLogger(__name__)
 flask_app = Flask(__name__, static_url_path='', )
 
 # ---------------------------- For Legacy Results ---------------------
+# ---------------------------- TODO: Will Be removed once the old results are analyzed ---------------------
 RESULT_STATIC_URI = '/old_result_jan_12/'
 RESULT_PATH = pathlib.Path("../old_result_jan_12")
 # RESULT_PATH = pathlib.Path("../old_result_jan_12")
