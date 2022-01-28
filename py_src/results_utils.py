@@ -176,7 +176,7 @@ class ResultWriter:
 
 def read_all_visited_elements_in_app(app_path: Union[str, Path]) -> dict:
     """
-    Given the result path of an app, returns visited elements dictionary, mapping xpath to the set of its elements
+    Given the result path of an app, returns visited elements dictionary, mapping xpath to the list of its elements
     """
     visited_elements = {}
     app_path = Path(app_path) if isinstance(app_path, str) else app_path
@@ -194,6 +194,6 @@ def read_all_visited_elements_in_app(app_path: Union[str, Path]) -> dict:
                 if element['element']['xpath'] not in visited_elements:
                     # logger.warning(f"Repetitive element's xpath, New element {element},"
                     #                f" Stored element: {visited_elements[element['element']['xpath']]}")
-                    visited_elements[element['element']['xpath']] = set()
-                visited_elements[element['element']['xpath']].add(element)
+                    visited_elements[element['element']['xpath']] = []
+                visited_elements[element['element']['xpath']].append(element)
     return visited_elements
