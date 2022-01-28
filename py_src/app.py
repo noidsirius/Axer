@@ -7,10 +7,10 @@ import pathlib
 import os
 import math
 import datetime
-from flask import Flask, send_from_directory, render_template
+from flask import Flask, jsonify, send_from_directory, render_template
 sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
 from results_utils import AddressBook
-from post_analysis import POST_ANALYSIS_PREFIX, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, XML_PROBLEM\
+from post_analysis import do_post_analysis, POST_ANALYSIS_PREFIX, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, XML_PROBLEM\
     , DIFFERENT_BEHAVIOR, UNREACHABLE
 
 logger = logging.getLogger(__name__)
@@ -21,6 +21,7 @@ flask_app = Flask(__name__, static_url_path='', )
 RESULT_STATIC_URI = '/old_result_jan_12/'
 RESULT_PATH = pathlib.Path("../old_result_jan_12")
 # RESULT_PATH = pathlib.Path("../old_result_jan_12")
+
 
 @flask_app.route(f'{RESULT_STATIC_URI}<path:path>')
 def send_result_static(path):
@@ -182,38 +183,45 @@ def report_index_v2(result_path_str: str):
             snapshot_name = snapshot_path.name
             address_book = AddressBook(snapshot_path)
             snapshot_info = {}
-            action_count = 0
-            different_behaviors = 0
-            unreachable = 0
-            other = 0
+            count_map = {
+                'actions': 0,
+                'different_behavior': 0,
+                'unreachable': 0,
+                'other': 0,
+            }
             analysis_count = 0
             for post_result_path in snapshot_path.iterdir():
                 if post_result_path.name.startswith(POST_ANALYSIS_PREFIX):
                     analysis_count += 1
                     with open(str(post_result_path), "r") as f:
                         for line in f.readlines():
-                            action_count += 1
+                            count_map['actions'] += 1
                             result = json.loads(line)
                             if result['issue_status'] == XML_PROBLEM:
-                                other += 1
+                                count_map['other'] += 1
                             elif result['issue_status'] == REG_FAILURE:
-                                other += 1
+                                count_map['other'] += 1
                             elif result['issue_status'] == TB_FAILURE:
-                                other += 1
+                                count_map['other'] += 1
                             elif result['issue_status'] == UNREACHABLE:
-                                unreachable += 1
+                                count_map['unreachable'] += 1
                             elif result['issue_status'] == DIFFERENT_BEHAVIOR:
-                                different_behaviors += 1
+                                count_map['different_behavior'] += 1
                             elif result['issue_status'] == SUCCESS:
                                 continue
                             else:
-                                other += 100000
+                                count_map['other'] += 1000000
 
             snapshot_info['id'] = snapshot_name
-            snapshot_info['actions'] = "(pending)" if analysis_count == 0 else math.floor(action_count / analysis_count)
-            snapshot_info['different_behavior'] = "(pending)" if analysis_count == 0 else math.floor(different_behaviors / analysis_count)
-            snapshot_info['unreachable'] = "(pending)" if analysis_count == 0 else math.floor(unreachable / analysis_count)
-            snapshot_info['other'] = "(pending)" if analysis_count == 0 else math.floor(other / analysis_count)
+            snapshot_info['log_path'] = str(snapshot_path.relative_to(result_path.parent))+".log"
+            if analysis_count == 0:
+                snapshot_info['state'] = "Pending" if not address_book.finished_path.exists() else "Unprocessed"
+                for key in count_map:
+                    snapshot_info[key] = f"({snapshot_info['state']})"
+            else:
+                snapshot_info['state'] = "Processed"
+                for key in count_map:
+                    snapshot_info[key] = math.floor(count_map[key] / analysis_count)
             snapshot_info['last_update'] = datetime.datetime.fromtimestamp(address_book.snapshot_result_path.stat().st_mtime)
             app_list[app_name].append(snapshot_info)
         app_list[app_name].sort(key=lambda s: s['last_update'], reverse=True)
@@ -222,14 +230,15 @@ def report_index_v2(result_path_str: str):
         app_info = {}
         app_info['name'] = app.replace(' ', '_')
         app_info['snapshots'] = app_list[app]
+        app_info['has_unprocessed'] = any(s['state'] == 'Unprocessed' for s in app_list[app])
         app_info['actions'] = sum(
-            [0] + [s['actions'] for s in app_list[app] if str(s['actions']).isdecimal()])
+            [0] + [s['actions'] for s in app_list[app] if s['state'] == 'Processed'])
         app_info['different_behavior'] = sum(
-            [0] + [s['different_behavior'] for s in app_list[app] if str(s['different_behavior']).isdecimal()])
+            [0] + [s['different_behavior'] for s in app_list[app] if s['state'] == 'Processed'])
         app_info['unreachable'] = sum(
-            [0] + [s['unreachable'] for s in app_list[app] if str(s['unreachable']).isdecimal()])
+            [0] + [s['unreachable'] for s in app_list[app] if s['state'] == 'Processed'])
         app_info['other'] = sum(
-            [0] + [s['other'] for s in app_list[app] if str(s['other']).isdecimal()])
+            [0] + [s['other'] for s in app_list[app] if s['state'] == 'Processed'])
         app_info['last_update'] = max(s['last_update'] for s in app_list[app])
         apps.append(app_info)
     apps.sort(key=lambda a: a['last_update'], reverse=True)
@@ -254,14 +263,25 @@ def xml_diff_v2(result_path, app_name, snapshot_name, index, sighted_str):
     return render_template('xml_diff.html', diff_string=[diff_string])
 
 
+@flask_app.route("/v2/<result_path>/<app_name>/post_analysis")
+def post_analysis(result_path, app_name):
+    result_path = pathlib.Path(f"../{result_path}").resolve()
+    snapshot_count = do_post_analysis(app_path=pathlib.Path(result_path).joinpath(app_name))
+    return jsonify(result=f"{snapshot_count} snapshots of {app_name} are analyzed!")
+
+
+
 def create_step(address_book: AddressBook, static_root_path: pathlib.Path, action: dict, post_analysis_results_sub: dict, is_sighted: bool) -> dict:
     prefix = "s_" if is_sighted else ""
     step = {}
     step['index'] = action['index']
     step['action'] = action['element']
     step['init_img'] = address_book.get_screenshot_path(f'{prefix}exp', action['index'], extension='edited').relative_to(static_root_path)
+    step['init_log'] = address_book.get_log_path(f'{prefix}exp', action['index']).relative_to(static_root_path)
     step['tb_img'] = address_book.get_screenshot_path(f'{prefix}tb', action['index']).relative_to(static_root_path)
+    step['tb_log'] = address_book.get_log_path(f'{prefix}tb', action['index']).relative_to(static_root_path)
     step['reg_img'] = address_book.get_screenshot_path(f'{prefix}reg', action['index']).relative_to(static_root_path)
+    step['reg_log'] = address_book.get_log_path(f'{prefix}reg', action['index']).relative_to(static_root_path)
     step['tb_result'] = action['tb_action_result']
     step['reg_result'] = action['reg_action_result']
     step['is_sighted'] = is_sighted
@@ -283,6 +303,8 @@ def report_v2(result_path, app_name, snapshot_name):
     address_book = AddressBook(snapshot_path)
     tb_steps = []
     errors = []
+    bm_log_path = str(snapshot_path.relative_to(result_path.parent))+".log"
+    last_explore_log_path = str(address_book.last_explore_log_path.relative_to(result_path.parent))
     post_analysis_results = {'sighted': {}, 'unsighted': {}}
     for post_result_path in snapshot_path.iterdir():
         if post_result_path.name.startswith(POST_ANALYSIS_PREFIX):
@@ -321,4 +343,4 @@ def report_v2(result_path, app_name, snapshot_name):
             step = create_step(address_book, result_path.parent, action, post_analysis_results['sighted'], is_sighted=True)
             stb_steps.append(step)
     all_steps = {'TalkBack Exploration': tb_steps, 'Sighted TalkBack Checks': stb_steps}
-    return render_template('v2_report.html', result_path=result_path_str, app_name=app_name, all_steps=all_steps, name=snapshot_name, errors=errors)
+    return render_template('v2_report.html', result_path=result_path_str, app_name=app_name, bm_log_path=bm_log_path, last_explore_log_path=last_explore_log_path, all_steps=all_steps, name=snapshot_name, errors=errors)

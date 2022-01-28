@@ -12,19 +12,11 @@
         .table tr.app-row {
             cursor: pointer;
         }
-
-        {##}
-        {#.hiddenRow {#}
-        {#    padding: 0 4px !important;#}
-        {#    background-color: #eeeeee;#}
-        {#    font-size: 13px;#}
-        {
-        #}#}
     </style>
+    <script src="https://kit.fontawesome.com/37a3ecb55e.js" crossorigin="anonymous"></script>
     <title>BlindMonkey</title>
 </head>
 <body>
-
 
 <main>
     <div class="container">
@@ -60,20 +52,32 @@
                         <th>#Unreachable</th>
                         <th>#Other</th>
                         <th>Last update</th>
+                        <th>...</th>
                     </tr>
                     </thead>
                     <tbody>
                     {% for app in apps %}
-                        <tr class="app-row table-active" data-bs-toggle="collapse" href="#{{ app.name.replace('.', '_') }}_row"
-                            aria-expanded="false"
-                            aria-controls="{{ app.name }}_row">
-                            <td>{{ app.name }}</td>
+                        <tr class="app-row table-active" >
+                            <td class="table-secondary" data-bs-toggle="collapse" href="#{{ app.name.replace('.', '_') }}_row"
+                                aria-expanded="false"
+                                aria-controls="{{ app.name }}_row" >
+                                <i class="fas fa-angle-double-down"></i> {{ app.name }}
+                            </td>
                             <td>{{ app.snapshots|length }}</td>
                             <td>{{ app.actions }}</td>
                             <td>{{ app.different_behavior }}</td>
                             <td>{{ app.unreachable }}</td>
                             <td>{{ app.other }}</td>
                             <td>{{ app.last_update }}</td>
+                            <td>
+                                {% if app.has_unprocessed %}
+                                    <a href="#" class="post_analysis btn btn-secondary">
+                                        Post Process
+                                        <input type="hidden" class="result_path" value="{{ result_path }}">
+                                        <input type="hidden" class="app_name" value="{{ app.name }}">
+                                    </a>
+                                {% endif %}
+                            </td>
                         </tr>
                         <tr>
                             <td colspan="8">
@@ -97,6 +101,7 @@
                                                     <tr>
                                                         <td>
                                                             <a href="{{ url_for('report_v2', result_path=result_path, app_name=app.name, snapshot_name=snapshot.id) }}">{{ snapshot.id }}</a>
+                                                            -<a href="{{ url_for('send_result_static_v2', path=snapshot.log_path) }}">(log)</a>
                                                         </td>
                                                         <td>{{ snapshot.actions }}</td>
                                                         <td>{{ snapshot.different_behavior }}</td>
@@ -120,6 +125,7 @@
         </div>
         <div class="col-1"></div>
     </div>
+
 </main>
 
 <!-- Optional JavaScript; choose one of the two! -->
@@ -136,6 +142,16 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.min.js" integrity="sha384-Atwg2Pkwv9vp0ygtn1JAojH0nYbwNJLPhwyoVbhoPwBhjQPR5VtM2+xf0Uwh9KtT" crossorigin="anonymous"></script>
 -->
 <script>
+    $('.post_analysis').on('click', function () {
+        let result_path = $(this).find('.result_path').attr('value');
+        let app_name = $(this).find('.app_name').attr('value');
+        let path = "/v2/"+ result_path +"/"+ app_name + "/post_analysis";
+        $.getJSON(path, {},
+            function(data) {
+            alert(data.result);
+            location.reload();
+        });
+    });
 </script>
 </body>
 </html>
