@@ -1,21 +1,25 @@
+import sys
 from pathlib import Path
 import argparse
 import asyncio
 import logging
-from results_utils import AddressBook
+from results_utils import AddressBook, read_all_visited_elements_in_app
 from snapshot import Snapshot
 
 logger = logging.getLogger(__name__)
 
 
-def bm_explore(snapshot_result_path: Path, snapshot_name: str):
-    address_book = AddressBook(snapshot_result_path)
-    snapshot = Snapshot(snapshot_name, address_book)
+def analyze_snapshot(snapshot_path: Path):
+    visited_elements_in_app = read_all_visited_elements_in_app(snapshot_path.parent)
+    logger.info(f"There are {len(visited_elements_in_app)} already visited elements in this app!")
+    address_book = AddressBook(snapshot_path)
+    snapshot = Snapshot(snapshot_path.name, address_book, visited_elements_in_app=visited_elements_in_app)
     success_explore = asyncio.run(snapshot.explore())
     if not success_explore:
         logger.error("Problem with explore!")
         return
     asyncio.run(snapshot.validate_by_stb())
+    open(address_book.finished_path, "w").close()
 
 
 if __name__ == "__main__":
@@ -40,12 +44,21 @@ if __name__ == "__main__":
 
     if args.quiet:
         logging.basicConfig(filename=log_path,
-                            filemode='w',
-                            level=level)
+                            filemode='w')
     else:
-        logging.basicConfig(level=level,
-                            handlers=[
+        logging.basicConfig(handlers=[
                                 logging.FileHandler(log_path, mode='w'),
                                 logging.StreamHandler()])
+    # ---------------- Start Hack -----------
+    py_src_path = Path(sys.argv[0]).parent
+    py_src_file_names = [p.name[:-len(".py")] for p in py_src_path.iterdir() if p.is_file() and p.name.endswith(".py")]
+    for name in logging.root.manager.loggerDict:
+        if name in py_src_file_names:
+            logging.getLogger(name).setLevel(level)
+    # ----------------- End Hack ------------
     logger.info(f"Analyzing Snapshot '{args.snapshot}' in app '{args.app_name}'...")
-    bm_explore(snapshot_result_path, args.snapshot)
+    try:
+        analyze_snapshot(snapshot_result_path)
+    except Exception as e:
+        logger.error("Exception happened in analyzing the snapshot", exc_info=e)
+    logger.info(f"Done Analyzing Snapshot '{args.snapshot}' in app '{args.app_name}'")
