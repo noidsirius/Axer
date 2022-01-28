@@ -1,10 +1,11 @@
 import random
+from typing import Union
 import logging
 from collections import namedtuple
 import xmlformatter
 from adb_utils import run_bash, cat_local_android_file
 from a11y_service import A11yServiceManager
-from consts import TIMEOUT_TIME, LAYOUT_TIMEOUT_TIME
+from consts import TIMEOUT_TIME, LAYOUT_TIMEOUT_TIME, TB_NAVIGATE_RETRY_COUNT, ACTION_EXECUTION_RETRY_COUNT
 
 
 logger = logging.getLogger(__name__)
@@ -25,10 +26,11 @@ async def send_command_to_latte(command: str, extra: str = "NONE") -> bool:
         .replace('"', "__^__")\
         .replace(" ", "__^^__")\
         .replace(",", "__^^^__")\
-        .replace("*", "__^_^__")\
-        .replace("+", "__^^_^__")\
-        .replace("|", "__^_^^__")\
-        .replace("'", "__^^^^__")
+        .replace("'", "__^_^__")\
+        .replace("+", "__^-^__")\
+        .replace("|", "__^^^^__") \
+        .replace("$", "__^_^^__") \
+        .replace("*", "__^-^^__")
     bash_cmd = f'adb shell am broadcast -a {LATTE_INTENT} --es command "{command}" --es extra "{extra}"'
     r_code, *_ = await run_bash(bash_cmd)
     return r_code == 0
@@ -90,14 +92,17 @@ async def do_step(json_cmd):
     await send_command_to_latte("do_step", json_cmd)
 
 
-async def tb_navigate_next() -> str:
-    logger.info("Perform Next!")
-    await A11yServiceManager.setup_latte_a11y_services(tb=True)
-    await talkback_nav_command("next")
-    next_command_json = await cat_local_android_file(FINAL_ACITON_FILE, wait_time=TIMEOUT_TIME)
-    if next_command_json is None:
-        logger.error("Timeout for performing next using TalkBack")
-    return next_command_json
+async def tb_navigate_next() -> Union[str, None]:
+    for i in range(TB_NAVIGATE_RETRY_COUNT):
+        logger.info(f"Perform Next!, Try: {i}")
+        await A11yServiceManager.setup_latte_a11y_services(tb=True)
+        await talkback_nav_command("next")
+        next_command_json = await cat_local_android_file(FINAL_ACITON_FILE, wait_time=TIMEOUT_TIME)
+        if next_command_json is None:
+            logger.error("Timeout for performing next using TalkBack")
+        else:
+            return next_command_json
+    return None
 
 
 async def tb_perform_select() -> ExecutionResult:
@@ -134,12 +139,17 @@ async def execute_command(command: str, executor_name: str = "reg") -> Execution
         await setup_talkback_executor()
     elif executor_name == 'stb':
         await setup_sighted_talkback_executor()
-    await do_step(command)
-    result = await cat_local_android_file(CUSTOM_STEP_RESULT, wait_time=TIMEOUT_TIME)
-    if result is None:
-        logger.error(f"Timeout, skipping {command} for executor {executor_name}")
-        result = ""
-        await send_command_to_latte("interrupt")
+    result = ""
+    for i in range(ACTION_EXECUTION_RETRY_COUNT):
+        logger.info(f"Execute Step Command, Try: {i}")
+        await do_step(command)
+        result = await cat_local_android_file(CUSTOM_STEP_RESULT, wait_time=TIMEOUT_TIME)
+        if result is None:
+            logger.error(f"Timeout, skipping {command} for executor {executor_name}")
+            result = ""
+            await send_command_to_latte("interrupt")
+        else:
+            break
     execution_result = analyze_execution_result(result)
     return execution_result
 
