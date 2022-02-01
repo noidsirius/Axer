@@ -55,6 +55,14 @@ def old_report_issues(address_book: AddressBook):
 
 
 def post_analyzer_v1(action, address_book: AddressBook, is_sighted: bool) -> dict:
+    """
+    Given a performed action,
+    acts as an oracle and generates the accessibility result of the action
+    :param action: The action created during BlindMonkey exploration or sighted clicking
+    :param address_book: AddressBook
+    :param is_sighted: Determines if the actions is performed during Sighted clicking
+    :return: a dictionary of action index to its result with a message
+    """
     action_index = action['index']
     prefix = "s_" if is_sighted else ""
     tb_xml_path = address_book.get_layout_path(f'{prefix}tb', action_index)

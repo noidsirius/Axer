@@ -270,7 +270,6 @@ def post_analysis(result_path, app_name):
     return jsonify(result=f"{snapshot_count} snapshots of {app_name} are analyzed!")
 
 
-
 def create_step(address_book: AddressBook, static_root_path: pathlib.Path, action: dict, post_analysis_results_sub: dict, is_sighted: bool) -> dict:
     prefix = "s_" if is_sighted else ""
     step = {}
