@@ -2,17 +2,34 @@ package dev.navids.latte;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
+import android.content.Context;
 import android.graphics.Path;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.util.Pair;
+import android.view.Display;
+import android.view.WindowManager;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 public class ActionUtils {
+    private static Map<Integer, String> pendingActions = new HashMap<>();
+    private static int pendingActionId = 0;
+    public static boolean isActionPending(){
+        return pendingActions.size() > 0;
+    }
+    public static void interrupt(){
+        pendingActions.clear(); // TODO: Do we need to cancel the pending actions somehow?
+    }
+
     private static AccessibilityService.GestureResultCallback defaultCallBack= new AccessibilityService.GestureResultCallback() {
         @Override
         public void onCompleted(GestureDescription gestureDescription) {
@@ -162,5 +179,105 @@ public class ActionUtils {
             }
         };
         return performTap(x, y, startTime, duration, newClickCallBack);
+    }
+
+    private static void executeSwipeGesture(String direction, String secondDirection, AccessibilityService.GestureResultCallback callback){
+        GestureDescription.Builder gestureBuilder = new GestureDescription.Builder();
+        Path swipePath = new Path();
+        Random random = new Random();
+        int BASE = 5;
+        int dx1 = random.nextInt(2 * BASE) - BASE;
+        int dx2 = random.nextInt(2 * BASE) - BASE;
+        int dy1 = random.nextInt(2 * BASE) - BASE;
+        int dy2 = random.nextInt(2 * BASE) - BASE;
+        int x1, x2, y1, y2;
+        WindowManager wm = (WindowManager) LatteService.getInstance().getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
+        Display display = wm.getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        int width = size.x;
+        int height = size.y;
+        x1 = width / 2 + dx1;
+        y1 = height / 2 + dy1;
+        // TODO: The const values need to be configured
+        switch (direction) {
+            case "right":
+                x2 = width - 100 + dx2;
+                y2 = y1 + dy2;
+                break;
+            case "left":
+                x2 = 100 + dx2;
+                y2 = y1 + dy2;
+                break;
+            case "up":
+                x2 = x1 + dx1;
+                y2 = 100 + dy2;
+                break;
+            case "down":
+                x2 = x1 + dx1;
+                y2 = height - 100 + dy2;
+                break;
+            default:
+                Log.e(LatteService.TAG, "Incorrect direction " + direction);
+                return;
+        }
+
+        swipePath.moveTo(x1, y1);
+        swipePath.lineTo(x2, y2);
+        if (!secondDirection.isEmpty())
+        {
+            // TODO: Generalize to all directions
+            if (direction.equals("up") && secondDirection.equals("left"))
+            {
+                Log.i(LatteService.TAG, "Add left direction to " + Integer.toString(100+dx1) + " " +Integer.toString(y2-dy1));
+                swipePath.lineTo(100+dx1, y2-dy1);
+            }
+        }
+        gestureBuilder.addStroke(new GestureDescription.StrokeDescription(swipePath, 0, Config.v().GESTURE_DURATION));
+        GestureDescription gestureDescription = gestureBuilder.build();
+        Log.i(LatteService.TAG, "Execute Gesture " + gestureDescription.toString());
+        LatteService.getInstance().dispatchGesture(gestureDescription, callback, null);
+    }
+
+    public static boolean swipeLeft(Navigator.DoneCallback doneCallback){ return swipeToDirection("left", doneCallback);}
+    public static boolean swipeRight(Navigator.DoneCallback doneCallback){ return swipeToDirection("right", doneCallback);}
+    public static boolean swipeUp(Navigator.DoneCallback doneCallback){ return swipeToDirection("up", doneCallback);}
+    public static boolean swipeDown(Navigator.DoneCallback doneCallback){ return swipeToDirection("down", doneCallback);}
+    public static boolean swipeToDirection(String direction, Navigator.DoneCallback doneCallback){
+        return swipeToDirection(direction, "", doneCallback);
+    }
+    public static boolean swipeUpThenLeft(Navigator.DoneCallback doneCallback){
+        return swipeToDirection("up", "left", doneCallback);
+    }
+    public static boolean swipeToDirection(String direction, String secondDirection, Navigator.DoneCallback doneCallback){
+        if(isActionPending()){
+            Log.i(LatteService.TAG, String.format("Do nothing since another action is pending! (Size:%d)", pendingActions.size()));
+            return false;
+        }
+        final int thisActionId = pendingActionId;
+        pendingActionId++;
+        pendingActions.put(thisActionId, "Pending: I'm going to swipe " + direction);
+        AccessibilityService.GestureResultCallback callback = new AccessibilityService.GestureResultCallback() {
+            @Override
+            public void onCompleted(GestureDescription gestureDescription) {
+                new Handler().postDelayed(() -> {
+                    pendingActions.remove(thisActionId);
+                    if(doneCallback != null)
+                        doneCallback.onCompleted(LatteService.getInstance().getFocusedNode());
+                }, Config.v().GESTURE_FINISH_WAIT_TIME);
+
+            }
+
+            @Override
+            public void onCancelled(GestureDescription gestureDescription) {
+                Log.i(LatteService.TAG, "Gesture is cancelled!");
+                pendingActions.remove(thisActionId);
+                if(doneCallback != null)
+                    doneCallback.onError("Gesture is cancelled!");
+            }
+        };
+
+        new Handler().postDelayed(() -> { executeSwipeGesture(direction, secondDirection, callback);}, 10);
+        return true;
     }
 }

@@ -2,18 +2,15 @@ package dev.navids.latte;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
-import android.graphics.Path;
 import android.os.Handler;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
 // TODO: Why it doesn't use Navigator interface?
 public class TalkBackNavigator {
@@ -24,67 +21,37 @@ public class TalkBackNavigator {
             instance = new TalkBackNavigator();
         return instance;
     }
+    // TODO: Needs to be removed
     private Map<Integer, String> pendingActions = new HashMap<>();
     private int pendingActionId = 0;
 
     public boolean isPending(){
-        return pendingActions.size() > 0;
+        return pendingActions.size() > 0 || ActionUtils.isActionPending();
     }
 
     public void interrupt(){
         pendingActions.clear(); // TODO: Do we need to cancel the pending actions somehow?
+        ActionUtils.interrupt();
         Utils.createFile(Config.v().FINISH_ACTION_FILE_PATH, "INTERRUPT"); // TODO: make consistent with custom step
     }
 
     public boolean performNext(Navigator.DoneCallback doneCallback){
         Log.i(LatteService.TAG, "performNext");
-        if(isPending()){
-            Log.i(LatteService.TAG, String.format("Do nothing since another action is pending! (Size:%d)", pendingActions.size()));
+        if (!ActionUtils.swipeRight(doneCallback))
+        {
+            Log.i(LatteService.TAG, "There is a problem with swiping right");
             return false;
         }
-        final int thisActionId = pendingActionId;
-        pendingActionId++;
-        pendingActions.put(thisActionId, "Pending: I'm going to do NEXT");
-        AccessibilityService.GestureResultCallback callback = new AccessibilityService.GestureResultCallback() {
-            @Override
-            public void onCompleted(GestureDescription gestureDescription) {
-                new Handler().postDelayed(() -> {
-                    pendingActions.remove(thisActionId);
-                    if(doneCallback != null)
-                        doneCallback.onCompleted(LatteService.getInstance().getFocusedNode());
-                }, Config.v().GESTURE_FINISH_WAIT_TIME);
+        return true;
+    }
 
-            }
-
-            @Override
-            public void onCancelled(GestureDescription gestureDescription) {
-                Log.i(LatteService.TAG, "Gesture is cancelled!");
-                pendingActions.remove(thisActionId);
-                if(doneCallback != null)
-                    doneCallback.onError("Gesture is cancelled!");
-            }
-        };
-
-        new Handler().postDelayed(() -> {
-            GestureDescription.Builder gestureBuilder = new GestureDescription.Builder();
-            Path swipePath = new Path();
-            Random random = new Random();
-            int BASE = 5;
-            int dx1 = random.nextInt(2 * BASE) - BASE;
-            int dx2 = random.nextInt(2 * BASE) - BASE;
-            int dy1 = random.nextInt(2 * BASE) - BASE;
-            int dy2 = random.nextInt(2 * BASE) - BASE;
-            int x1 = 50 + dx1;
-            int x2 = 500 + dx2;
-            int y1 = 500 + dy1;
-            int y2 = 600 + dy2;
-            swipePath.moveTo(x1, y1);
-            swipePath.lineTo(x2, y2);
-            gestureBuilder.addStroke(new GestureDescription.StrokeDescription(swipePath, 0, Config.v().GESTURE_DURATION));
-            GestureDescription gestureDescription = gestureBuilder.build();
-            Log.i(LatteService.TAG, "Execute Gesture " + gestureDescription.toString());
-            LatteService.getInstance().dispatchGesture(gestureDescription, callback, null);
-        }, 10);
+    public boolean logTalkBackTreeNodeList(Navigator.DoneCallback doneCallback){
+        Log.i(LatteService.TAG, "perform Up then Left");
+        if (!ActionUtils.swipeUpThenLeft(doneCallback))
+        {
+            Log.i(LatteService.TAG, "There is a problem with swiping Up then Left");
+            return false;
+        }
         return true;
     }
 

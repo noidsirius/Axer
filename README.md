@@ -5,11 +5,18 @@
 -	Disable soft main keys and virtual keyboard by adding `hw.mainKeys=yes` and `hw.kayboard=yes`  to `~/.android/avd/testAVD_1.avd/config.ini`
 	- If virtual device is not disabled, please follow this [link](https://support.honeywellaidc.com/s/article/CN51-Android-How-to-prevent-virtual-keyboard-from-popping-up)
 - Enable "Do not disturb" in the emulator to avoid notifications during testing (it can be found at the top menu)
-- Install TalkBack, the latest version (9.1) can be found in `Setup/talkback.apk` (`adb install Setup/talkback.apk`)
-- Build Latte Service APK by running `./build_latte_lib`, then install it (`adb install -r -g Setup/latte.apk`) or install from Android Studio
+- Install TalkBack, the latest version (12) can be found in `Setup/X86/TB_12_*.apk` (`adb install-multiple Setup/X86/TB_12_*.apk`)
+- Build Latte Service APK by running `./build_latte_lib.sh`, then install it (`adb install -r -g Setup/latte.apk`) or install from Android Studio
 	- To check if the installation is correct, first run the emulator and then execute `./scripts/enable-talkback.sh` (by clicking on a GUI element it should be highlighted). 
 	- Also, execute `./scripts/send-command.sh log` and check Android logs to see if Latte prints the AccessibilityNodeInfos of GUI element on the screen (`adb logcat | grep "LATTE_SERVICE"`)
 -  Save the base snapshot by `./scripts/save_snapshot.sh BASE`
+
+### TalkBack TreeNode
+- Go to TalkBack Settings > Advanced > Developer Settings and select "Enable node tree debugging", also set the Log output level to VERBOSE
+- In TalkBack Settings, go to Customize gestures, and assign "Swipe up then left" to "Print node tree"
+- Update the BASE snapshot `./scripts/save_snapshot.sh BASE`
+- To verify the TreeNode lists are captured correctly run `python py_src/demo.py --command tb_a11y_tree`
+
 
 ## Latte CLI
 You can interact with Latte by sending commands to its Broadcast Receiver or receive generated information from Latte by reading files from the local storage. First, you need to enable Latte by running `./scritps/enable-service.sh`, then you can send command by running `./scripts/send-command.sh <COMMAND> <EXTRA>`. If you want to work with TalkBack, first you need to enable it by running `./scritps/enable-talkback.sh`. If any command has an output written in a file, you can use `./scripts/wait_for_file.sh <FILE_NAME>` which prints the content of the file and removes it. It's encouraged to watch the logs in a separate terminal `adb logcat | grep "LATTE_SERVICE"`. Here is the list of all commands:
@@ -23,6 +30,8 @@ You can interact with Latte by sending commands to its Broadcast Receiver or rec
 	- `nav_select`: Selects the focused element (equivalent to Tap). Output's file name: `finish_nav_action.txt`
 	- `nav_interrupt`: Interrupt the current navigation action
 	- `nav_clear_history`: In case the last navigation result is not removed.
+- **TalkBack Information**
+	- `tb_a11y_tree`: Logs Virtual View Hierarchy (defined in TalkBack `adb logcat | grep "talkback: TreeDebug"`)
 - **UseCase Executor**
 	- `enable`/`disable`: Enable/Disable the use-case executor component
 	- `set_delay`: Sets the time for each interval (cycle).
