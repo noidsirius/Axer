@@ -15,7 +15,7 @@
 - Go to TalkBack Settings > Advanced > Developer Settings and select "Enable node tree debugging", also set the Log output level to VERBOSE
 - In TalkBack Settings, go to Customize gestures, and assign "Swipe up then left" to "Print node tree"
 - Update the BASE snapshot `./scripts/save_snapshot.sh BASE`
-- To verify the TreeNode lists are captured correctly run `python py_src/demo.py --command nav_tree`
+- To verify the TreeNode lists are captured correctly run `python py_src/demo.py --command tb_a11y_tree`
 
 
 ## Latte CLI
