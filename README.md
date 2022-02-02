@@ -30,7 +30,8 @@ You can interact with Latte by sending commands to its Broadcast Receiver or rec
 	- `nav_select`: Selects the focused element (equivalent to Tap). Output's file name: `finish_nav_action.txt`
 	- `nav_interrupt`: Interrupt the current navigation action
 	- `nav_clear_history`: In case the last navigation result is not removed.
-	- `nav_tree`: Logs the TreeNode list (defined in TalkBack `adb logcat | grep "talkback: TreeDebug"`)
+- **TalkBack Information**
+	- `tb_a11y_tree`: Logs Virtual View Hierarchy (defined in TalkBack `adb logcat | grep "talkback: TreeDebug"`)
 - **UseCase Executor**
 	- `enable`/`disable`: Enable/Disable the use-case executor component
 	- `set_delay`: Sets the time for each interval (cycle).

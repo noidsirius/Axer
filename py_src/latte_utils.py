@@ -92,8 +92,8 @@ async def talkback_nav_command(command):
 
 async def talkback_tree_nodes(padb_logger: ParallelADBLogger, verbose: bool = False) -> (dict, str):
     """
-    First enables TalkBack and Latte, then send "nav_tree" command to Latte, and observes the logs
-    from both Latte and TalkBack (which should contains the list of tree nodes). Finally, returns a
+    First enables TalkBack and Latte, then send "tb_a11y_tree" command to Latte, and observes the logs
+    from both Latte and TalkBack (which should contains the Virtual View Hierarchy). Finally, returns a
     dictionary from window ids to the window's information and elements inside the window
     :param padb_logger:
     :param verbose: Logs the captured logs from TalkBack
@@ -104,7 +104,7 @@ async def talkback_tree_nodes(padb_logger: ParallelADBLogger, verbose: bool = Fa
     # TODO: At the end of this function, the a11y serviecs should be returned to the initial state
     await A11yServiceManager.setup_latte_a11y_services(tb=True)
     logs, next_command_str = await padb_logger.execute_async_with_log(
-        talkback_nav_command("tree"),
+        send_command_to_latte("tb_a11y_tree"),
         tags=[BLIND_MONKEY_TAG, TB_TREELIST_TAG])
     flag = False
     windows_info = {'other': {'info': None, 'elements': {}}}
