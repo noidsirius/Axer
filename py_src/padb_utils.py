@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List, Union
 import asyncio
 import aiofiles
 from consts import BLIND_MONKEY_TAG, CAPTURE_SCREENSHOT_DELAY
@@ -33,7 +33,9 @@ class ParallelADBLogger:
         logcat_handler_task = asyncio.create_task(logcat_handler(conn))
         return logcat_handler_task
 
-    async def execute_async_with_log(self, coroutine_obj: asyncio.coroutine) -> (str, Any):
+    async def execute_async_with_log(self,
+                                     coroutine_obj: asyncio.coroutine,
+                                     tags: List[str] = None) -> (Union[str, dict], Any):
         if self.lock is not None:
             raise Exception("Cannot execute more than one coroutine while logging!")
         self.lock = coroutine_obj
@@ -43,5 +45,13 @@ class ParallelADBLogger:
         await asyncio.sleep(0.5)
         ll_task.cancel()
         self.lock = None
-        self.log_message = "\n".join(line for line in self.log_message.split("\n") if BLIND_MONKEY_TAG in line)
+        if tags is None:
+            tags = [BLIND_MONKEY_TAG]
+        logs = {}
+        for tag in tags:
+            logs[tag] = "\n".join(line for line in self.log_message.split("\n") if tag in line)
+        if len(tags) == 1:
+            self.log_message = logs[tags[0]]
+        else:
+            self.log_message = logs
         return self.log_message, coroutine_result
