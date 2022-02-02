@@ -32,7 +32,32 @@ def get_xpath(node):
     return path
 
 
+def are_equal_elements(element1: dict, element2: dict) -> bool:
+    """
+    Determines if two elements are equal. The focused attribute is excluded since it depends on TalkBack's state
+    :param element1:  A GUI element with various attributes such as resourceId
+    :param element2: Another GUI element
+    :return:
+    """
+    if element1.keys() != element2.keys():
+        return False
+    for key in element1:
+        if key in 'focused':
+            continue
+        if element1[key] != element2[key]:
+            return False
+    return True
+
+
 def get_elements(dom: str, filter_query: Callable[[etree.Element], bool] = None) -> List:
+    """
+    Given a DOM of an Android layout, creates the GUI elements that passes the filter query
+
+    :param dom: The DOM structure of the layout
+    :param filter_query: An optional function inputs a :class:`etree.Element` and
+            returns if the element should be added to the output
+    :return: List of GUI elements in `dom` that passes the `filter_query`
+    """
     dom_utf8 = dom.encode('utf-8')
     parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
     tree = etree.fromstring(dom_utf8, parser)
@@ -53,6 +78,12 @@ def get_elements(dom: str, filter_query: Callable[[etree.Element], bool] = None)
                 'action': 'click',
                 'naf': x_attrs.get('NAF', False),
                 'bounds': x_attrs.get('bounds', ""),
+                'checkable': x_attrs.get('checkable', ''),
+                'checked': x_attrs.get('checked', ''),
+                'clickable': x_attrs.get('clickable', ''),
+                'enabled': x_attrs.get('enabled', ''),
+                'focusable': x_attrs.get('focusable', ''),
+                'focused': x_attrs.get('focused', ''),
                 }
         for k in info:
             if type(info[k]) == str and len(info[k]) == 0:

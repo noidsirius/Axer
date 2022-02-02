@@ -3,7 +3,7 @@ import asyncio
 import json
 import shutil
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, List
 from adb_utils import get_current_activity_name
 from latte_utils import latte_capture_layout as capture_layout
 from latte_utils import ExecutionResult
@@ -24,6 +24,8 @@ class AddressBook:
         for mode in navigate_modes:
             self.mode_path_map[mode] = self.snapshot_result_path.joinpath(mode.upper())
         self.action_path = self.snapshot_result_path.joinpath("action.jsonl")
+        self.finished_path = self.snapshot_result_path.joinpath("finished.flag")
+        self.last_explore_log_path = self.snapshot_result_path.joinpath("last_explore.log")
         self.visited_elements_path = self.snapshot_result_path.joinpath("visited.jsonl")
         self.s_action_path = self.snapshot_result_path.joinpath("s_action.jsonl")
 
@@ -66,8 +68,29 @@ class ResultWriter:
         self.visited_elements = []
         self.actions = []
 
-    def visit_element(self, element: dict):
-        visited_element = {'index': len(self.visited_elements), 'element': element}
+    def visit_element(self, visited_element: dict, state: str, detailed_element: Union[dict, None]) -> None:
+        """
+        Write the visited element into exploration result
+        :param visited_element: The element that is visited by Latte
+        :param state: The state of the visited element can be 'skipped', 'repetitive', 'selected'
+        :param detailed_element: The equivalent element with more information such as 'clickable' or 'focused'
+        """
+        use_detailed = detailed_element is not None
+        if use_detailed:
+            for key in visited_element:
+                if key not in detailed_element:
+                    continue
+                if visited_element[key] != detailed_element[key]:
+                    use_detailed = False
+                    logger.error(f"The detailed element doesn't match. Visited Element: {visited_element},"
+                                 f" Detailed Element: {detailed_element}")
+                    break
+        visited_element = {
+            'index': len(self.visited_elements),
+            'state': state,
+            'element': visited_element,
+            'detailed_element': detailed_element if use_detailed else None
+        }
         self.visited_elements.append(visited_element)
         with open(self.address_book.visited_elements_path, "a") as f:
             f.write(f"{json.dumps(visited_element)}\n")
@@ -145,3 +168,32 @@ class ResultWriter:
                 f.write(log_message)
 
         return layout  # TODO: Remove it
+
+    def write_last_navigate_log(self, log_message: str):
+        with open(self.address_book.last_explore_log_path, mode='w') as f:
+            f.write(log_message)
+
+
+def read_all_visited_elements_in_app(app_path: Union[str, Path]) -> dict:
+    """
+    Given the result path of an app, returns visited elements dictionary, mapping xpath to the list of its elements
+    """
+    visited_elements = {}
+    app_path = Path(app_path) if isinstance(app_path, str) else app_path
+    for snapshot_path in app_path.iterdir():
+        if not snapshot_path.is_dir():
+            continue
+        address_book = AddressBook(snapshot_path)
+        if not address_book.visited_elements_path.exists():
+            continue
+        with open(address_book.visited_elements_path) as f:
+            for line in f.readlines():
+                element = json.loads(line)
+                if element['state'] != 'selected':
+                    continue
+                if element['element']['xpath'] not in visited_elements:
+                    # logger.warning(f"Repetitive element's xpath, New element {element},"
+                    #                f" Stored element: {visited_elements[element['element']['xpath']]}")
+                    visited_elements[element['element']['xpath']] = []
+                visited_elements[element['element']['xpath']].append(element)
+    return visited_elements

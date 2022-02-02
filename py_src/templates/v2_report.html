@@ -48,7 +48,12 @@
         <div class="col-1"></div>
         <div class="col-10">
             <div class="row">
-                <div class="col-8">
+                <div class="col-4">
+                    <a href="{{ url_for('send_result_static_v2', path=bm_log_path) }}">(BlindMonkey Log)</a>
+                    -
+                    <a href="{{ url_for('send_result_static_v2', path=last_explore_log_path) }}">(Last Explore Log)</a>
+                </div>
+                <div class="col-4">
                 </div>
                 <div class="col-4">
                     <div class="form-check form-switch">
@@ -114,19 +119,31 @@
                                         <img src="{{ url_for('send_result_static_v2', path=step.init_img) }}" class="rounded d-block mx-auto"
                                              style="width: 10rem;">
                                     </a>
+                                    <hr>
+                                    <a href="{{ url_for('send_result_static_v2', path=step.init_log) }}">
+                                        log
+                                    </a>
                                 </td>
                                 <td>
                                     <a href="#" class="enlarge">
                                         <img src="{{ url_for('send_result_static_v2', path=step.tb_img) }}" class="rounded d-block mx-auto"
                                              style="width: 10rem;" data-bs-toggle="tooltip"
-                                             data-bs-placement="top" title="{{ step.tb_result|e }}">
+                                             data-bs-placement="top" title="{{ step.tb_result|e }}" alt="Result of TalkBack Selection">
+                                    </a>
+                                    <hr>
+                                    <a href="{{ url_for('send_result_static_v2', path=step.tb_log) }}">
+                                        log
                                     </a>
                                 </td>
                                 <td>
                                     <a href="#" class="enlarge">
                                         <img src="{{ url_for('send_result_static_v2', path=step.reg_img) }}" class="rounded d-block mx-auto"
                                              style="width: 10rem;" data-bs-toggle="tooltip"
-                                             data-bs-placement="top" title="{{ step.reg_result|e }}">
+                                             data-bs-placement="top" title="{{ step.reg_result|e }}" alt="Result of Regular Selection">
+                                    </a>
+                                    <hr>
+                                    <a href="{{ url_for('send_result_static_v2', path=step.reg_log) }}">
+                                        log
                                     </a>
                                 </td>
                                 {% if step.status == 10 %}
@@ -221,7 +238,6 @@
             let index = $(this).find('.snapshot-index').attr('value');
             let sighted_str = $(this).find('.snapshot-sighted').attr('value');
             let iframe_link = "/v2/{{ result_path }}/{{ app_name }}/snapshot/{{ name }}/diff/" + index +"/"+ sighted_str
-            console.log("Iframe Link: " + iframe_link)
             $('#diff_iframe_id').attr('src', iframe_link);
             $('#xmldiffmodal').modal('show');
         });

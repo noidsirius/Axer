@@ -2,12 +2,12 @@ import logging
 import asyncio
 import json
 from collections import defaultdict
-from typing import Callable, List, Optional
+from typing import Callable, List, Tuple, Union
 from ppadb.client_async import ClientAsync as AdbClient
 
-from GUI_utils import get_elements
+from GUI_utils import get_elements, are_equal_elements
 from a11y_service import A11yServiceManager
-from adb_utils import load_snapshot, save_snapshot, is_android_activity_on_top
+from adb_utils import load_snapshot, save_snapshot, is_android_activity_on_top, get_current_activity_name
 from latte_utils import latte_capture_layout as capture_layout
 from latte_utils import talkback_nav_command, tb_navigate_next, tb_perform_select, \
     reg_execute_command, stb_execute_command, get_missing_actions
@@ -19,16 +19,21 @@ logger = logging.getLogger(__name__)
 
 
 class Snapshot:
-    def __init__(self, snapshot_name: str, address_book: AddressBook, client: AdbClient = None,
+    def __init__(self,
+                 snapshot_name: str,
+                 address_book: AddressBook,
+                 visited_elements_in_app: dict = None,
+                 client: AdbClient = None,
                  device_name: str = "emulator-5554"):
         self.initial_snapshot = snapshot_name
         self.tmp_snapshot = self.initial_snapshot + "_TMP"
         self.address_book = address_book
         self.writer = ResultWriter(address_book)
+        self.visited_elements_in_app = {} if visited_elements_in_app is None else visited_elements_in_app
         # -------------
         self.visible_elements = []
         self.valid_resource_ids = set()
-        self.valid_xpaths = set()
+        self.valid_xpaths = {}
         self.visited_resource_ids = set()
         self.visited_xpath_count = defaultdict(int)
         self.tb_commands = []
@@ -38,6 +43,12 @@ class Snapshot:
         self.device = asyncio.run(client.device(device_name))
 
     async def emulator_setup(self) -> bool:
+        """
+        Loads the snapshot into emulator, configures the required services, and sets up Latte.
+        Then saves the configured snapshot into Temp Snapshot.
+        Finally it analyzes all elements in the screen and exclude the already seen (in other snapshots)
+        :return: Whether the setup is succeeded or not
+        """
         if not await load_snapshot(self.initial_snapshot):
             logger.error("Error in loading snapshot")
             return False
@@ -53,54 +64,87 @@ class Snapshot:
         dom = await capture_layout()
         self.visible_elements = get_elements(dom)
         self.valid_resource_ids = set()
-        self.valid_xpaths = set()
+        self.valid_xpaths = {}
+        already_visited_elements = []
         for element in self.visible_elements:
+            has_been_in_other_snapshots = False
+            for other_element in self.visited_elements_in_app.get(element['xpath'], []):
+                if 'detailed_element' in other_element:
+                    detailed_element = other_element['detailed_element']
+                    if detailed_element is not None:
+                        if are_equal_elements(element, detailed_element):
+                            logger.debug(f"Exclude the visited element in the app {element}")
+                            has_been_in_other_snapshots = True
+                            break
+                else:
+                    logger.warning(f"No 'detailed_element' key in {self.visited_elements_in_app[element['xpath']]}")
+            if has_been_in_other_snapshots:
+                already_visited_elements.append(element)
+                continue
             if element['resourceId']:
                 self.valid_resource_ids.add(element['resourceId'])
             if element['xpath']:
-                self.valid_xpaths.add(element['xpath'])
+                self.valid_xpaths[element['xpath']] = element
+        logger.info(f"There are {len(self.valid_xpaths)} valid elements,"
+                    f" and {len(already_visited_elements)} elements have been seen in other snapshots!")
         self.visited_resource_ids = set()
         self.visited_xpath_count = defaultdict(int)
         self.tb_commands = []
         # -------------
         return True
 
-    async def navigate_next(self) -> Optional[str]:
+    async def navigate_next(self, padb_logger: ParallelADBLogger) -> Tuple[str, Union[str, None]]:
+        """
+        Loads the Temp Sanpshot (latest snapshot in navigation), navigate to next element by TalkBack until it either
+        reaches a new important element or finishes the navigation. An important element should belong to the initial
+        snapshot, should not have been visited before in this or other snapshots.
+        :param padb_logger: To capture the logs of Latte during TalkBack navigation
+        :return: A tuple of
+                'Log Message' (the logs during the navigation) and
+                'Next Command' (the newly focused element). If Next Command is None, the navigation is finished.
+        """
         if not await load_snapshot(self.tmp_snapshot):
             logger.debug("Error in loading snapshot")
-            return None
+            return "The snapshot could not be loaded!", None
         while True:
-            next_command_str = await tb_navigate_next()
+            log_message, next_command_str = await padb_logger.execute_async_with_log(tb_navigate_next())
             if next_command_str is None:
                 logger.error("TalkBack cannot navigate to the next element")
-                return None
-            next_command_json = json.loads(next_command_str)
-            self.writer.visit_element(next_command_json)
-            if next_command_json['xpath'] != 'null':
-                self.visited_xpath_count[next_command_json['xpath']] += 1
-                if self.visited_xpath_count[next_command_json['xpath']] > EXPLORE_VISIT_LIMIT:
+                return log_message, None
+            command_json = json.loads(next_command_str)
+            if command_json['xpath'] != 'null':
+                self.visited_xpath_count[command_json['xpath']] += 1
+                if self.visited_xpath_count[command_json['xpath']] > EXPLORE_VISIT_LIMIT:
                     logger.info(
-                        f"The XPath {next_command_json['xpath']} is visited more than {EXPLORE_VISIT_LIMIT} times, break. ")
-                    return None
+                        f"The XPath {command_json['xpath']}"
+                        f" is visited more than {EXPLORE_VISIT_LIMIT} times, break. ")
+                    return log_message, None
+            else:
+                logger.error(f"The xpath is null for element {command_json}")
             # TODO: Update visited* with next_command_json
             # TODO: Skip if the position is also the same
-            if next_command_str in self.tb_commands:
-                logger.info("Has seen this command before!")
-                continue
-            if next_command_json['resourceId'] in self.visited_resource_ids:
-                logger.info("Has seen this resourceId")
-                continue
-            if next_command_json['xpath'] not in self.valid_xpaths:
+            if command_json['xpath'] not in self.valid_xpaths:
+                self.writer.visit_element(command_json, 'skipped', None)
                 logger.info("Not a valid xpath!")
                 continue
-            if self.visited_xpath_count[next_command_json['xpath']] > 1:  # TODO: Configurable
+            if next_command_str in self.tb_commands:
+                self.writer.visit_element(command_json, 'repetitive', self.valid_xpaths[command_json['xpath']])
+                logger.info("Has seen this command before!")
+                continue
+            if command_json['resourceId'] in self.visited_resource_ids:
+                self.writer.visit_element(command_json, 'repetitive', self.valid_xpaths[command_json['xpath']])
+                logger.info("Has seen this resourceId")
+                continue
+            if self.visited_xpath_count[command_json['xpath']] > 1:  # TODO: Configurable
+                self.writer.visit_element(command_json, 'repetitive', self.valid_xpaths[command_json['xpath']])
                 logger.info("Has seen this xpath more than twice")
                 continue
-            # TODO: make it a counter
-            if next_command_json['resourceId'] != 'null':
-                self.visited_resource_ids.add(next_command_json['resourceId'])
+            self.writer.visit_element(command_json, 'selected', self.valid_xpaths[command_json['xpath']])
+        # TODO: make it a counter
+            if command_json['resourceId'] != 'null':
+                self.visited_resource_ids.add(command_json['resourceId'])
             break
-        return next_command_str
+        return log_message, next_command_str
 
     async def explore(self) -> bool:
         if not await self.emulator_setup():
@@ -109,17 +153,22 @@ class Snapshot:
         initial_layout = await capture_layout()
         self.writer.start_explore()
         padb_logger = ParallelADBLogger(self.device)
-        is_in_app_activity = not await is_android_activity_on_top()
-        while True and is_in_app_activity:
+        while True:
+            if await is_android_activity_on_top():
+                logger.info("We are not in the app under test!")
+                self.writer.write_last_navigate_log(f"The current activity is {await get_current_activity_name()}")
+                break
             logger.info(f"Action Index: {self.writer.get_action_index()}")
             # ------------------- Navigate Next -------------------
-            click_command_str = await self.navigate_next()
+            tb_navigate_log, click_command_str = await self.navigate_next(padb_logger)
             if not click_command_str:
                 logger.info("Navigation is finished!")
+                self.writer.write_last_navigate_log(tb_navigate_log)
                 break
             logger.debug("Click Command is " + click_command_str)
             await self.writer.capture_current_state(self.device, mode="exp",
                                                     index=self.writer.get_action_index(),
+                                                    log_message=tb_navigate_log,
                                                     has_layout=False)
             # if 'bound' in json.loads(click_command_str):
             #     bound = tuple(int(x) for x in (json.loads(click_command_str)['bound'].strip()).split('-'))
@@ -230,3 +279,4 @@ class Snapshot:
 
                 logger.info(f"Writing action {self.writer.get_action_index()}")
                 self.writer.add_action(action, stb_result, reg_result, is_sighted=True)
+        logger.info("Done validating remaining actions.")

@@ -1,4 +1,5 @@
-import pathlib
+from typing import Union
+from pathlib import Path
 import json
 import argparse
 import logging
@@ -9,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 POST_ANALYSIS_PREFIX = 'post_analysis_result'
 
+LAST_VERSION = "V1"
 SUCCESS = 10
 TB_FAILURE = 5
 REG_FAILURE = 4
@@ -52,7 +54,15 @@ def old_report_issues(address_book: AddressBook):
            different_behaviors_directional_unreachable, pending
 
 
-def analyze_action(action, address_book: AddressBook, is_sighted: bool) -> dict:
+def post_analyzer_v1(action, address_book: AddressBook, is_sighted: bool) -> dict:
+    """
+    Given a performed action,
+    acts as an oracle and generates the accessibility result of the action
+    :param action: The action created during BlindMonkey exploration or sighted clicking
+    :param address_book: AddressBook
+    :param is_sighted: Determines if the actions is performed during Sighted clicking
+    :return: a dictionary of action index to its result with a message
+    """
     action_index = action['index']
     prefix = "s_" if is_sighted else ""
     tb_xml_path = address_book.get_layout_path(f'{prefix}tb', action_index)
@@ -97,6 +107,89 @@ def analyze_action(action, address_book: AddressBook, is_sighted: bool) -> dict:
     return result
 
 
+def do_post_analysis(name: str = None,
+                     result_path: Union[str, Path] = None,
+                     app_path: Union[str, Path] = None,
+                     snapshot_path: Union[str, Path] = None) -> int:
+    post_analyzers = {
+        "V1": post_analyzer_v1,
+    }
+    if name is None:
+        name = LAST_VERSION
+    if name not in post_analyzers:
+        logger.error(f"Error. The post analyzer with name {name} doesn't exist!")
+        return 0
+    post_analyzer = post_analyzers[name]
+    logger.info(f"Post Analyzer: {name}")
+
+    available_paths = 0
+    if snapshot_path:
+        available_paths += 1
+    if app_path:
+        available_paths += 1
+    if result_path:
+        available_paths += 1
+
+    if available_paths != 1:
+        logger.error(f"Error. You must provide exactly one path to process!")
+        return 0
+
+    snapshot_paths = []
+
+    if result_path:
+        result_path = Path(result_path) if isinstance(result_path, str) else result_path
+        if not result_path.is_dir():
+            logger.error(f"The result path doesn't exist! {result_path}")
+            return 0
+        for app_path in result_path.iterdir():
+            if not app_path.is_dir():
+                continue
+            for snapshot_path in app_path.iterdir():
+                if not snapshot_path.is_dir():
+                    continue
+                snapshot_paths.append(snapshot_path)
+    elif app_path:
+        app_path = Path(app_path) if isinstance(app_path, str) else app_path
+        if not app_path.is_dir():
+            logger.error(f"The app path doesn't exist! {app_path}")
+            return 0
+        for snapshot_path in app_path.iterdir():
+            if not snapshot_path.is_dir():
+                continue
+            snapshot_paths.append(snapshot_path)
+    elif snapshot_path:
+        snapshot_path = Path(snapshot_path) if isinstance(snapshot_path, str) else snapshot_path
+        if not snapshot_path.is_dir():
+            logger.error(f"The snapshot doesn't exist! {snapshot_path}")
+            return 0
+        snapshot_paths.append(snapshot_path)
+
+    output_name = f"{POST_ANALYSIS_PREFIX}_{name}.jsonl"
+    analyzed = 0
+    for snapshot_path in snapshot_paths:
+        logger.info(f"Post-analyzing Snapshot in path'{snapshot_path}'...")
+        address_book = AddressBook(snapshot_path)
+        if not address_book.finished_path.exists():
+            logger.error(f"A")
+            continue
+        if address_book.snapshot_result_path.joinpath(output_name).exists():
+            continue
+        with open(address_book.snapshot_result_path.joinpath(output_name), 'w') as write_file:
+            with open(address_book.action_path) as read_file:
+                for line in read_file.readlines():
+                    action = json.loads(line)
+                    result = post_analyzer(action, address_book, is_sighted=False)
+                    write_file.write(json.dumps(result) + "\n")
+            with open(address_book.s_action_path) as read_file:
+                for line in read_file.readlines():
+                    action = json.loads(line)
+                    result = post_analyzer(action, address_book, is_sighted=True)
+                    write_file.write(json.dumps(result) + "\n")
+        analyzed += 1
+    return analyzed
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--snapshot-path', type=str, help="Path of the snapshot's result")
@@ -106,21 +199,6 @@ if __name__ == "__main__":
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--log-path', type=str, help="Path where logs are written")
     args = parser.parse_args()
-
-    available_paths = 0
-
-    if args.snapshot_path:
-        available_paths += 1
-
-    if args.app_path:
-        available_paths += 1
-
-    if args.result_path:
-        available_paths += 1
-
-    if available_paths != 1:
-        print(f"Error. You must provide exactly one path to process!")
-        exit()
 
     if args.debug:
         level = logging.DEBUG
@@ -135,51 +213,7 @@ if __name__ == "__main__":
     else:
         logging.basicConfig(level=level)
 
-    output_name = f"{POST_ANALYSIS_PREFIX}_{args.name}.jsonl"
-
-    snapshot_paths = []
-
-    if args.result_path:
-        result_path = pathlib.Path(args.result_path)
-        for app_path in result_path.iterdir():
-            if not app_path.is_dir():
-                continue
-            for snapshot_path in app_path.iterdir():
-                if not snapshot_path.is_dir():
-                    continue
-                snapshot_paths.append(snapshot_path)
-    elif args.app_path:
-        app_path = pathlib.Path(args.app_path)
-        for snapshot_path in app_path.iterdir():
-            if not snapshot_path.is_dir():
-                continue
-            snapshot_paths.append(snapshot_path)
-    elif args.snapshot_path:
-        snapshot_path = pathlib.Path(args.snapshot_path)
-        if not snapshot_path.is_dir():
-            print("The snapshot doesn't exist!")
-            exit()
-        snapshot_paths.append(snapshot_path)
-
-    for snapshot_path in snapshot_paths:
-
-        logger.info(f"Post-analyzing Snapshot in path'{snapshot_path}'...")
-        address_book = AddressBook(snapshot_path)
-
-        with open(address_book.snapshot_result_path.joinpath(output_name), 'w') as write_file:
-            with open(address_book.action_path) as read_file:
-                for line in read_file.readlines():
-                    action = json.loads(line)
-                    result = analyze_action(action, address_book, is_sighted=False)
-                    write_file.write(json.dumps(result) + "\n")
-            with open(address_book.s_action_path) as read_file:
-                for line in read_file.readlines():
-                    action = json.loads(line)
-                    result = analyze_action(action, address_book, is_sighted=True)
-                    write_file.write(json.dumps(result) + "\n")
-
-
-
-
-
-
+    do_post_analysis(name=args.name,
+                     result_path=args.result_path,
+                     app_path=args.app_path,
+                     snapshot_path=args.snapshot_path)
