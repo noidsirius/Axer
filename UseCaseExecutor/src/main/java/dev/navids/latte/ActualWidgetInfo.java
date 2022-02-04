@@ -114,7 +114,7 @@ public class ActualWidgetInfo extends WidgetInfo {
         String base_path = super.completeToString(has_xpath);
         Rect boundBox = new Rect();
         node.getBoundsInScreen(boundBox);
-        String str = String.format("%s, bound= %d-%d-%d-%d",base_path, boundBox.left, boundBox.top, boundBox.right, boundBox.bottom);
+        String str = String.format("%s, bounds= [%d,%d][%d,%d]",base_path, boundBox.left, boundBox.top, boundBox.right, boundBox.bottom);
         return str;
     }
 
@@ -126,7 +126,7 @@ public class ActualWidgetInfo extends WidgetInfo {
         Rect boundBox = new Rect();
         node.getBoundsInScreen(boundBox);
         try {
-            result.put("bound", String.format("%d-%d-%d-%d", boundBox.left, boundBox.top, boundBox.right, boundBox.bottom));
+            result.put("bounds", String.format("[%d,%d][%d,%d]", boundBox.left, boundBox.top, boundBox.right, boundBox.bottom));
         } catch (JSONException e) {
             e.printStackTrace();
         }

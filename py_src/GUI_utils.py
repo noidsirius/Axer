@@ -91,3 +91,18 @@ def get_elements(dom: str, filter_query: Callable[[etree.Element], bool] = None)
         command = json.loads(json.dumps(info))
         commands.append(command)
     return commands
+
+
+def get_actions_from_layout(layout: str) -> List[dict]:
+    important_elements = get_elements(layout,
+                                      filter_query=lambda x: x.attrib.get('clickable', 'false') == 'true'
+                                                             or x.attrib.get('NAF', 'false') == 'true')
+    visited_resource_ids = set()
+    refined_list = []
+    for e in important_elements:
+        if e['resourceId'] and e['resourceId'] != 'null':
+            if e['resourceId'] in visited_resource_ids:
+                continue
+            visited_resource_ids.add(e['resourceId'])
+        refined_list.append(e)
+    return refined_list

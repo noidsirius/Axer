@@ -162,8 +162,10 @@ def send_result_static_v2(path):
     # TODO: Not secure at all
     result_path = pathlib.Path(f"../{path}")
     if not (result_path.exists()):
+        if str(result_path).endswith(".png"):
+            return send_from_directory("../", "404.png")
         return "The path is incorrect!"
-    return send_from_directory(result_path.parent.resolve(),result_path.name)
+    return send_from_directory(result_path.parent.resolve(), result_path.name)
 
 
 @flask_app.route("/v2/<result_path_str>/")
@@ -304,6 +306,12 @@ def report_v2(result_path, app_name, snapshot_name):
     errors = []
     bm_log_path = str(snapshot_path.relative_to(result_path.parent))+".log"
     last_explore_log_path = str(address_book.last_explore_log_path.relative_to(result_path.parent))
+    all_elements_screenshot = str(address_book.all_element_screenshot.relative_to(result_path.parent))
+    all_actions_screenshot = str(address_book.all_action_screenshot.relative_to(result_path.parent))
+    visited_actions_in_other_screenshot = str(address_book.redundant_action_screenshot.relative_to(result_path.parent))
+    valid_actions_screenshot = str(address_book.valid_action_screenshot.relative_to(result_path.parent))
+    visited_actions_screenshot = str(address_book.visited_action_screenshot.relative_to(result_path.parent))
+    s_actions_screenshot = str(address_book.s_action_screenshot.relative_to(result_path.parent))
     post_analysis_results = {'sighted': {}, 'unsighted': {}}
     for post_result_path in snapshot_path.iterdir():
         if post_result_path.name.startswith(POST_ANALYSIS_PREFIX):
@@ -342,4 +350,17 @@ def report_v2(result_path, app_name, snapshot_name):
             step = create_step(address_book, result_path.parent, action, post_analysis_results['sighted'], is_sighted=True)
             stb_steps.append(step)
     all_steps = {'TalkBack Exploration': tb_steps, 'Sighted TalkBack Checks': stb_steps}
-    return render_template('v2_report.html', result_path=result_path_str, app_name=app_name, bm_log_path=bm_log_path, last_explore_log_path=last_explore_log_path, all_steps=all_steps, name=snapshot_name, errors=errors)
+    return render_template('v2_report.html',
+                           result_path=result_path_str,
+                           app_name=app_name,
+                           bm_log_path=bm_log_path,
+                           all_elements_screenshot=all_elements_screenshot,
+                           all_actions_screenshot=all_actions_screenshot,
+                           visited_actions_in_other_screenshot=visited_actions_in_other_screenshot,
+                           visited_actions_screenshot=visited_actions_screenshot,
+                           valid_actions_screenshot=valid_actions_screenshot,
+                           s_actions_screenshot=s_actions_screenshot,
+                           last_explore_log_path=last_explore_log_path,
+                           all_steps=all_steps,
+                           name=snapshot_name,
+                           errors=errors)

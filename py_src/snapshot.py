@@ -5,14 +5,15 @@ from collections import defaultdict
 from typing import Callable, List, Tuple, Union
 from ppadb.client_async import ClientAsync as AdbClient
 
-from GUI_utils import get_elements, are_equal_elements
+from GUI_utils import get_elements, are_equal_elements, get_actions_from_layout
 from a11y_service import A11yServiceManager
 from adb_utils import load_snapshot, save_snapshot, is_android_activity_on_top, get_current_activity_name
-from latte_utils import latte_capture_layout as capture_layout
+from latte_utils import latte_capture_layout as capture_layout, get_unsuccessful_execution_result
 from latte_utils import talkback_nav_command, tb_navigate_next, tb_perform_select, \
     reg_execute_command, stb_execute_command, get_missing_actions
 from padb_utils import ParallelADBLogger
 from results_utils import AddressBook, ResultWriter
+from utils import annotate_elements
 from consts import EXPLORE_VISIT_LIMIT
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,13 @@ class Snapshot:
             client = AdbClient(host="127.0.0.1", port=5037)
         self.device = asyncio.run(client.device(device_name))
 
+    def has_element_in_other_snapshots(self, element: dict) -> bool:
+        for other_element in self.visited_elements_in_app.get(element['xpath'], []):
+            if are_equal_elements(element, other_element):
+                logger.debug(f"Exclude the visited element in the app {element}")
+                return True
+        return False
+
     async def emulator_setup(self) -> bool:
         """
         Loads the snapshot into emulator, configures the required services, and sets up Latte.
@@ -60,33 +68,52 @@ class Snapshot:
         logger.info("Enabled A11y Services:" + str(await A11yServiceManager.get_enabled_services()))
         await asyncio.sleep(3)
         await save_snapshot(self.tmp_snapshot)
+        self.writer.start_explore()
         # ------------- TODO: think about it later ----------
-        dom = await capture_layout()
-        self.visible_elements = get_elements(dom)
+        # dom = await capture_layout()
+        layout = await self.writer.capture_current_state(self.device, mode="exp", index="INITIAL", has_layout=True)
+        self.visible_elements = get_elements(layout)
+        annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
+                          self.address_book.all_element_screenshot,
+                          self.visible_elements,
+                          outline=(255, 0, 255),
+                          width=10,
+                          scale=10)
+        annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
+                          self.address_book.all_action_screenshot,
+                          get_actions_from_layout(layout),
+                          outline=(255, 0, 255),
+                          width=10,
+                          scale=10)
         self.valid_resource_ids = set()
         self.valid_xpaths = {}
         already_visited_elements = []
         for element in self.visible_elements:
-            has_been_in_other_snapshots = False
-            for other_element in self.visited_elements_in_app.get(element['xpath'], []):
-                if 'detailed_element' in other_element:
-                    detailed_element = other_element['detailed_element']
-                    if detailed_element is not None:
-                        if are_equal_elements(element, detailed_element):
-                            logger.debug(f"Exclude the visited element in the app {element}")
-                            has_been_in_other_snapshots = True
-                            break
-                else:
-                    logger.warning(f"No 'detailed_element' key in {self.visited_elements_in_app[element['xpath']]}")
-            if has_been_in_other_snapshots:
+            if self.has_element_in_other_snapshots(element):
+                logger.debug(f"Exclude the visited element in the app {element}")
                 already_visited_elements.append(element)
                 continue
             if element['resourceId']:
                 self.valid_resource_ids.add(element['resourceId'])
             if element['xpath']:
                 self.valid_xpaths[element['xpath']] = element
+        annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
+                          self.address_book.redundant_action_screenshot,
+                          already_visited_elements,
+                          outline=(255, 0, 255),
+                          width=10,
+                          scale=10)
+        annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
+                          self.address_book.valid_action_screenshot,
+                          list(self.valid_xpaths.values()),
+                          outline=(255, 0, 255),
+                          width=10,
+                          scale=10)
         logger.info(f"There are {len(self.valid_xpaths)} valid elements,"
                     f" and {len(already_visited_elements)} elements have been seen in other snapshots!")
+        with open(self.address_book.valid_elements_path, "w") as f:
+            for valid_element in self.valid_xpaths.values():
+                f.write(f"{json.dumps(valid_element)}\n")
         self.visited_resource_ids = set()
         self.visited_xpath_count = defaultdict(int)
         self.tb_commands = []
@@ -112,6 +139,7 @@ class Snapshot:
                 logger.error("TalkBack cannot navigate to the next element")
                 return log_message, None
             command_json = json.loads(next_command_str)
+            logger.debug(f"Current element: {command_json}")
             if command_json['xpath'] != 'null':
                 self.visited_xpath_count[command_json['xpath']] += 1
                 if self.visited_xpath_count[command_json['xpath']] > EXPLORE_VISIT_LIMIT:
@@ -140,7 +168,7 @@ class Snapshot:
                 logger.info("Has seen this xpath more than twice")
                 continue
             self.writer.visit_element(command_json, 'selected', self.valid_xpaths[command_json['xpath']])
-        # TODO: make it a counter
+            # TODO: make it a counter
             if command_json['resourceId'] != 'null':
                 self.visited_resource_ids.add(command_json['resourceId'])
             break
@@ -151,7 +179,6 @@ class Snapshot:
             logger.error("Error in emulator setup!")
             return False
         initial_layout = await capture_layout()
-        self.writer.start_explore()
         padb_logger = ParallelADBLogger(self.device)
         while True:
             if await is_android_activity_on_top():
@@ -200,6 +227,12 @@ class Snapshot:
                                    tb_action_result=tb_result,
                                    reg_action_result=reg_result)
             logger.info("Groundhug Day!")
+        annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
+                          self.address_book.visited_action_screenshot,
+                          [json.loads(str_command) for str_command in self.tb_commands],
+                          outline=(255, 0, 255),
+                          width=10,
+                          scale=10)
         logger.info("Done Exploring!")
         return True
 
@@ -208,18 +241,14 @@ class Snapshot:
             logger.error("Error in loading snapshot")
             return []
         dom = await capture_layout()
-        important_elements = get_elements(dom,
-                                          filter_query=lambda x: x.attrib.get('clickable', 'false') == 'true'
-                                                                 or x.attrib.get('NAF', 'false') == 'true')
-        visited_resource_ids = set()
-        refined_list = []
-        for e in important_elements:
-            if e['resourceId']:
-                if e['resourceId'] in visited_resource_ids:
-                    continue
-                visited_resource_ids.add(e['resourceId'])
-            refined_list.append(e)
-        return refined_list
+        all_actions = get_actions_from_layout(dom)
+        result = []
+        for element in all_actions:
+            if self.has_element_in_other_snapshots(element):
+                logger.debug(f"Sighted: Exclude the visited element in the app {element}")
+                continue
+            result.append(element)
+        return result
 
     def get_tb_done_actions(self):
         result = []
@@ -231,51 +260,49 @@ class Snapshot:
             result.append(action['element'])
         return result
 
-    async def get_meaningful_actions(self, action_list: List, executor: Callable = reg_execute_command) -> List:
-        if not await load_snapshot(self.initial_snapshot):
-            logger.error("Error in loading snapshot")
-            return []
-        original_layout = await capture_layout()
-        meaningful_actions = []
-        for action in action_list:
-            if not await load_snapshot(self.initial_snapshot):
-                logger.error("Error in loading snapshot")
-                return []
-            reg_layout, result = await executor(json.dumps(action))
-            if reg_layout != original_layout:
-                meaningful_actions.append(action)
-        return meaningful_actions
-
     async def validate_by_stb(self):
         logger.info("Validating remaining actions.")
         self.writer.start_stb()
-        important_actions = await self.get_important_actions()
-        tb_done_actions = self.get_tb_done_actions()
-        tb_undone_actions = get_missing_actions(important_actions, tb_done_actions)
-        logger.info(f"There are {len(tb_undone_actions)} missing actions in explore!")
         if not await load_snapshot(self.initial_snapshot):
             logger.error("Error in loading snapshot")
             return []
         await asyncio.sleep(2)
+        important_actions = await self.get_important_actions()
+        tb_done_actions = self.get_tb_done_actions()
+        tb_undone_actions = get_missing_actions(important_actions, tb_done_actions)
+        logger.info(f"There are {len(tb_undone_actions)} missing actions in explore!")
         initial_layout = await self.writer.capture_current_state(self.device, 's_exp', 'INITIAL')
+        annotate_elements(self.address_book.get_screenshot_path('s_exp', 'INITIAL'),
+                          self.address_book.s_action_screenshot,
+                          tb_undone_actions,
+                          outline=(255, 0, 255),
+                          width=10,
+                          scale=10)
         is_in_app_activity = not await is_android_activity_on_top()
+        padb_logger = ParallelADBLogger(self.device)
         if is_in_app_activity:
             for index, action in enumerate(tb_undone_actions):
-                logger.info(f"Missing action {self.writer.get_action_index()}")
+                logger.info(f"Missing action {self.writer.get_action_index()}, count: {index} / {len(tb_undone_actions)}")
                 if not await load_snapshot(self.initial_snapshot):
                     logger.error("Error in loading snapshot")
                     return []
-                reg_result = await reg_execute_command(json.dumps(action))
-                reg_layout = await self.writer.capture_current_state(self.device, "s_reg", self.writer.get_action_index())
+                reg_log_message, reg_result = await padb_logger.execute_async_with_log(reg_execute_command(json.dumps(action)))
+                reg_layout = await self.writer.capture_current_state(self.device, "s_reg",
+                                                                     self.writer.get_action_index(),
+                                                                     log_message=reg_log_message)
                 if reg_layout == initial_layout or reg_result.state != 'COMPLETED':  # the action is not meaningful
+                    logger.info(f"Writing action {self.writer.get_action_index()}")
+                    self.writer.add_action(action, get_unsuccessful_execution_result("UNKNOWN"), reg_result, is_sighted=True)
                     continue
 
                 if not await load_snapshot(self.initial_snapshot):
                     logger.error("Error in loading snapshot")
                     return []
 
-                stb_result = await stb_execute_command(json.dumps(action))
-                stb_layout = await self.writer.capture_current_state(self.device, "s_tb", self.writer.get_action_index())
+                stb_log_message, stb_result = await padb_logger.execute_async_with_log(stb_execute_command(json.dumps(action)))
+                stb_layout = await self.writer.capture_current_state(self.device, "s_tb",
+                                                                     self.writer.get_action_index(),
+                                                                     log_message=stb_log_message)
 
                 logger.info(f"Writing action {self.writer.get_action_index()}")
                 self.writer.add_action(action, stb_result, reg_result, is_sighted=True)

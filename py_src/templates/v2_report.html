@@ -62,6 +62,71 @@
                     </div>
                 </div>
             </div>
+            <div class="row">
+                <table class="table table-bordered">
+                    <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">All Elements</th>
+                        <th scope="col">All Actions</th>
+                        <th scope="col">Redundant Actions<br> (Visited in other snapshots)</th>
+                        <th scope="col">Valid Elements </th>
+                        <th scope="col">Visited Actions</th>
+                        <th scope="col">Sighted Remaining Elements</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th scope="row">
+                                <a href="{{ url_for('send_result_static_v2', path=bm_log_path) }}">(BlindMonkey Log)</a>
+                                <hr>
+                                <a href="{{ url_for('send_result_static_v2', path=last_explore_log_path) }}">(Last Explore Log)</a>
+                                <hr>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="tb_steps_switch" checked>
+                                    <label class="form-check-label" for="flexSwitchCheckDefault">Hide passed actions</label>
+                                </div>
+                            </th>
+                            <td>
+                                <a href="#" class="enlarge">
+                                    <img src="{{ url_for('send_result_static_v2', path=all_elements_screenshot) }}" class="rounded d-block mx-auto"
+                                         style="width: 10rem;">
+                                </a>
+                            </td>
+                            <td>
+                                <a href="#" class="enlarge">
+                                    <img src="{{ url_for('send_result_static_v2', path=all_actions_screenshot) }}" class="rounded d-block mx-auto"
+                                         style="width: 10rem;">
+                                </a>
+                            </td>
+                            <td>
+                                <a href="#" class="enlarge">
+                                    <img src="{{ url_for('send_result_static_v2', path=visited_actions_in_other_screenshot) }}" class="rounded d-block mx-auto"
+                                         style="width: 10rem;">
+                                </a>
+                            </td>
+                            <td>
+                                <a href="#" class="enlarge">
+                                    <img src="{{ url_for('send_result_static_v2', path=valid_actions_screenshot) }}" class="rounded d-block mx-auto"
+                                         style="width: 10rem;">
+                                </a>
+                            </td>
+                            <td>
+                                <a href="#" class="enlarge">
+                                    <img src="{{ url_for('send_result_static_v2', path=visited_actions_screenshot) }}" class="rounded d-block mx-auto"
+                                         style="width: 10rem;">
+                                </a>
+                            </td>
+                            <td>
+                                <a href="#" class="enlarge">
+                                    <img src="{{ url_for('send_result_static_v2', path=s_actions_screenshot) }}" class="rounded d-block mx-auto"
+                                         style="width: 10rem;">
+                                </a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
             {% for (header_name, steps) in all_steps.items() %}
                 <div class="row">
                     <div class="col-8">
@@ -111,6 +176,11 @@
                                                         data-bs-placement="top" title="{{ step.action.xpath }}">XPath
                                                 </button>
                                             </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-end">Bounds</td>
+                                            <td class="text-start">{{ step.action.bounds }}</td>
+
                                         </tr>
                                     </table>
                                 </td>

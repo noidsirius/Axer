@@ -160,7 +160,8 @@ public class Utils {
                                     int width, int height) throws IOException {
         serializer.startTag("", "node");
         serializer.attribute("", "index", Integer.toString(index));
-        serializer.attribute("", "visible", Boolean.toString(node.isVisibleToUser()));
+        serializer.attribute("", "importantForAccessibility", Boolean.toString(node.isImportantForAccessibility()));
+//        serializer.attribute("", "visible", Boolean.toString(node.isVisibleToUser()));
         serializer.attribute("", "text", safeCharSeqToString(node.getText()));
         serializer.attribute("", "resource-id", safeCharSeqToString(node.getViewIdResourceName()));
         serializer.attribute("", "class", safeCharSeqToString(node.getClassName()));
@@ -181,12 +182,12 @@ public class Utils {
         for (int i = 0; i < count; i++) {
             AccessibilityNodeInfo child = node.getChild(i);
             if (child != null) {
-//                if (child.isVisibleToUser()) {
+                if (child.isVisibleToUser()) {
                 dumpNodeRec(child, serializer, i, width, height);
                 child.recycle();
-//                } else {
-//                    Log.i(LatteService.TAG, String.format("Skipping invisible child: %s", child.toString()));
-//                }
+                } else {
+                    Log.i(LatteService.TAG, String.format("Skipping invisible child: %s", child.toString()));
+                }
             } else {
                 Log.i(LatteService.TAG, String.format("Null child %d/%d, parent: %s",
                         i, count, node.toString()));

@@ -24,10 +24,17 @@ class AddressBook:
         for mode in navigate_modes:
             self.mode_path_map[mode] = self.snapshot_result_path.joinpath(mode.upper())
         self.action_path = self.snapshot_result_path.joinpath("action.jsonl")
+        self.all_element_screenshot = self.mode_path_map['exp'].joinpath("all_elements.png")
+        self.all_action_screenshot = self.mode_path_map['exp'].joinpath("all_actions.png")
+        self.valid_action_screenshot = self.mode_path_map['exp'].joinpath("valid_actions.png")
+        self.redundant_action_screenshot = self.mode_path_map['exp'].joinpath("redundant_actions.png")
+        self.visited_action_screenshot = self.mode_path_map['exp'].joinpath("visited_actions.png")
         self.finished_path = self.snapshot_result_path.joinpath("finished.flag")
         self.last_explore_log_path = self.snapshot_result_path.joinpath("last_explore.log")
         self.visited_elements_path = self.snapshot_result_path.joinpath("visited.jsonl")
+        self.valid_elements_path = self.snapshot_result_path.joinpath("valid_elements.jsonl")
         self.s_action_path = self.snapshot_result_path.joinpath("s_action.jsonl")
+        self.s_action_screenshot = self.mode_path_map['s_exp'].joinpath("all_actions.png")
 
     def initiate(self):
         if self.snapshot_result_path.exists():
@@ -109,25 +116,27 @@ class ResultWriter:
             if exp_screenshot_path:
                 annotate_rectangle(exp_screenshot_path,
                                    self.address_book.get_screenshot_path('exp', action_index, extension="edited"),
-                                   reg_action_result.bound,
+                                   [reg_action_result.bound],
                                    outline=(0, 255, 255),
                                    scale=15,
                                    width=15,)
         else:
             initial_path = self.address_book.get_screenshot_path('s_exp', 'INITIAL', should_exists=True)
-            if initial_path is not None and isinstance(tb_action_result, ExecutionResult):
-                annotate_rectangle(initial_path,
-                                   self.address_book.get_screenshot_path('s_exp', action_index, extension="R"),
-                                   reg_action_result.bound,
-                                   outline=(255, 0, 255),
-                                   width=5,
-                                   scale=1)
-                annotate_rectangle(self.address_book.get_screenshot_path('s_exp', action_index, extension="R"),
-                                   self.address_book.get_screenshot_path('s_exp', action_index, extension="edited"),
-                                   tb_action_result.bound,
-                                   outline=(255, 255, 0),
-                                   width=15,
-                                   scale=20)
+            if initial_path is not None:
+                if isinstance(tb_action_result, ExecutionResult):
+                    annotate_rectangle(initial_path,
+                                       self.address_book.get_screenshot_path('s_exp', action_index, extension="edited"),
+                                       bounds=[reg_action_result.bound, tb_action_result.bound],
+                                       outline=[(255, 0, 255), (255, 255, 0)],
+                                       width=[5, 15],
+                                       scale=[1, 20])
+                else:
+                    annotate_rectangle(initial_path,
+                                       self.address_book.get_screenshot_path('s_exp', action_index, extension="edited"),
+                                       bounds=[reg_action_result.bound],
+                                       outline=(255, 0, 255),
+                                       width=5,
+                                       scale=1)
         new_action = {'index': action_index,
                       'element': element,
                       'tb_action_result': tb_action_result,
@@ -189,11 +198,19 @@ def read_all_visited_elements_in_app(app_path: Union[str, Path]) -> dict:
         with open(address_book.visited_elements_path) as f:
             for line in f.readlines():
                 element = json.loads(line)
-                if element['state'] != 'selected':
+                if element['state'] != 'selected' or element['detailed_element'] is None:
                     continue
                 if element['element']['xpath'] not in visited_elements:
                     # logger.warning(f"Repetitive element's xpath, New element {element},"
                     #                f" Stored element: {visited_elements[element['element']['xpath']]}")
                     visited_elements[element['element']['xpath']] = []
-                visited_elements[element['element']['xpath']].append(element)
+                visited_elements[element['element']['xpath']].append(element['detailed_element'])
+        with open(address_book.s_action_path) as f:
+            for line in f.readlines():
+                action = json.loads(line)
+                if action['element']['xpath'] not in visited_elements:
+                    # logger.warning(f"Repetitive element's xpath, New element {element},"
+                    #                f" Stored element: {visited_elements[element['element']['xpath']]}")
+                    visited_elements[action['element']['xpath']] = []
+                visited_elements[action['element']['xpath']].append(action['element'])
     return visited_elements

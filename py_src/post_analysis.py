@@ -1,3 +1,4 @@
+import os
 from typing import Union
 from pathlib import Path
 import json
@@ -68,14 +69,20 @@ def post_analyzer_v1(action, address_book: AddressBook, is_sighted: bool) -> dic
     tb_xml_path = address_book.get_layout_path(f'{prefix}tb', action_index)
     reg_xml_path = address_book.get_layout_path(f'{prefix}reg', action_index)
     xml_problem = False
-    with open(tb_xml_path, "r") as f:
-        tb_xml = f.read()
-        if "PROBLEM_WITH_XML" in tb_xml:
-            xml_problem = True
-    with open(reg_xml_path, "r") as f:
-        reg_xml = f.read()
-        if "PROBLEM_WITH_XML" in reg_xml:
-            xml_problem = True
+    if not tb_xml_path.exists():
+        xml_problem = True
+    else:
+        with open(tb_xml_path, "r") as f:
+            tb_xml = f.read()
+            if "PROBLEM_WITH_XML" in tb_xml:
+                xml_problem = True
+    if not reg_xml_path.exists():
+        xml_problem = True
+    else:
+        with open(reg_xml_path, "r") as f:
+            reg_xml = f.read()
+            if "PROBLEM_WITH_XML" in reg_xml:
+                xml_problem = True
     issue_status = SUCCESS
     message = "Accessible"
     if "FAILED" in action['tb_action_result'][0]:
@@ -174,17 +181,22 @@ def do_post_analysis(name: str = None,
             continue
         if address_book.snapshot_result_path.joinpath(output_name).exists():
             continue
-        with open(address_book.snapshot_result_path.joinpath(output_name), 'w') as write_file:
-            with open(address_book.action_path) as read_file:
-                for line in read_file.readlines():
-                    action = json.loads(line)
-                    result = post_analyzer(action, address_book, is_sighted=False)
-                    write_file.write(json.dumps(result) + "\n")
-            with open(address_book.s_action_path) as read_file:
-                for line in read_file.readlines():
-                    action = json.loads(line)
-                    result = post_analyzer(action, address_book, is_sighted=True)
-                    write_file.write(json.dumps(result) + "\n")
+        try:
+            with open(address_book.snapshot_result_path.joinpath(output_name), 'w') as write_file:
+                with open(address_book.action_path) as read_file:
+                    for line in read_file.readlines():
+                        action = json.loads(line)
+                        result = post_analyzer(action, address_book, is_sighted=False)
+                        write_file.write(json.dumps(result) + "\n")
+                with open(address_book.s_action_path) as read_file:
+                    for line in read_file.readlines():
+                        action = json.loads(line)
+                        result = post_analyzer(action, address_book, is_sighted=True)
+                        write_file.write(json.dumps(result) + "\n")
+        except Exception as e:
+            logger.error(f"Exception: {e}")
+            if address_book.snapshot_result_path.joinpath(output_name).exists():
+                os.remove(address_book.snapshot_result_path.joinpath(output_name))
         analyzed += 1
     return analyzed
 
