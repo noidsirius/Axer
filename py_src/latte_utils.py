@@ -41,7 +41,8 @@ async def send_command_to_latte(command: str, extra: str = "NONE") -> bool:
         .replace("+", "__^-^__")\
         .replace("|", "__^^^^__") \
         .replace("$", "__^_^^__") \
-        .replace("*", "__^-^^__")
+        .replace("*", "__^-^^__") \
+        .replace("&", "__^^_^__")
     bash_cmd = f'adb shell am broadcast -a {LATTE_INTENT} --es command "{command}" --es extra "{extra}"'
     r_code, *_ = await run_bash(bash_cmd)
     return r_code == 0

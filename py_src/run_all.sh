@@ -1,8 +1,8 @@
 #!/bin/bash
 FLAG=1
-RESULT_PATH=$(realpath ../dev_results)
+RESULT_PATH=$(realpath ../latte_results)
 LAST_APK_FILE="org.videolan.vlc"
-for APK_FILE in ../BM_APKs/debug/*.apk; do
+for APK_FILE in ../BM_APKs/latte/*.apk; do
 	if [ "$(basename "$APK_FILE")" = "$LAST_APK_FILE.apk" ]; then
 		FLAG=1
 	fi

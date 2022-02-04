@@ -54,7 +54,8 @@ public class CommandReceiver extends BroadcastReceiver {
                 .replace("__^-^__", "+")
                 .replace("__^^^^__", "|")
                 .replace("__^_^^__", "$")
-                .replace("__^-^^__", "*"); // TODO: Configurable
+                .replace("__^-^^__", "*")
+                .replace("__^^_^__", "&"); // TODO: Configurable
 
         if (command == null || extra == null) {
             Log.e(LatteService.TAG, "The command or extra message is null!");

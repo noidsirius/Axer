@@ -4,6 +4,7 @@ package dev.navids.latte;
 import android.content.Context;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.text.Spanned;
 import android.util.Log;
 import android.view.Display;
 import android.view.WindowManager;
@@ -17,6 +18,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Utils {
 
@@ -120,6 +122,10 @@ public class Utils {
     }
 
     // ------------------------ Related to capturing layout -------------------------------
+    private static final String[] NAF_EXCLUDED_CLASSES = new String[] {
+            android.widget.GridView.class.getName(), android.widget.GridLayout.class.getName(),
+            android.widget.ListView.class.getName(), android.widget.TableLayout.class.getName()
+    };
 
     public static void dumpNodeRec(XmlSerializer serializer, int index) throws IOException {
         AccessibilityNodeInfo root = LatteService.getInstance().getRootInActiveWindow();
@@ -158,9 +164,17 @@ public class Utils {
 
     private static void dumpNodeRec(AccessibilityNodeInfo node, XmlSerializer serializer, int index,
                                     int width, int height) throws IOException {
+        boolean supportsWebAction =
+                node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_NEXT_HTML_ELEMENT) ||
+                        node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_PREVIOUS_HTML_ELEMENT);
+        boolean hasClickableSpan = (node.getText()!= null && node.getText() instanceof Spanned);
         serializer.startTag("", "node");
+        if (!nafExcludedClass(node) && !nafCheck(node))
+            serializer.attribute("", "NAF", Boolean.toString(true));
         serializer.attribute("", "index", Integer.toString(index));
         serializer.attribute("", "importantForAccessibility", Boolean.toString(node.isImportantForAccessibility()));
+        serializer.attribute("", "supportsWebAction", Boolean.toString(supportsWebAction));
+        serializer.attribute("", "clickableSpan", Boolean.toString(hasClickableSpan));
 //        serializer.attribute("", "visible", Boolean.toString(node.isVisibleToUser()));
         serializer.attribute("", "text", safeCharSeqToString(node.getText()));
         serializer.attribute("", "resource-id", safeCharSeqToString(node.getViewIdResourceName()));
@@ -194,6 +208,73 @@ public class Utils {
             }
         }
         serializer.endTag("", "node");
+    }
+
+    /**
+     * The list of classes to exclude my not be complete. We're attempting to
+     * only reduce noise from standard layout classes that may be falsely
+     * configured to accept clicks and are also enabled.
+     *
+     * @param node
+     * @return true if node is excluded.
+     */
+    private static boolean nafExcludedClass(AccessibilityNodeInfo node) {
+        String className = safeCharSeqToString(node.getClassName());
+        for(String excludedClassName : NAF_EXCLUDED_CLASSES) {
+            if(className.endsWith(excludedClassName))
+                return true;
+        }
+        return false;
+    }
+    /**
+     * We're looking for UI controls that are enabled, clickable but have no
+     * text nor content-description. Such controls configuration indicate an
+     * interactive control is present in the UI and is most likely not
+     * accessibility friendly. We refer to such controls here as NAF controls
+     * (Not Accessibility Friendly)
+     *
+     * @param node
+     * @return false if a node fails the check, true if all is OK
+     */
+    private static boolean nafCheck(AccessibilityNodeInfo node) {
+        boolean isNaf = node.isClickable() && node.isEnabled()
+                && safeCharSeqToString(node.getContentDescription()).isEmpty()
+                && safeCharSeqToString(node.getText()).isEmpty();
+        if (!isNaf)
+            return true;
+        // check children since sometimes the containing element is clickable
+        // and NAF but a child's text or description is available. Will assume
+        // such layout as fine.
+        return childNafCheck(node);
+    }
+    /**
+     * This should be used when it's already determined that the node is NAF and
+     * a further check of its children is in order. A node maybe a container
+     * such as LinerLayout and may be set to be clickable but have no text or
+     * content description but it is counting on one of its children to fulfill
+     * the requirement for being accessibility friendly by having one or more of
+     * its children fill the text or content-description. Such a combination is
+     * considered by this dumper as acceptable for accessibility.
+     *
+     * @param node
+     * @return false if node fails the check.
+     */
+    private static boolean childNafCheck(AccessibilityNodeInfo node) {
+        int childCount = node.getChildCount();
+        for (int x = 0; x < childCount; x++) {
+            AccessibilityNodeInfo childNode = node.getChild(x);
+            if (childNode == null) {
+                Log.i(LatteService.TAG, String.format("Null child %d/%d, parent: %s",
+                        x, childCount, node.toString()));
+                continue;
+            }
+            if (!safeCharSeqToString(childNode.getContentDescription()).isEmpty()
+                    || !safeCharSeqToString(childNode.getText()).isEmpty())
+                return true;
+            if (childNafCheck(childNode))
+                return true;
+        }
+        return false;
     }
 
     private static String stripInvalidXMLChars(CharSequence cs) {
