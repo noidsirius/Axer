@@ -7,7 +7,7 @@
 - Enable "Do not disturb" in the emulator to avoid notifications during testing (it can be found at the top menu)
 - Install TalkBack, the latest version (12) can be found in `Setup/X86/TB_12_*.apk` (`adb install-multiple Setup/X86/TB_12_*.apk`)
 - Build Latte Service APK by running `./build_latte_lib.sh`, then install it (`adb install -r -g Setup/latte.apk`) or install from Android Studio
-	- To check if the installation is correct, first run the emulator and then execute `./scripts/enable-talkback.sh` (by clicking on a GUI element it should be highlighted). 
+	- To check if the installation is correct, first run the emulator and then execute `./scripts/enable-talkback.sh` (by clicking on a GUI element it should be highlighted).
 	- Also, execute `./scripts/send-command.sh log` and check Android logs to see if Latte prints the AccessibilityNodeInfos of GUI element on the screen (`adb logcat | grep "LATTE_SERVICE"`)
 -  Save the base snapshot by `./scripts/save_snapshot.sh BASE`
 
@@ -37,8 +37,9 @@ You can interact with Latte by sending commands to its Broadcast Receiver or rec
 	- `set_delay`: Sets the time for each interval (cycle).
 	- `set_step_executor`: Sets the driver (step_executor). The extra can be `talkback`, `regular` (touch based), `sighted_tb` (touch based TalkBack).
 	- `set_physical_touch`: If the extra is 'true', the regular executor emulates *touch*, otherwise it uses A11yNodeInfo events to perform actions.
-	- `do_step`: Performs a single step where the step is provided in extra.
-	- `interrupt`: Interrupts the current step execution
+	- `step_execute`: Performs a single step where the step is provided in extra.
+	- `step_interrupt`: Interrupts the current step execution
+	- `step_clear`: Stops the current step execution and remove the step result
 	- `init`: Initializes a use case, the use case speicfication is provided in extra.
 	- `start`: Starts the use case (`init` must be called beforehand)
 	- `stop`: Stops the current use case execution

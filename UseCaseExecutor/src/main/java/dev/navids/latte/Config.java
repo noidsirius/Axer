@@ -11,6 +11,8 @@ public class Config {
         return instance;
     }
 
+    public final String USECASE_RESULT_FILE_NAME = "test_result.txt";
+    public final String CUSTOM_STEP_RESULT_FILE_NAME = "custom_step_result.txt";
     public final String FINISH_NAVIGATION_FILE_PATH = "finish_nav_result.txt";
     public final String FINISH_ACTION_FILE_PATH = "finish_nav_action.txt";
     public final String LAYOUT_FILE_PATH = "a11y_layout.xml";

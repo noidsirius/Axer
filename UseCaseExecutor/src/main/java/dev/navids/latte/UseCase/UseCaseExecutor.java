@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import dev.navids.latte.Config;
 import dev.navids.latte.LatteService;
 
 public class UseCaseExecutor{
@@ -46,8 +47,6 @@ public class UseCaseExecutor{
 
     private StepExecutor stepExecutor = null;
 
-    public final static String result_file_name = "test_result.txt";
-    public final static String custom_step_result_file_name = "custom_step_result.txt";
     private boolean sleepLock = false;
     private ExecutorState mode = ExecutorState.IDLE;
     private long delay = 2000;
@@ -151,6 +150,13 @@ public class UseCaseExecutor{
         Log.i(LatteService.TAG, "UseCaseExecutor is stopped!");
     }
 
+    public synchronized void clearHistory(){
+        stop();
+        String dir = LatteService.getInstance().getBaseContext().getFilesDir().getPath();
+        new File(dir, Config.v().CUSTOM_STEP_RESULT_FILE_NAME).delete();
+        new File(dir, Config.v().USECASE_RESULT_FILE_NAME).delete();
+    }
+
     public synchronized void interruptCustomStepExecution(){
         stop();
         customStep = null;
@@ -160,12 +166,7 @@ public class UseCaseExecutor{
     }
 
     public synchronized boolean initiateCustomStep(String stepJSONString){
-        stop();
-        // Removing previous result file
-        String fileName = custom_step_result_file_name;
-        String dir = LatteService.getInstance().getBaseContext().getFilesDir().getPath();
-        File file = new File(dir, fileName);
-        file.delete();
+        clearHistory();
         JSONParser jsonParser = new JSONParser();
         try {
             JSONObject stepJSON = (JSONObject) jsonParser.parse(stepJSONString);
@@ -192,11 +193,7 @@ public class UseCaseExecutor{
     }
 
     public synchronized void init(JSONArray commandsJson){
-        // Removing previous result file
-        String fileName = result_file_name;
-        String dir = LatteService.getInstance().getBaseContext().getFilesDir().getPath();
-        File file = new File(dir, fileName);
-        file.delete();
+        clearHistory();
         // Resetting attributes
         sleepLock = false;
         mode = ExecutorState.IDLE;
@@ -238,9 +235,8 @@ public class UseCaseExecutor{
     }
 
     public void writeCustomStepResult() {
-        String fileName = custom_step_result_file_name;
         String dir = LatteService.getInstance().getBaseContext().getFilesDir().getPath();
-        File file = new File(dir, fileName);
+        File file = new File(dir, Config.v().CUSTOM_STEP_RESULT_FILE_NAME);
         Log.i(LatteService.TAG, "Custom Step Result Path: " + file.getAbsolutePath());
         FileWriter myWriter = null;
         try {
@@ -279,7 +275,7 @@ public class UseCaseExecutor{
     public void writeUseCaseResult() {
         if(currentUseCase == null || !currentUseCase.isFinished())
             return;
-        String fileName = result_file_name;
+        String fileName = Config.v().USECASE_RESULT_FILE_NAME;
         String dir = LatteService.getInstance().getBaseContext().getFilesDir().getPath();
 
         File file = new File(dir, fileName);

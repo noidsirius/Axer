@@ -69,12 +69,17 @@ async def local_android_file_exists(file_path: str, pkg_name: str = LATTE_PKG_NA
     return "No such file or directory" not in stdout
 
 
+async def remove_local_android_file(file_path: str, pkg_name: str = LATTE_PKG_NAME):
+    rm_cmd = f"adb exec-out run-as {pkg_name} rm files/{file_path}"
+    await run_bash(rm_cmd)
+
+
 async def cat_local_android_file(file_path: str,
                                  pkg_name: str = LATTE_PKG_NAME,
                                  wait_time: int = -1) -> Optional[str]:
     sleep_time = 1
     index = 0
-    while not await local_android_file_exists(file_path):
+    while not await local_android_file_exists(file_path, pkg_name):
         if 0 < wait_time < index * sleep_time:
             return None
         index += 1
@@ -82,6 +87,5 @@ async def cat_local_android_file(file_path: str,
         await asyncio.sleep(sleep_time)
     cmd = f"adb exec-out run-as {pkg_name} cat files/{file_path}"
     _, content, _ = await run_bash(cmd)
-    rm_cmd = f"adb exec-out run-as {pkg_name} rm files/{file_path}"
-    await run_bash(rm_cmd)
+    await remove_local_android_file(file_path, pkg_name)
     return content

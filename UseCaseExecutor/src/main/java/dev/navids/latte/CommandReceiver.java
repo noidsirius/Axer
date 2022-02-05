@@ -163,10 +163,13 @@ public class CommandReceiver extends BroadcastReceiver {
             case "stop":
                 UseCaseExecutor.v().stop();
                 break;
-            case "do_step":
+            case "step_clear":
+                UseCaseExecutor.v().clearHistory();
+                break;
+            case "step_execute":
                 UseCaseExecutor.v().initiateCustomStep(extra);
                 break;
-            case "interrupt":
+            case "step_interrupt":
                 UseCaseExecutor.v().interruptCustomStepExecution();
                 break;
             case "set_delay":
