@@ -195,6 +195,8 @@ def read_all_visited_elements_in_app(app_path: Union[str, Path]) -> dict:
         address_book = AddressBook(snapshot_path)
         if not address_book.visited_elements_path.exists():
             continue
+        if not address_book.finished_path.exists():
+            continue
         with open(address_book.visited_elements_path) as f:
             for line in f.readlines():
                 element = json.loads(line)

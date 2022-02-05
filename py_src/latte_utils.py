@@ -200,19 +200,20 @@ async def tb_perform_select() -> ExecutionResult:
     result = await cat_local_android_file(FINAL_ACITON_FILE, wait_time=TB_SELECT_TIMEOUT)
     if result is None:
         logger.error(f"Timeout, skipping Select for executor TalkBack")
-        result = ""
+        result = "TIMEOUT"
         await send_command_to_latte("nav_interrupt")
     execution_result = analyze_execution_result(result)
     return execution_result
 
 
 def analyze_execution_result(result: str, command: str = None) -> ExecutionResult:
-    if not result:
+    if not result or '$' not in result:
         bounds = None
+        error_message = result if result else "FAILED"
         if command:
             command_json = json.loads(command)
             bounds = convert_bounds(command_json['bounds'])
-        return get_unsuccessful_execution_result(bounds=bounds)
+        return get_unsuccessful_execution_result(state=error_message, bounds=bounds)
     parts = result.split('$')
     state = parts[1].split(':')[1].strip()
     events = parts[2].split(':')[1].strip()
@@ -239,7 +240,7 @@ async def execute_command(command: str, executor_name: str = "reg") -> Execution
         result = await cat_local_android_file(CUSTOM_STEP_RESULT, wait_time=REGULAR_EXECUTE_TIMEOUT_TIME)
         if result is None:
             logger.error(f"Timeout, skipping {command} for executor {executor_name}")
-            result = ""
+            result = "TIMEOUT"
             await send_command_to_latte("step_interrupt")
         else:
             break

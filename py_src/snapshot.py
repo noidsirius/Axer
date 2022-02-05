@@ -137,6 +137,9 @@ class Snapshot:
             if next_command_str is None:
                 logger.error("TalkBack cannot navigate to the next element")
                 return log_message, None
+            if await is_android_activity_on_top():
+                logger.info("We are not in the app under test!")
+                return f"The current activity is {await get_current_activity_name()}", None
             command_json = json.loads(next_command_str)
             logger.debug(f"Current element: {command_json}")
             if command_json['xpath'] != 'null':
@@ -180,10 +183,6 @@ class Snapshot:
         initial_layout = await capture_layout()
         padb_logger = ParallelADBLogger(self.device)
         while True:
-            if await is_android_activity_on_top():
-                logger.info("We are not in the app under test!")
-                self.writer.write_last_navigate_log(f"The current activity is {await get_current_activity_name()}")
-                break
             logger.info(f"Action Index: {self.writer.get_action_index()}")
             # ------------------- Navigate Next -------------------
             tb_navigate_log, click_command_str = await self.navigate_next(padb_logger)
