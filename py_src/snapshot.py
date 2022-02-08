@@ -9,7 +9,7 @@ from GUI_utils import get_elements, are_equal_elements, get_actions_from_layout
 from a11y_service import A11yServiceManager
 from adb_utils import load_snapshot, save_snapshot, is_android_activity_on_top, get_current_activity_name
 from latte_utils import latte_capture_layout as capture_layout, get_unsuccessful_execution_result
-from latte_utils import talkback_nav_command, tb_navigate_next, tb_perform_select, \
+from latte_utils import tb_navigate_next, tb_perform_select, \
     reg_execute_command, stb_execute_command, get_missing_actions
 from padb_utils import ParallelADBLogger
 from results_utils import AddressBook, ResultWriter
@@ -194,7 +194,7 @@ class Snapshot:
             await self.writer.capture_current_state(self.device, mode="exp",
                                                     index=self.writer.get_action_index(),
                                                     log_message=tb_navigate_log,
-                                                    has_layout=False)
+                                                    has_layout=True)
             # if 'bound' in json.loads(click_command_str):
             #     bound = tuple(int(x) for x in (json.loads(click_command_str)['bound'].strip()).split('-'))
             # else:

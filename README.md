@@ -31,6 +31,7 @@ You can interact with Latte by sending commands to its Broadcast Receiver or rec
 	- `nav_interrupt`: Interrupt the current navigation action
 	- `nav_clear_history`: In case the last navigation result is not removed.
 - **TalkBack Information**
+	- `nav_current_focus`: Report the current focused node in TalkBack. Output's file name: `finish_nav_action.txt`
 	- `tb_a11y_tree`: Logs Virtual View Hierarchy (defined in TalkBack `adb logcat | grep "talkback: TreeDebug"`)
 - **UseCase Executor**
 	- `enable`/`disable`: Enable/Disable the use-case executor component

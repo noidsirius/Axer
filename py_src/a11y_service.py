@@ -8,11 +8,20 @@ class A11yServiceManager:
                          "latte": "dev.navids.latte/dev.navids.latte.app.MyLatteService"}
 
     @staticmethod
-    async def get_enabled_services() -> List[str]:
+    async def get_enabled_services(simplify: bool = False) -> List[str]:
         _, enabled_services, _ = await run_bash("adb shell settings get secure enabled_accessibility_services")
         if 'null' in enabled_services:
             return []
-        return enabled_services.strip().split(':')
+        result = []
+        for service in enabled_services.strip().split(':'):
+            service_name = service
+            if simplify:
+                for key, value in A11yServiceManager.services.items():
+                    if value == service_name:
+                        service_name = key
+                        break
+            result.append(service_name)
+        return result
 
     @staticmethod
     async def is_enabled(service_name: str) -> bool:
@@ -53,7 +62,8 @@ class A11yServiceManager:
     @staticmethod
     async def setup_latte_a11y_services(tb=False) -> None:
         if tb:
-            await A11yServiceManager.enable("tb")
+            if not await A11yServiceManager.is_enabled("tb"):
+                await A11yServiceManager.enable("tb")
         else:
             await A11yServiceManager.disable("tb")
         if not await A11yServiceManager.is_enabled("latte"):

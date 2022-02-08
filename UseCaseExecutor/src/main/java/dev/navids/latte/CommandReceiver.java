@@ -123,6 +123,9 @@ public class CommandReceiver extends BroadcastReceiver {
             case "nav_next":
                 TalkBackNavigator.v().nextFocus(null);
                 break;
+            case "nav_current_focus":
+                TalkBackNavigator.v().currentFocus();
+                break;
             case "tb_a11y_tree":
                 TalkBackNavigator.v().logTalkBackTreeNodeList(null);
                 break;

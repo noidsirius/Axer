@@ -277,12 +277,19 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
     step = {}
     step['index'] = action['index']
     step['action'] = action['element']
-    step['init_img'] = address_book.get_screenshot_path(f'{prefix}exp', action['index'], extension='edited').relative_to(static_root_path)
-    step['init_log'] = address_book.get_log_path(f'{prefix}exp', action['index']).relative_to(static_root_path)
+    if is_sighted:
+        step['init_img'] = address_book.get_screenshot_path(f'{prefix}exp', action['index'], extension='edited').relative_to(static_root_path)
+        step['init_layout'] = address_book.get_layout_path(f'{prefix}exp', "INITIAL").relative_to(static_root_path)
+    else:
+        step['init_img'] = address_book.get_screenshot_path(f'{prefix}exp', action['index'], extension='edited').relative_to(static_root_path)
+        step['init_log'] = address_book.get_log_path(f'{prefix}exp', action['index']).relative_to(static_root_path)
+        step['init_layout'] = address_book.get_layout_path(f'{prefix}exp', action['index']).relative_to(static_root_path)
     step['tb_img'] = address_book.get_screenshot_path(f'{prefix}tb', action['index']).relative_to(static_root_path)
     step['tb_log'] = address_book.get_log_path(f'{prefix}tb', action['index']).relative_to(static_root_path)
+    step['tb_layout'] = address_book.get_layout_path(f'{prefix}tb', action['index']).relative_to(static_root_path)
     step['reg_img'] = address_book.get_screenshot_path(f'{prefix}reg', action['index']).relative_to(static_root_path)
     step['reg_log'] = address_book.get_log_path(f'{prefix}reg', action['index']).relative_to(static_root_path)
+    step['reg_layout'] = address_book.get_layout_path(f'{prefix}reg', action['index']).relative_to(static_root_path)
     step['tb_result'] = action['tb_action_result']
     step['reg_result'] = action['reg_action_result']
     step['is_sighted'] = is_sighted
@@ -305,6 +312,7 @@ def report_v2(result_path, app_name, snapshot_name):
     tb_steps = []
     errors = []
     bm_log_path = str(snapshot_path.relative_to(result_path.parent))+".log"
+    initial_xml_path = str(address_book.get_layout_path('exp', 'INITIAL',).relative_to(result_path.parent))
     last_explore_log_path = str(address_book.last_explore_log_path.relative_to(result_path.parent))
     all_elements_screenshot = str(address_book.all_element_screenshot.relative_to(result_path.parent))
     all_actions_screenshot = str(address_book.all_action_screenshot.relative_to(result_path.parent))
@@ -354,6 +362,7 @@ def report_v2(result_path, app_name, snapshot_name):
                            result_path=result_path_str,
                            app_name=app_name,
                            bm_log_path=bm_log_path,
+                           initial_xml_path=initial_xml_path,
                            all_elements_screenshot=all_elements_screenshot,
                            all_actions_screenshot=all_actions_screenshot,
                            visited_actions_in_other_screenshot=visited_actions_in_other_screenshot,

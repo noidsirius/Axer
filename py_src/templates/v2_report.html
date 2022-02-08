@@ -48,50 +48,28 @@
         <div class="col-1"></div>
         <div class="col-10">
             <div class="row">
-                <div class="col-4">
-                    <a href="{{ url_for('send_result_static_v2', path=bm_log_path) }}">(BlindMonkey Log)</a>
-                    -
-                    <a href="{{ url_for('send_result_static_v2', path=last_explore_log_path) }}">(Last Explore Log)</a>
-                </div>
-                <div class="col-4">
-                </div>
-                <div class="col-4">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="tb_steps_switch" checked>
-                        <label class="form-check-label" for="flexSwitchCheckDefault">Hide passed actions</label>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
                 <table class="table table-bordered">
                     <thead>
                     <tr>
-                        <th scope="col">#</th>
+
                         <th scope="col">All Elements</th>
                         <th scope="col">All Actions</th>
                         <th scope="col">Redundant Actions<br> (Visited in other snapshots)</th>
                         <th scope="col">Valid Elements </th>
                         <th scope="col">Visited Actions</th>
                         <th scope="col">Sighted Remaining Elements</th>
+                        <th scope="col">...</th>
                     </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <th scope="row">
-                                <a href="{{ url_for('send_result_static_v2', path=bm_log_path) }}">(BlindMonkey Log)</a>
-                                <hr>
-                                <a href="{{ url_for('send_result_static_v2', path=last_explore_log_path) }}">(Last Explore Log)</a>
-                                <hr>
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="tb_steps_switch" checked>
-                                    <label class="form-check-label" for="flexSwitchCheckDefault">Hide passed actions</label>
-                                </div>
-                            </th>
                             <td>
                                 <a href="#" class="enlarge">
                                     <img src="{{ url_for('send_result_static_v2', path=all_elements_screenshot) }}" class="rounded d-block mx-auto"
                                          style="width: 10rem;">
                                 </a>
+                                <hr>
+                                <a href="{{ url_for('send_result_static_v2', path=initial_xml_path) }}">Layout</a>
                             </td>
                             <td>
                                 <a href="#" class="enlarge">
@@ -123,6 +101,18 @@
                                          style="width: 10rem;">
                                 </a>
                             </td>
+                            <th scope="row">
+                                <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=bm_log_path) }}">BlindMonkey Log</a>
+                                <hr>
+                                <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=last_explore_log_path) }}">Last Explore Log</a>
+                                <hr>
+                                <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=initial_xml_path) }}">Layout </a>
+                                <hr>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="tb_steps_switch" checked>
+                                    <label class="form-check-label" for="flexSwitchCheckDefault">Hide passed actions</label>
+                                </div>
+                            </th>
                         </tr>
                     </tbody>
                 </table>
@@ -190,9 +180,18 @@
                                              style="width: 10rem;">
                                     </a>
                                     <hr>
-                                    <a href="{{ url_for('send_result_static_v2', path=step.init_log) }}">
-                                        log
-                                    </a>
+                                    <div class="d-flex justify-content-center">
+                                        {% if step.init_log %}
+                                        <a href="{{ url_for('send_result_static_v2', path=step.init_log) }}">
+                                            Navigation Log
+                                        </a>
+                                        -
+                                        {% endif %}
+
+                                        {% if step.init_layout %}
+                                        <a href="{{ url_for('send_result_static_v2', path=step.init_layout) }}">Layout</a>
+                                        {% endif %}
+                                    </div>
                                 </td>
                                 <td>
                                     <a href="#" class="enlarge">
@@ -201,9 +200,13 @@
                                              data-bs-placement="top" title="{{ step.tb_result|e }}" alt="Result of TalkBack Selection">
                                     </a>
                                     <hr>
-                                    <a href="{{ url_for('send_result_static_v2', path=step.tb_log) }}">
-                                        log
-                                    </a>
+                                    <div class="d-flex justify-content-center">
+                                        <a href="{{ url_for('send_result_static_v2', path=step.tb_log) }}">
+                                            Select Log
+                                        </a>
+                                        -
+                                        <a href="{{ url_for('send_result_static_v2', path=step.tb_layout) }}">Layout</a>
+                                    </div>
                                 </td>
                                 <td>
                                     <a href="#" class="enlarge">
@@ -212,9 +215,13 @@
                                              data-bs-placement="top" title="{{ step.reg_result|e }}" alt="Result of Regular Selection">
                                     </a>
                                     <hr>
-                                    <a href="{{ url_for('send_result_static_v2', path=step.reg_log) }}">
-                                        log
-                                    </a>
+                                    <div class="d-flex justify-content-center">
+                                        <a href="{{ url_for('send_result_static_v2', path=step.reg_log) }}">
+                                            Select Log
+                                        </a>
+                                        -
+                                        <a href="{{ url_for('send_result_static_v2', path=step.reg_layout) }}">Layout</a>
+                                    </div>
                                 </td>
                                 {% if step.status == 10 %}
                                      <td class="table-success">

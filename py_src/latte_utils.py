@@ -17,7 +17,6 @@ from utils import convert_bounds
 logger = logging.getLogger(__name__)
 
 LATTE_INTENT = "dev.navids.latte.COMMAND"
-FINAL_NAV_FILE = "finish_nav_result.txt"
 FINAL_ACITON_FILE = "finish_nav_action.txt"
 CUSTOM_STEP_RESULT = "custom_step_result.txt"
 LAYOUT_FILE_PATH = "a11y_layout.xml"
@@ -77,6 +76,7 @@ async def setup_regular_executor(physical_touch=True):
 
 async def latte_capture_layout() -> str:
     layout = None
+    is_tb_enabled = await A11yServiceManager.is_enabled('tb')
     for i in range(3):
         logger.debug(f"Capturing layout, Try: {i}")
         await A11yServiceManager.setup_latte_a11y_services(tb=False)
@@ -95,6 +95,8 @@ async def latte_capture_layout() -> str:
         logger.error(f"Exception during capturing layout in Latte: {e}")
         layout = f"PROBLEM_WITH_XML {random.random()}"
 
+    if is_tb_enabled:
+        await A11yServiceManager.setup_latte_a11y_services(tb=True)
     return layout
 
 
