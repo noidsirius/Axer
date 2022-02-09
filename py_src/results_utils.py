@@ -19,7 +19,7 @@ class AddressBook:
         if isinstance(snapshot_result_path, str):
             snapshot_result_path = Path(snapshot_result_path)
         self.snapshot_result_path = snapshot_result_path
-        navigate_modes = ["tb", "reg", "exp", "s_reg", "s_tb", "s_exp"]
+        navigate_modes = ["tb", "reg", "areg", "exp", "s_reg", "s_areg", "s_tb", "s_exp"]
         self.mode_path_map = {}
         for mode in navigate_modes:
             self.mode_path_map[mode] = self.snapshot_result_path.joinpath(mode.upper())
@@ -109,6 +109,7 @@ class ResultWriter:
                    element: dict,
                    tb_action_result: Union[str, ExecutionResult],
                    reg_action_result: ExecutionResult,
+                   areg_action_result: ExecutionResult = None,
                    is_sighted: bool = False):
         action_index = self.get_action_index()
         if not is_sighted:
@@ -141,6 +142,7 @@ class ResultWriter:
                       'element': element,
                       'tb_action_result': tb_action_result,
                       'reg_action_result': reg_action_result,
+                      'areg_action_result': areg_action_result,
                       }
         self.actions.append(new_action)
         action_path = self.address_book.s_action_path if is_sighted else self.address_book.action_path

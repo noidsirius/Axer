@@ -10,7 +10,7 @@ from a11y_service import A11yServiceManager
 from adb_utils import load_snapshot, save_snapshot, is_android_activity_on_top, get_current_activity_name
 from latte_utils import latte_capture_layout as capture_layout, get_unsuccessful_execution_result
 from latte_utils import tb_navigate_next, tb_perform_select, tb_focused_node, \
-    reg_execute_command, stb_execute_command, get_missing_actions
+    reg_execute_command, areg_execute_command, stb_execute_command, execute_command, get_missing_actions
 from padb_utils import ParallelADBLogger
 from results_utils import AddressBook, ResultWriter
 from utils import annotate_elements
@@ -195,26 +195,27 @@ class Snapshot:
                     logger.error(f"The current focused element is different from the navigation's result."
                                  f"Current: {click_command_str}, NextFocusedElement: {next_focused_element}")
                 self.tb_commands.append(click_command_str)
-                # ------------------- Start TalkBack Select ---------------
-                log_message, tb_result = await padb_logger.execute_async_with_log(tb_perform_select())
-                tb_layout = await self.writer.capture_current_state(self.device,
-                                                                    mode="tb",
-                                                                    index=self.writer.get_action_index(),
-                                                                    log_message=log_message)
-                # ------------------- Start Regular Select ---------------
-                if not await load_snapshot(self.tmp_snapshot):
-                    logger.error("Error in loading snapshot")
-                    return False
-                logger.info("Now with regular executor")
-                log_message, reg_result = await padb_logger.execute_async_with_log(reg_execute_command(click_command_str))
-                reg_layout = await self.writer.capture_current_state(self.device,
-                                                                     mode="reg",
-                                                                     index=self.writer.get_action_index(),
+                modes = ['tb', 'reg', 'areg']
+                result_map = {}
+                for mode in modes:
+                    logger.info(f"Executing select in Mode: {mode}")
+                    if mode != 'tb':
+                        if not await load_snapshot(self.initial_snapshot):
+                            logger.error("Error in loading snapshot")
+                            return False
+                        log_message, result_map[mode] = await padb_logger.execute_async_with_log(
+                            execute_command(click_command_str, executor_name=mode))
+                    else:
+                        log_message, result_map[mode] = await padb_logger.execute_async_with_log(
+                            tb_perform_select())
+                    layout = await self.writer.capture_current_state(self.device, mode,
+                                                                     self.writer.get_action_index(),
                                                                      log_message=log_message)
                 # ------------------- Add action to results ---------------
                 self.writer.add_action(element=json.loads(click_command_str),
-                                       tb_action_result=tb_result,
-                                       reg_action_result=reg_result)
+                                       tb_action_result=result_map['tb'],
+                                       reg_action_result=result_map['reg'],
+                                       areg_action_result=result_map.get('areg', None))
             else:
                 logger.error(f"The focused node is None, expected focused node: {next_focused_element}")
             # ------------------- Navigate Next -------------------
@@ -288,30 +289,28 @@ class Snapshot:
             for index, action in enumerate(tb_undone_actions):
                 logger.info(
                     f"Missing action {self.writer.get_action_index()}, count: {index} / {len(tb_undone_actions)}")
-                if not await load_snapshot(self.initial_snapshot):
-                    logger.error("Error in loading snapshot")
-                    return []
-                reg_log_message, reg_result = await padb_logger.execute_async_with_log(
-                    reg_execute_command(json.dumps(action)))
-                reg_layout = await self.writer.capture_current_state(self.device, "s_reg",
+                result_map = {}
+                modes = ['reg', 'areg', 'tb']
+                for mode in modes:
+                    if not await load_snapshot(self.initial_snapshot):
+                        logger.error("Error in loading snapshot")
+                        return []
+                    executor = mode if mode != 'tb' else 'stb'
+                    log_message, result_map[mode] = await padb_logger.execute_async_with_log(
+                        execute_command(json.dumps(action), executor_name=executor))
+                    layout = await self.writer.capture_current_state(self.device, f"s_{mode}",
                                                                      self.writer.get_action_index(),
-                                                                     log_message=reg_log_message)
-                if reg_layout == initial_layout or reg_result.state != 'COMPLETED':  # the action is not meaningful
-                    logger.info(f"Writing action {self.writer.get_action_index()}")
-                    self.writer.add_action(action, get_unsuccessful_execution_result("UNKNOWN"), reg_result,
-                                           is_sighted=True)
-                    continue
-
-                if not await load_snapshot(self.initial_snapshot):
-                    logger.error("Error in loading snapshot")
-                    return []
-
-                stb_log_message, stb_result = await padb_logger.execute_async_with_log(
-                    stb_execute_command(json.dumps(action)))
-                stb_layout = await self.writer.capture_current_state(self.device, "s_tb",
-                                                                     self.writer.get_action_index(),
-                                                                     log_message=stb_log_message)
+                                                                     log_message=log_message)
+                # if reg_layout == initial_layout or reg_result.state != 'COMPLETED':  # the action is not meaningful
+                #     logger.info(f"Writing action {self.writer.get_action_index()}")
+                #     self.writer.add_action(action, get_unsuccessful_execution_result("UNKNOWN"), reg_result,
+                #                            is_sighted=True)
+                #     continue
 
                 logger.info(f"Writing action {self.writer.get_action_index()}")
-                self.writer.add_action(action, stb_result, reg_result, is_sighted=True)
+                self.writer.add_action(action,
+                                       result_map['tb'],
+                                       result_map['reg'],
+                                       areg_action_result=result_map.get('areg', None),
+                                       is_sighted=True)
         logger.info("Done validating remaining actions.")

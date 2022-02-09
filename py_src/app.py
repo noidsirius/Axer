@@ -277,21 +277,26 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
     step = {}
     step['index'] = action['index']
     step['action'] = action['element']
-    if is_sighted:
-        step['init_img'] = address_book.get_screenshot_path(f'{prefix}exp', action['index'], extension='edited').relative_to(static_root_path)
-        step['init_layout'] = address_book.get_layout_path(f'{prefix}exp', "INITIAL").relative_to(static_root_path)
-    else:
-        step['init_img'] = address_book.get_screenshot_path(f'{prefix}exp', action['index'], extension='edited').relative_to(static_root_path)
-        step['init_log'] = address_book.get_log_path(f'{prefix}exp', action['index']).relative_to(static_root_path)
-        step['init_layout'] = address_book.get_layout_path(f'{prefix}exp', action['index']).relative_to(static_root_path)
-    step['tb_img'] = address_book.get_screenshot_path(f'{prefix}tb', action['index']).relative_to(static_root_path)
-    step['tb_log'] = address_book.get_log_path(f'{prefix}tb', action['index']).relative_to(static_root_path)
-    step['tb_layout'] = address_book.get_layout_path(f'{prefix}tb', action['index']).relative_to(static_root_path)
-    step['reg_img'] = address_book.get_screenshot_path(f'{prefix}reg', action['index']).relative_to(static_root_path)
-    step['reg_log'] = address_book.get_log_path(f'{prefix}reg', action['index']).relative_to(static_root_path)
-    step['reg_layout'] = address_book.get_layout_path(f'{prefix}reg', action['index']).relative_to(static_root_path)
-    step['tb_result'] = action['tb_action_result']
-    step['reg_result'] = action['reg_action_result']
+    step['mode_info'] = {}
+    modes = ['exp', 'tb', 'reg', 'areg']
+    for mode in modes:
+        if mode == 'exp':
+            step['mode_info'][f'{mode}_img'] = address_book.get_screenshot_path(f'{prefix}{mode}', action['index'], extension='edited').relative_to(static_root_path)
+            if is_sighted:
+                step['mode_info'][f'{mode}_layout'] = address_book.get_layout_path(f'{prefix}{mode}', "INITIAL").relative_to(static_root_path)
+            else:
+                step['mode_info'][f'{mode}_log'] = address_book.get_log_path(f'{prefix}{mode}', action['index']).relative_to(static_root_path)
+                step['mode_info'][f'{mode}_layout'] = address_book.get_layout_path(f'{prefix}{mode}', action['index']).relative_to(static_root_path)
+        elif f'{mode}_action_result' in action:
+            step['mode_info'][f'{mode}_img'] = address_book.get_screenshot_path(f'{prefix}{mode}', action['index']).relative_to(static_root_path)
+            step['mode_info'][f'{mode}_log'] = address_book.get_log_path(f'{prefix}{mode}', action['index']).relative_to(static_root_path)
+            step['mode_info'][f'{mode}_layout'] = address_book.get_layout_path(f'{prefix}{mode}', action['index']).relative_to(static_root_path)
+            step['mode_info'][f'{mode}_result'] = action[f'{mode}_action_result']
+        else:
+            step['mode_info'][f'{mode}_img'] = '404.png'
+            step['mode_info'][f'{mode}_log'] = None
+            step['mode_info'][f'{mode}_layout'] = None
+            step['mode_info'][f'{mode}_result'] = None
     step['is_sighted'] = is_sighted
     step['status'] = min(
         [100] + [post_analysis_results_sub[ana_name][action['index']]['issue_status'] for ana_name in
