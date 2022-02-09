@@ -16,3 +16,7 @@ BLIND_MONKEY_TAG = "LATTE_SERVICE"
 TB_TREELIST_TAG = "talkback: TreeDebug:"
 # Other Limits
 EXPLORE_VISIT_LIMIT = 3
+# Others
+DEVICE_NAME = "emulator-5554"
+ADB_HOST = "127.0.0.1"
+ADB_PORT = 5037

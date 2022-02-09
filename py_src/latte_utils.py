@@ -5,7 +5,7 @@ from typing import Union, Tuple
 import logging
 from collections import namedtuple
 import xmlformatter
-from adb_utils import run_bash, cat_local_android_file
+from adb_utils import run_bash, read_local_android_file
 from a11y_service import A11yServiceManager
 from consts import LAYOUT_TIMEOUT_TIME, TB_NAVIGATE_RETRY_COUNT, ACTION_EXECUTION_RETRY_COUNT,\
     TB_TREELIST_TAG, BLIND_MONKEY_TAG, TB_SELECT_TIMEOUT, TB_NAVIGATE_TIMEOUT, REGULAR_EXECUTE_TIMEOUT_TIME, \
@@ -81,7 +81,7 @@ async def latte_capture_layout() -> str:
         logger.debug(f"Capturing layout, Try: {i}")
         await A11yServiceManager.setup_latte_a11y_services(tb=False)
         await send_command_to_latte("capture_layout")
-        layout = await cat_local_android_file(LAYOUT_FILE_PATH, wait_time=LAYOUT_TIMEOUT_TIME)
+        layout = await read_local_android_file(LAYOUT_FILE_PATH, wait_time=LAYOUT_TIMEOUT_TIME)
         if layout:
             break
 
@@ -202,7 +202,7 @@ async def tb_navigate_next() -> Union[str, None]:
         logger.debug(f"Perform Next!, Try: {i}")
         await A11yServiceManager.setup_latte_a11y_services(tb=True)
         await talkback_nav_command("next")
-        next_command_json = await cat_local_android_file(FINAL_ACITON_FILE, wait_time=TB_NAVIGATE_TIMEOUT)
+        next_command_json = await read_local_android_file(FINAL_ACITON_FILE, wait_time=TB_NAVIGATE_TIMEOUT)
         if next_command_json is None:
             logger.warning("Timeout for performing next using TalkBack")
         else:
@@ -214,7 +214,7 @@ async def tb_navigate_next() -> Union[str, None]:
 async def tb_perform_select() -> ExecutionResult:
     logger.info("Perform Select!")
     await talkback_nav_command("select")
-    result = await cat_local_android_file(FINAL_ACITON_FILE, wait_time=TB_SELECT_TIMEOUT)
+    result = await read_local_android_file(FINAL_ACITON_FILE, wait_time=TB_SELECT_TIMEOUT)
     if result is None:
         logger.error(f"Timeout, skipping Select for executor TalkBack")
         result = "TIMEOUT"
@@ -254,7 +254,7 @@ async def execute_command(command: str, executor_name: str = "reg") -> Execution
             await setup_sighted_talkback_executor()
         logger.debug(f"Execute Step Command, Try: {i}")
         await do_step(command)
-        result = await cat_local_android_file(CUSTOM_STEP_RESULT, wait_time=REGULAR_EXECUTE_TIMEOUT_TIME)
+        result = await read_local_android_file(CUSTOM_STEP_RESULT, wait_time=REGULAR_EXECUTE_TIMEOUT_TIME)
         if result is None:
             logger.warning(f"Timeout, skipping {command} for executor {executor_name}")
             result = "TIMEOUT"

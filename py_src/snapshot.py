@@ -14,7 +14,7 @@ from latte_utils import tb_navigate_next, tb_perform_select, tb_focused_node, \
 from padb_utils import ParallelADBLogger
 from results_utils import AddressBook, ResultWriter
 from utils import annotate_elements
-from consts import EXPLORE_VISIT_LIMIT
+from consts import EXPLORE_VISIT_LIMIT, DEVICE_NAME, ADB_HOST, ADB_PORT
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +24,7 @@ class Snapshot:
                  snapshot_name: str,
                  address_book: AddressBook,
                  visited_elements_in_app: dict = None,
-                 client: AdbClient = None,
-                 device_name: str = "emulator-5554"):
+                 device=None):
         self.initial_snapshot = snapshot_name
         self.tmp_snapshot = self.initial_snapshot + "_TMP"
         self.address_book = address_book
@@ -39,9 +38,10 @@ class Snapshot:
         self.visited_xpath_count = defaultdict(int)
         self.tb_commands = []
         # -------------
-        if client is None:
-            client = AdbClient(host="127.0.0.1", port=5037)
-        self.device = asyncio.run(client.device(device_name))
+        if device is None:
+            client = AdbClient(host=ADB_HOST, port=ADB_PORT)
+            device = asyncio.run(client.device(DEVICE_NAME))
+        self.device = device
 
     def has_element_in_other_snapshots(self, element: dict) -> bool:
         for other_element in self.visited_elements_in_app.get(element['xpath'], []):
@@ -57,10 +57,10 @@ class Snapshot:
         Finally it analyzes all elements in the screen and exclude the already seen (in other snapshots)
         :return: Whether the setup is succeeded or not
         """
-        if not await load_snapshot(self.initial_snapshot):
+        if not await load_snapshot(self.initial_snapshot, device_name=self.device.serial):
             logger.error("Error in loading snapshot")
             return False
-        if await is_android_activity_on_top():
+        if await is_android_activity_on_top(device_name=self.device.serial):
             logger.error("The snapshot is broken!")
             return False
         await A11yServiceManager.setup_latte_a11y_services(tb=True)
@@ -286,24 +286,28 @@ class Snapshot:
         padb_logger = ParallelADBLogger(self.device)
         if is_in_app_activity:
             for index, action in enumerate(tb_undone_actions):
-                logger.info(f"Missing action {self.writer.get_action_index()}, count: {index} / {len(tb_undone_actions)}")
+                logger.info(
+                    f"Missing action {self.writer.get_action_index()}, count: {index} / {len(tb_undone_actions)}")
                 if not await load_snapshot(self.initial_snapshot):
                     logger.error("Error in loading snapshot")
                     return []
-                reg_log_message, reg_result = await padb_logger.execute_async_with_log(reg_execute_command(json.dumps(action)))
+                reg_log_message, reg_result = await padb_logger.execute_async_with_log(
+                    reg_execute_command(json.dumps(action)))
                 reg_layout = await self.writer.capture_current_state(self.device, "s_reg",
                                                                      self.writer.get_action_index(),
                                                                      log_message=reg_log_message)
                 if reg_layout == initial_layout or reg_result.state != 'COMPLETED':  # the action is not meaningful
                     logger.info(f"Writing action {self.writer.get_action_index()}")
-                    self.writer.add_action(action, get_unsuccessful_execution_result("UNKNOWN"), reg_result, is_sighted=True)
+                    self.writer.add_action(action, get_unsuccessful_execution_result("UNKNOWN"), reg_result,
+                                           is_sighted=True)
                     continue
 
                 if not await load_snapshot(self.initial_snapshot):
                     logger.error("Error in loading snapshot")
                     return []
 
-                stb_log_message, stb_result = await padb_logger.execute_async_with_log(stb_execute_command(json.dumps(action)))
+                stb_log_message, stb_result = await padb_logger.execute_async_with_log(
+                    stb_execute_command(json.dumps(action)))
                 stb_layout = await self.writer.capture_current_state(self.device, "s_tb",
                                                                      self.writer.get_action_index(),
                                                                      log_message=stb_log_message)
