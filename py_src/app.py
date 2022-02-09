@@ -312,6 +312,11 @@ def report_v2(result_path, app_name, snapshot_name):
     tb_steps = []
     errors = []
     bm_log_path = str(snapshot_path.relative_to(result_path.parent))+".log"
+    error_logs = ""
+    with open(f"{str(snapshot_path)}.log") as f:
+        for line in f.readlines():
+            if line.startswith("ERROR:"):
+                error_logs += line
     initial_xml_path = str(address_book.get_layout_path('exp', 'INITIAL',).relative_to(result_path.parent))
     last_explore_log_path = str(address_book.last_explore_log_path.relative_to(result_path.parent))
     all_elements_screenshot = str(address_book.all_element_screenshot.relative_to(result_path.parent))
@@ -362,6 +367,7 @@ def report_v2(result_path, app_name, snapshot_name):
                            result_path=result_path_str,
                            app_name=app_name,
                            bm_log_path=bm_log_path,
+                           error_logs=error_logs,
                            initial_xml_path=initial_xml_path,
                            all_elements_screenshot=all_elements_screenshot,
                            all_actions_screenshot=all_actions_screenshot,

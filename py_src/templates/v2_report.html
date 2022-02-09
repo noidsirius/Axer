@@ -104,6 +104,14 @@
                             <th scope="row">
                                 <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=bm_log_path) }}">BlindMonkey Log</a>
                                 <hr>
+                                {% if error_logs %}
+                                    <a class="btn btn-warning"
+                                       data-bs-toggle="collapse"
+                                       href="#errorLogs" role="button" aria-expanded="false" aria-controls="errorLogs">
+                                        Error logs
+                                    </a>
+                                    <hr>
+                                {% endif %}
                                 <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=last_explore_log_path) }}">Last Explore Log</a>
                                 <hr>
                                 <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=initial_xml_path) }}">Layout </a>
@@ -116,6 +124,14 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+            <div class="row collapse" id="errorLogs">
+                <div class="card">
+                    <div class="card-header bg-warning text-white">Error logs</div>
+                    <div class="card card-body">
+                        {{ error_logs.replace('\n','<br>').replace("ERROR", "<span class='text-danger'>ERROR</span>") | safe }}
+                    </div>
+                </div>
             </div>
             {% for (header_name, steps) in all_steps.items() %}
                 <div class="row">

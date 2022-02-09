@@ -89,7 +89,7 @@ class ResultWriter:
                     continue
                 if visited_element[key] != detailed_element[key]:
                     use_detailed = False
-                    logger.error(f"The detailed element doesn't match. Visited Element: {visited_element},"
+                    logger.warning(f"The detailed element doesn't match. Visited Element: {visited_element},"
                                  f" Detailed Element: {detailed_element}")
                     break
         visited_element = {

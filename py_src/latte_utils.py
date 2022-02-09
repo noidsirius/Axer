@@ -183,6 +183,20 @@ async def do_step(json_cmd):
     await send_command_to_latte("step_execute", json_cmd)
 
 
+async def tb_focused_node() -> Union[str, None]:
+    for i in range(TB_NAVIGATE_RETRY_COUNT):
+        logger.debug(f"Get Focused Node!, Try: {i}")
+        await A11yServiceManager.setup_latte_a11y_services(tb=True)
+        await talkback_nav_command("current_focus")
+        focused_element_json = await cat_local_android_file(FINAL_ACITON_FILE, wait_time=TB_NAVIGATE_TIMEOUT)
+        if focused_element_json is None:
+            logger.warning("Timeout for finding focused node")
+        else:
+            return focused_element_json
+    logger.error("Timeout for finding focused node")
+    return None
+
+
 async def tb_navigate_next() -> Union[str, None]:
     for i in range(TB_NAVIGATE_RETRY_COUNT):
         logger.debug(f"Perform Next!, Try: {i}")
@@ -190,9 +204,10 @@ async def tb_navigate_next() -> Union[str, None]:
         await talkback_nav_command("next")
         next_command_json = await cat_local_android_file(FINAL_ACITON_FILE, wait_time=TB_NAVIGATE_TIMEOUT)
         if next_command_json is None:
-            logger.error("Timeout for performing next using TalkBack")
+            logger.warning("Timeout for performing next using TalkBack")
         else:
             return next_command_json
+    logger.error("Timeout for performing next using TalkBack")
     return None
 
 
@@ -241,7 +256,7 @@ async def execute_command(command: str, executor_name: str = "reg") -> Execution
         await do_step(command)
         result = await cat_local_android_file(CUSTOM_STEP_RESULT, wait_time=REGULAR_EXECUTE_TIMEOUT_TIME)
         if result is None:
-            logger.error(f"Timeout, skipping {command} for executor {executor_name}")
+            logger.warning(f"Timeout, skipping {command} for executor {executor_name}")
             result = "TIMEOUT"
             await send_command_to_latte("step_interrupt")
         else:

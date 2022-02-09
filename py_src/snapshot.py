@@ -9,7 +9,7 @@ from GUI_utils import get_elements, are_equal_elements, get_actions_from_layout
 from a11y_service import A11yServiceManager
 from adb_utils import load_snapshot, save_snapshot, is_android_activity_on_top, get_current_activity_name
 from latte_utils import latte_capture_layout as capture_layout, get_unsuccessful_execution_result
-from latte_utils import tb_navigate_next, tb_perform_select, \
+from latte_utils import tb_navigate_next, tb_perform_select, tb_focused_node, \
     reg_execute_command, stb_execute_command, get_missing_actions
 from padb_utils import ParallelADBLogger
 from results_utils import AddressBook, ResultWriter
@@ -180,51 +180,57 @@ class Snapshot:
         if not await self.emulator_setup():
             logger.error("Error in emulator setup!")
             return False
-        initial_layout = await capture_layout()
         padb_logger = ParallelADBLogger(self.device)
+        await self.writer.capture_current_state(self.device, mode="exp",
+                                                index=self.writer.get_action_index(),
+                                                log_message="First State",
+                                                has_layout=True)
+        next_focused_element = None
         while True:
             logger.info(f"Action Index: {self.writer.get_action_index()}")
+            await save_snapshot(self.tmp_snapshot)
+            click_command_str = await tb_focused_node()
+            if click_command_str is not None:
+                if click_command_str != next_focused_element and next_focused_element is not None:
+                    logger.error(f"The current focused element is different from the navigation's result."
+                                 f"Current: {click_command_str}, NextFocusedElement: {next_focused_element}")
+                self.tb_commands.append(click_command_str)
+                # ------------------- Start TalkBack Select ---------------
+                log_message, tb_result = await padb_logger.execute_async_with_log(tb_perform_select())
+                tb_layout = await self.writer.capture_current_state(self.device,
+                                                                    mode="tb",
+                                                                    index=self.writer.get_action_index(),
+                                                                    log_message=log_message)
+                # ------------------- Start Regular Select ---------------
+                if not await load_snapshot(self.tmp_snapshot):
+                    logger.error("Error in loading snapshot")
+                    return False
+                logger.info("Now with regular executor")
+                log_message, reg_result = await padb_logger.execute_async_with_log(reg_execute_command(click_command_str))
+                reg_layout = await self.writer.capture_current_state(self.device,
+                                                                     mode="reg",
+                                                                     index=self.writer.get_action_index(),
+                                                                     log_message=log_message)
+                # ------------------- Add action to results ---------------
+                self.writer.add_action(element=json.loads(click_command_str),
+                                       tb_action_result=tb_result,
+                                       reg_action_result=reg_result)
+            else:
+                logger.error(f"The focused node is None, expected focused node: {next_focused_element}")
             # ------------------- Navigate Next -------------------
-            tb_navigate_log, click_command_str = await self.navigate_next(padb_logger)
-            if not click_command_str:
+            tb_navigate_log, next_focused_element = await self.navigate_next(padb_logger)
+            if not next_focused_element:
                 logger.info("Navigation is finished!")
                 self.writer.write_last_navigate_log(tb_navigate_log)
                 break
-            logger.debug("Click Command is " + click_command_str)
+            logger.debug("Next focused element is " + next_focused_element)
             await self.writer.capture_current_state(self.device, mode="exp",
                                                     index=self.writer.get_action_index(),
                                                     log_message=tb_navigate_log,
                                                     has_layout=True)
-            # if 'bound' in json.loads(click_command_str):
-            #     bound = tuple(int(x) for x in (json.loads(click_command_str)['bound'].strip()).split('-'))
-            # else:
-            #     logger.error(f"The focused element doesn't have a bound! Element: {click_command_str}")
-            logger.info("Get another snapshot")
-            await save_snapshot(self.tmp_snapshot)
-            self.tb_commands.append(click_command_str)
             # ------------------- End Navigate Next -------------------
-            # ------------------- Start TalkBack Select ---------------
-            log_message, tb_result = await padb_logger.execute_async_with_log(tb_perform_select())
-            tb_layout = await self.writer.capture_current_state(self.device,
-                                                                mode="tb",
-                                                                index=self.writer.get_action_index(),
-                                                                log_message=log_message)
-            # ------------------- End TalkBack Select ---------------
-            # ------------------- Start Regular Select ---------------
-            if not await load_snapshot(self.tmp_snapshot):
-                logger.error("Error in loading snapshot")
-                return False
-            logger.info("Now with regular executor")
-            log_message, reg_result = await padb_logger.execute_async_with_log(reg_execute_command(click_command_str))
-            reg_layout = await self.writer.capture_current_state(self.device,
-                                                                 mode="reg",
-                                                                 index=self.writer.get_action_index(),
-                                                                 log_message=log_message)
-            # ------------------- End Regular Select ---------------
-            self.writer.add_action(element=json.loads(click_command_str),
-                                   tb_action_result=tb_result,
-                                   reg_action_result=reg_result)
             logger.info("Groundhug Day!")
+
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.visited_action_screenshot,
                           [json.loads(str_command) for str_command in self.tb_commands],
