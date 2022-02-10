@@ -188,7 +188,7 @@ async def tb_focused_node() -> Union[str, None]:
         logger.debug(f"Get Focused Node!, Try: {i}")
         await A11yServiceManager.setup_latte_a11y_services(tb=True)
         await talkback_nav_command("current_focus")
-        focused_element_json = await cat_local_android_file(FINAL_ACITON_FILE, wait_time=TB_NAVIGATE_TIMEOUT)
+        focused_element_json = await read_local_android_file(FINAL_ACITON_FILE, wait_time=TB_NAVIGATE_TIMEOUT)
         if focused_element_json is None:
             logger.warning("Timeout for finding focused node")
         else:
@@ -248,6 +248,8 @@ async def execute_command(command: str, executor_name: str = "reg") -> Execution
     for i in range(ACTION_EXECUTION_RETRY_COUNT):
         if executor_name == 'reg':
             await setup_regular_executor()
+        elif executor_name == 'areg':
+            await setup_regular_executor(physical_touch=False)
         elif executor_name == 'tb':
             await setup_talkback_executor()
         elif executor_name == 'stb':
@@ -267,6 +269,10 @@ async def execute_command(command: str, executor_name: str = "reg") -> Execution
 
 async def reg_execute_command(command: str) -> ExecutionResult:
     return await execute_command(command, 'reg')
+
+
+async def areg_execute_command(command: str) -> ExecutionResult:
+    return await execute_command(command, 'areg')
 
 
 async def tb_execute_command(command: str) -> ExecutionResult:

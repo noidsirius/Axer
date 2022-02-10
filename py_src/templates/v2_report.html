@@ -150,12 +150,13 @@
                             <th scope="col">Inital</th>
                             <th scope="col">Talkback</th>
                             <th scope="col">Regular</th>
+                            <th scope="col">A11y Regular</th>
                             <th scope="col">Result</th>
                         </tr>
                         </thead>
                         <tbody>
                         {% for step in steps %}
-                            <tr class="tb-step-{{ "passed" if step.status == 10 else "failed" }}">
+                            <tr class="tb-step-{{ "passed" if step.status == 30 else "failed" }}">
                                 <th scope="row">{{ step.index }}</th>
                                 <td>
                                     <table class="table">
@@ -169,7 +170,7 @@
                                         </tr>
                                         <tr>
                                             <td class="text-end">Content Description</td>
-                                            <td class="text-start">{{ step.action.contentDescription }}</td>
+                                            <td class="text-start text-truncate" style="max-width: 150px;">{{ step.action.contentDescription }}</td>
                                         </tr>
                                         <tr>
                                             <td class="text-end">Class</td>
@@ -190,64 +191,36 @@
                                         </tr>
                                     </table>
                                 </td>
-                                <td>
-                                    <a href="#" class="enlarge">
-                                        <img src="{{ url_for('send_result_static_v2', path=step.init_img) }}" class="rounded d-block mx-auto"
-                                             style="width: 10rem;">
-                                    </a>
-                                    <hr>
-                                    <div class="d-flex justify-content-center">
-                                        {% if step.init_log %}
-                                        <a href="{{ url_for('send_result_static_v2', path=step.init_log) }}">
-                                            Navigation Log
+                                {% for mode in ['exp', 'tb', 'reg', 'areg'] %}
+                                    <td>
+                                        <a href="#" class="enlarge">
+                                            <img src="{{ url_for('send_result_static_v2', path=step.mode_info[mode+'_img']) }}" class="rounded d-block mx-auto"
+                                                 style="width: 10rem;" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ step.mode_info[mode+'_result']|e }}" alt="Result of {{ mode }} Selection">
                                         </a>
-                                        -
-                                        {% endif %}
+                                        <hr>
+                                        <div class="d-flex justify-content-center">
+                                            {% if step.mode_info[mode+'_log'] %}
+                                            <a href="{{ url_for('send_result_static_v2', path=step.mode_info[mode+'_log']) }}">
+                                                Log
+                                            </a>
+                                            -
+                                            {% endif %}
 
-                                        {% if step.init_layout %}
-                                        <a href="{{ url_for('send_result_static_v2', path=step.init_layout) }}">Layout</a>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                                <td>
-                                    <a href="#" class="enlarge">
-                                        <img src="{{ url_for('send_result_static_v2', path=step.tb_img) }}" class="rounded d-block mx-auto"
-                                             style="width: 10rem;" data-bs-toggle="tooltip"
-                                             data-bs-placement="top" title="{{ step.tb_result|e }}" alt="Result of TalkBack Selection">
-                                    </a>
-                                    <hr>
-                                    <div class="d-flex justify-content-center">
-                                        <a href="{{ url_for('send_result_static_v2', path=step.tb_log) }}">
-                                            Select Log
-                                        </a>
-                                        -
-                                        <a href="{{ url_for('send_result_static_v2', path=step.tb_layout) }}">Layout</a>
-                                    </div>
-                                </td>
-                                <td>
-                                    <a href="#" class="enlarge">
-                                        <img src="{{ url_for('send_result_static_v2', path=step.reg_img) }}" class="rounded d-block mx-auto"
-                                             style="width: 10rem;" data-bs-toggle="tooltip"
-                                             data-bs-placement="top" title="{{ step.reg_result|e }}" alt="Result of Regular Selection">
-                                    </a>
-                                    <hr>
-                                    <div class="d-flex justify-content-center">
-                                        <a href="{{ url_for('send_result_static_v2', path=step.reg_log) }}">
-                                            Select Log
-                                        </a>
-                                        -
-                                        <a href="{{ url_for('send_result_static_v2', path=step.reg_layout) }}">Layout</a>
-                                    </div>
-                                </td>
-                                {% if step.status == 10 %}
+                                            {% if step.mode_info[mode+'_layout'] %}
+                                            <a href="{{ url_for('send_result_static_v2', path=step.mode_info[mode+'_layout']) }}">Layout</a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                {% endfor %}
+                                {% if step.status == 30 %}
                                      <td class="table-success">
-                                {% elif step.status == 2 %}
+                                {% elif step.status == 2 or step.status == 1 %}
                                      <td class="table-warning">
                                 {% elif step.status == 0 %}
                                      <td class="table-danger">
                                 {% elif step.status == 100 %}
                                      <td class="table-secondary">
-                                {% elif 3 <= step.status <= 5  %}
+                                {% elif 3 <= step.status < 30  %}
                                      <td class="table-info">
                                 {% else %}
                                     <td class="table-light">
@@ -281,10 +254,6 @@
             <div class="modal-body">
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 <iframe id="diff_iframe_id" style="width: 100%; height: 100%" src=""></iframe>
-                {#                <div class="row">#}
-                {#                    <pre class="col-6" id="xml_A"></pre>#}
-                {#                    <pre class="col-6" id="xml_B"></pre>#}
-                {#                </div>#}
             </div>
         </div>
     </div>
