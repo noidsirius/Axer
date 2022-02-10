@@ -156,7 +156,7 @@
                         </thead>
                         <tbody>
                         {% for step in steps %}
-                            <tr class="tb-step-{{ "passed" if step.status == 10 else "failed" }}">
+                            <tr class="tb-step-{{ "passed" if step.status == 30 else "failed" }}">
                                 <th scope="row">{{ step.index }}</th>
                                 <td>
                                     <table class="table">
@@ -170,7 +170,7 @@
                                         </tr>
                                         <tr>
                                             <td class="text-end">Content Description</td>
-                                            <td class="text-start">{{ step.action.contentDescription }}</td>
+                                            <td class="text-start text-truncate" style="max-width: 150px;">{{ step.action.contentDescription }}</td>
                                         </tr>
                                         <tr>
                                             <td class="text-end">Class</td>
@@ -212,15 +212,15 @@
                                         </div>
                                     </td>
                                 {% endfor %}
-                                {% if step.status == 10 %}
+                                {% if step.status == 30 %}
                                      <td class="table-success">
-                                {% elif step.status == 2 %}
+                                {% elif step.status == 2 or step.status == 1 %}
                                      <td class="table-warning">
                                 {% elif step.status == 0 %}
                                      <td class="table-danger">
                                 {% elif step.status == 100 %}
                                      <td class="table-secondary">
-                                {% elif 3 <= step.status <= 5  %}
+                                {% elif 3 <= step.status < 30  %}
                                      <td class="table-info">
                                 {% else %}
                                     <td class="table-light">
