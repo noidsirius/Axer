@@ -1,0 +1,54 @@
+{% macro xml_diff_modal() %}
+    <div class="modal fade" id="xmldiffmodal" tabindex="-1" role="dialog" aria-labelledby="myXMLModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog  modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <iframe id="diff_iframe_id" style="width: 100%; height: 100%" src=""></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+{% macro xml_diff_script() %}
+<script>
+    $(function () {
+        $('.showdiff').on('click', function () {
+            let result_path = $(this).find('.snapshot-result-path').attr('value');
+            let app_name = $(this).find('.snapshot-app').attr('value');
+            let snapshot_name = $(this).find('.snapshot-name').attr('value');
+            let index = $(this).find('.snapshot-index').attr('value');
+            let sighted_str = $(this).find('.snapshot-sighted').attr('value');
+
+
+            let iframe_link = `/v2/${result_path}/app/${app_name}/snapshot/${snapshot_name}/diff/${index}/${sighted_str}`
+
+            $('#diff_iframe_id').attr('src', iframe_link);
+            $('#xmldiffmodal').modal('show');
+        });
+    });
+</script>
+{% endmacro %}
+{% macro image_modal() %}
+    <div class="modal fade" id="imagemodal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <img src="" class="imagepreview" style="width: 100%;">
+                </div>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+{% macro image_script() %}
+    <script>
+        $(function () {
+            $('.enlarge').on('click', function () {
+                $('.imagepreview').attr('src', $(this).find('img').attr('src'));
+                $('#imagemodal').modal('show');
+            });
+        });
+    </script>
+{% endmacro %}

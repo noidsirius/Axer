@@ -1,4 +1,5 @@
 import os
+from collections import defaultdict
 from typing import Union
 from pathlib import Path
 import json
@@ -278,6 +279,25 @@ def do_post_analysis(name: str = None,
         analyzed += 1
     return analyzed
 
+
+def get_post_analysis(snapshot_path: Union[str, Path]) -> dict:
+    if isinstance(snapshot_path, str):
+        snapshot_path = Path(snapshot_path)
+    post_analysis_results = {'sighted': defaultdict(dict), 'unsighted': defaultdict(dict)}
+    if not snapshot_path.is_dir():
+        return post_analysis_results
+
+    for post_result_path in snapshot_path.iterdir():
+        if post_result_path.name.startswith(POST_ANALYSIS_PREFIX):
+            analysis_name = post_result_path.name[len(POST_ANALYSIS_PREFIX)+1:-len('.jsonl')]
+            with open(str(post_result_path), "r") as f:
+                for line in f.readlines():
+                    result = json.loads(line)
+                    if result['is_sighted']:
+                        post_analysis_results['sighted'][result['index']][analysis_name] = result
+                    else:
+                        post_analysis_results['unsighted'][result['index']][analysis_name] = result
+    return post_analysis_results
 
 
 if __name__ == "__main__":

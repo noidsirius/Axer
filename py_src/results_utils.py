@@ -46,6 +46,15 @@ class AddressBook:
         self.visited_elements_path.touch()
         self.s_action_path.touch()
 
+    def result_path(self) -> str:
+        return self.snapshot_result_path.parent.parent.name
+
+    def app_name(self) -> str:
+        return self.snapshot_result_path.parent.name
+
+    def snapshot_name(self) -> str:
+        return self.snapshot_result_path.name
+
     def get_screenshot_path(self, mode: str, index: Union[int, str], extension: str = None, should_exists: bool = False):
         file_name = f"{index}_{extension}.png" if extension else f"{index}.png"
         return self._get_path(mode, file_name, should_exists)

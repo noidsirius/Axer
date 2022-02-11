@@ -2,16 +2,18 @@ import sys
 import json
 import logging
 import subprocess
+from typing import Union
 from collections import defaultdict
 import pathlib
 import os
 import math
 import datetime
-from flask import Flask, jsonify, send_from_directory, render_template
+from flask import Flask, request, jsonify, send_from_directory, render_template
 sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
 from results_utils import AddressBook
-from post_analysis import do_post_analysis, POST_ANALYSIS_PREFIX, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, XML_PROBLEM\
-    , DIFFERENT_BEHAVIOR, UNREACHABLE
+from post_analysis import do_post_analysis, get_post_analysis, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, XML_PROBLEM\
+    , DIFFERENT_BEHAVIOR, UNREACHABLE, POST_ANALYSIS_PREFIX
+from search import SearchResult, get_search_manager
 
 logger = logging.getLogger(__name__)
 flask_app = Flask(__name__, static_url_path='', )
@@ -157,125 +159,92 @@ def report(name):
 
 # ---------------------------- End Legacy Results ---------------------
 
-@flask_app.route(f'/v2/static/<path:path>')
-def send_result_static_v2(path):
-    # TODO: Not secure at all
-    result_path = pathlib.Path(f"../{path}")
-    if not (result_path.exists()):
-        if str(result_path).endswith(".png"):
-            return send_from_directory("../", "404.png")
-        return "The path is incorrect!"
-    return send_from_directory(result_path.parent.resolve(), result_path.name)
 
-
-@flask_app.route("/v2/<result_path_str>/")
-def report_index_v2(result_path_str: str):
-    result_path = pathlib.Path(f"../{result_path_str}")
-    if not (result_path.is_dir() and result_path.exists()):
-        return "The result path is inccorrect!"
-    app_list = defaultdict(list)
-    for app_path in result_path.iterdir():
-        if not app_path.is_dir():
-            continue
-        app_name = app_path.name
-        app_list[app_name] = []
-        for snapshot_path in app_path.iterdir():
-            if not snapshot_path.is_dir():
-                continue
-            snapshot_name = snapshot_path.name
-            address_book = AddressBook(snapshot_path)
-            snapshot_info = {}
-            count_map = {
-                'actions': 0,
-                'different_behavior': 0,
-                'unreachable': 0,
-                'other': 0,
-            }
-            analysis_count = 0
-            for post_result_path in snapshot_path.iterdir():
-                if post_result_path.name.startswith(POST_ANALYSIS_PREFIX):
-                    analysis_count += 1
-                    with open(str(post_result_path), "r") as f:
-                        for line in f.readlines():
-                            count_map['actions'] += 1
-                            result = json.loads(line)
-                            if result['issue_status'] == XML_PROBLEM:
-                                count_map['other'] += 1
-                            elif result['issue_status'] == REG_FAILURE:
-                                count_map['other'] += 1
-                            elif result['issue_status'] == TB_FAILURE:
-                                count_map['other'] += 1
-                            elif result['issue_status'] == UNREACHABLE:
-                                count_map['unreachable'] += 1
-                            elif result['issue_status'] == DIFFERENT_BEHAVIOR:
-                                count_map['different_behavior'] += 1
-                            elif result['issue_status'] == SUCCESS:
-                                continue
-                            else:
-                                count_map['other'] += 1000000
-
-            snapshot_info['id'] = snapshot_name
-            snapshot_info['log_path'] = str(snapshot_path.relative_to(result_path.parent))+".log"
-            if analysis_count == 0:
-                snapshot_info['state'] = "Pending" if not address_book.finished_path.exists() else "Unprocessed"
-                for key in count_map:
-                    snapshot_info[key] = f"({snapshot_info['state']})"
-            else:
-                snapshot_info['state'] = "Processed"
-                for key in count_map:
-                    snapshot_info[key] = math.floor(count_map[key] / analysis_count)
-            snapshot_info['last_update'] = datetime.datetime.fromtimestamp(address_book.snapshot_result_path.stat().st_mtime)
-            app_list[app_name].append(snapshot_info)
-        app_list[app_name].sort(key=lambda s: s['last_update'], reverse=True)
-    apps = []
-    for app in app_list:
-        app_info = {}
-        app_info['name'] = app.replace(' ', '_')
-        app_info['snapshots'] = app_list[app]
-        app_info['has_unprocessed'] = any(s['state'] == 'Unprocessed' for s in app_list[app])
-        app_info['actions'] = sum(
-            [0] + [s['actions'] for s in app_list[app] if s['state'] == 'Processed'])
-        app_info['different_behavior'] = sum(
-            [0] + [s['different_behavior'] for s in app_list[app] if s['state'] == 'Processed'])
-        app_info['unreachable'] = sum(
-            [0] + [s['unreachable'] for s in app_list[app] if s['state'] == 'Processed'])
-        app_info['other'] = sum(
-            [0] + [s['other'] for s in app_list[app] if s['state'] == 'Processed'])
-        app_info['last_update'] = max(s['last_update'] for s in app_list[app])
-        apps.append(app_info)
-    apps.sort(key=lambda a: a['last_update'], reverse=True)
-    return render_template('v2_index.html', apps=apps, result_path=result_path_str)
-
-
-@flask_app.route("/v2/<result_path>/<app_name>/snapshot/<snapshot_name>/diff/<index>/<sighted_str>")
-def xml_diff_v2(result_path, app_name, snapshot_name, index, sighted_str):
-    is_sighted = sighted_str == "sighted"
-    result_path = pathlib.Path(f"../{result_path}")
-    if not (result_path.is_dir() and result_path.exists()):
-        return "The result path is inccorrect!"
-    snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)
-    flask_app.logger.info(f"Xml Diff for Snapshot_path: {snapshot_path}, index: {index}, is_sighted: {is_sighted}")
+def create_snapshot_info(snapshot_path: pathlib.Path) -> Union[dict, None]:
+    if not snapshot_path.is_dir():
+        return None
+    result_path = snapshot_path.parent.parent
+    snapshot_name = snapshot_path.name
     address_book = AddressBook(snapshot_path)
-    # xml_name = f"M_{index}.xml" if stb == 'True' else f"{index}.xml"
-    prefix = "s_" if is_sighted else ""
-    tb_xml_path = address_book.get_layout_path(f'{prefix}tb', index)
-    reg_xml_path = address_book.get_layout_path(f'{prefix}reg', index)
-    cmd = f"diff --unified {tb_xml_path} {reg_xml_path}"
-    diff_string = subprocess.run(cmd.split(), stdout=subprocess.PIPE).stdout.decode('utf-8')
-    return render_template('xml_diff.html', diff_string=[diff_string])
+    snapshot_info = {}
+    count_map = {
+        'actions': 0,
+        'different_behavior': 0,
+        'unreachable': 0,
+        'other': 0,
+    }
+    analysis_count = 0
+    for post_result_path in snapshot_path.iterdir():
+        if post_result_path.name.startswith(POST_ANALYSIS_PREFIX):
+            analysis_count += 1
+            with open(str(post_result_path), "r") as f:
+                for line in f.readlines():
+                    count_map['actions'] += 1
+                    result = json.loads(line)
+                    if result['issue_status'] == XML_PROBLEM:
+                        count_map['other'] += 1
+                    elif result['issue_status'] == REG_FAILURE:
+                        count_map['other'] += 1
+                    elif result['issue_status'] == TB_FAILURE:
+                        count_map['other'] += 1
+                    elif result['issue_status'] == UNREACHABLE:
+                        count_map['unreachable'] += 1
+                    elif result['issue_status'] == DIFFERENT_BEHAVIOR:
+                        count_map['different_behavior'] += 1
+                    elif result['issue_status'] == SUCCESS:
+                        continue
+                    else:
+                        count_map['other'] += 1000000
+
+    snapshot_info['id'] = snapshot_name
+    snapshot_info['log_path'] = str(snapshot_path.relative_to(result_path.parent))+".log"
+    if analysis_count == 0:
+        snapshot_info['state'] = "Pending" if not address_book.finished_path.exists() else "Unprocessed"
+        for key in count_map:
+            snapshot_info[key] = f"({snapshot_info['state']})"
+    else:
+        snapshot_info['state'] = "Processed"
+        for key in count_map:
+            snapshot_info[key] = math.floor(count_map[key] / analysis_count)
+    snapshot_info['last_update'] = datetime.datetime.fromtimestamp(address_book.snapshot_result_path.stat().st_mtime)
+    return snapshot_info
 
 
-@flask_app.route("/v2/<result_path>/<app_name>/post_analysis")
-def post_analysis(result_path, app_name):
-    result_path = pathlib.Path(f"../{result_path}").resolve()
-    snapshot_count = do_post_analysis(app_path=pathlib.Path(result_path).joinpath(app_name))
-    return jsonify(result=f"{snapshot_count} snapshots of {app_name} are analyzed!")
+def create_app_info(app_path: pathlib.Path) -> Union[dict, None]:
+    if not app_path.is_dir():
+        return None
+    app_name = app_path.name
+    snapshots_info = []
+    for snapshot_path in app_path.iterdir():
+        snapshot_info = create_snapshot_info(snapshot_path)
+        if snapshot_info is not None:
+            snapshots_info.append(snapshot_info)
+    snapshots_info.sort(key=lambda s: s['last_update'], reverse=True)
+    app_info = {}
+    app_info['name'] = app_name.replace(' ', '_')
+    app_info['snapshots'] = snapshots_info
+    app_info['has_unprocessed'] = any(s['state'] == 'Unprocessed' for s in snapshots_info)
+    app_info['actions'] = sum(
+        [0] + [s['actions'] for s in snapshots_info if s['state'] == 'Processed'])
+    app_info['different_behavior'] = sum(
+        [0] + [s['different_behavior'] for s in snapshots_info if s['state'] == 'Processed'])
+    app_info['unreachable'] = sum(
+        [0] + [s['unreachable'] for s in snapshots_info if s['state'] == 'Processed'])
+    app_info['other'] = sum(
+        [0] + [s['other'] for s in snapshots_info if s['state'] == 'Processed'])
+    app_info['last_update'] = max(s['last_update'] for s in snapshots_info)
+    return app_info
 
 
-def create_step(address_book: AddressBook, static_root_path: pathlib.Path, action: dict, post_analysis_results_sub: dict, is_sighted: bool) -> dict:
+def create_step(address_book: AddressBook, static_root_path: pathlib.Path, action: dict, action_post_analysis_results: dict, is_sighted: bool) -> dict:
     prefix = "s_" if is_sighted else ""
     step = {}
     step['index'] = action['index']
+    step['snapshot_info'] = {
+        'result_path': address_book.result_path(),
+        'app_name': address_book.app_name(),
+        'snapshot_name': address_book.snapshot_name()
+    }
     step['action'] = action['element']
     step['mode_info'] = {}
     modes = ['exp', 'tb', 'reg', 'areg']
@@ -299,14 +268,116 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
             step['mode_info'][f'{mode}_result'] = None
     step['is_sighted'] = is_sighted
     step['status'] = min(
-        [100] + [post_analysis_results_sub[ana_name][action['index']]['issue_status'] for ana_name in
-                post_analysis_results_sub])
+        [100] + [action_post_analysis_results[ana_name]['issue_status'] for ana_name in
+                 action_post_analysis_results])
     step['status_messages'] = [
-        f"{ana_name}: {post_analysis_results_sub[ana_name][action['index']]['message']}" for ana_name in
-        post_analysis_results_sub]
+        f"{ana_name}: {action_post_analysis_results[ana_name]['message']}" for ana_name in
+        action_post_analysis_results]
     return step
 
-@flask_app.route("/v2/<result_path>/<app_name>/snapshot/<snapshot_name>/report")
+
+@flask_app.route(f'/v2/static/<path:path>')
+def send_result_static_v2(path):
+    # TODO: Not secure at all
+    result_path = pathlib.Path(f"../{path}")
+    if not (result_path.exists()):
+        if str(result_path).endswith(".png"):
+            return send_from_directory("../", "404.png")
+        return "The path is incorrect!"
+    return send_from_directory(result_path.parent.resolve(), result_path.name)
+
+
+@flask_app.route("/v2/<result_path_str>/search", methods=['GET', 'POST'])
+def search_v2(result_path_str: str):
+    text_field = request.args.get('text', None)
+    content_description_field = request.args.get('contentDescription', None)
+    class_name_field = request.args.get('className', None)
+    tb_type = request.args.get('tbType', 'both')
+    has_post_analysis = request.args.get('hasPostAnalysis', 'off')
+    count_field = request.args.get('count', '10')
+    if not count_field.isdecimal():
+        count_field = 10
+    count_field = int(count_field)
+    result_path = pathlib.Path(f"../{result_path_str}")
+    if not (result_path.is_dir() and result_path.exists()):
+        return "The result path is inccorrect!"
+    search_results = get_search_manager(result_path).search(text=text_field,
+                                                            content_description=content_description_field,
+                                                            class_name=class_name_field,
+                                                            tb_type=tb_type,
+                                                            has_post_analysis=has_post_analysis=='on',
+                                                            limit=count_field)
+    action_results = []
+    for search_result in search_results:
+        action_result = create_step(search_result.address_book,
+                                    result_path.parent,
+                                    search_result.action,
+                                    search_result.post_analysis,
+                                    is_sighted=search_result.is_sighted)
+        action_results.append(action_result)
+    return render_template('search.html',
+                           result_path=result_path_str,
+                           text_field=text_field,
+                           content_description_field=content_description_field,
+                           class_name_field=class_name_field,
+                           tb_type=tb_type,
+                           has_post_analysis=has_post_analysis,
+                           count_field=count_field,
+                           action_results=action_results)
+
+
+@flask_app.route("/v2/<result_path_str>/app/<app_name>")
+def report_app_v2(result_path_str: str, app_name : str):
+    result_path = pathlib.Path(f"../{result_path_str}")
+    if not (result_path.is_dir() and result_path.exists()):
+        return "The result path is incorrect!"
+    app_result_dir = result_path.joinpath(app_name)
+    app = create_app_info(app_result_dir)
+
+    return render_template('v2_app.html', app=app, result_path=result_path_str)
+
+
+@flask_app.route("/v2/<result_path_str>/")
+def report_index_v2(result_path_str: str):
+    result_path = pathlib.Path(f"../{result_path_str}")
+    if not (result_path.is_dir() and result_path.exists()):
+        return "The result path is inccorrect!"
+    apps = []
+    for app_path in result_path.iterdir():
+        app_info = create_app_info(app_path)
+        if app_info is None:
+            continue
+        apps.append(app_info)
+    apps.sort(key=lambda a: a['last_update'], reverse=True)
+    return render_template('v2_index.html', apps=apps, result_path=result_path_str)
+
+
+@flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/diff/<index>/<sighted_str>")
+def xml_diff_v2(result_path, app_name, snapshot_name, index, sighted_str):
+    is_sighted = sighted_str == "sighted"
+    result_path = pathlib.Path(f"../{result_path}")
+    if not (result_path.is_dir() and result_path.exists()):
+        return f"The result path is incorrect! Result Path: {result_path}"
+    snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)
+    flask_app.logger.info(f"Xml Diff for Snapshot_path: {snapshot_path}, index: {index}, is_sighted: {is_sighted}")
+    address_book = AddressBook(snapshot_path)
+    # xml_name = f"M_{index}.xml" if stb == 'True' else f"{index}.xml"
+    prefix = "s_" if is_sighted else ""
+    tb_xml_path = address_book.get_layout_path(f'{prefix}tb', index)
+    reg_xml_path = address_book.get_layout_path(f'{prefix}reg', index)
+    cmd = f"diff --unified {tb_xml_path} {reg_xml_path}"
+    diff_string = subprocess.run(cmd.split(), stdout=subprocess.PIPE).stdout.decode('utf-8')
+    return render_template('xml_diff.html', diff_string=[diff_string])
+
+
+@flask_app.route("/v2/<result_path>/app/<app_name>/post_analysis")
+def post_analysis(result_path, app_name):
+    result_path = pathlib.Path(f"../{result_path}").resolve()
+    snapshot_count = do_post_analysis(app_path=pathlib.Path(result_path).joinpath(app_name))
+    return jsonify(result=f"{snapshot_count} snapshots of {app_name} are analyzed!")
+
+
+@flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/report")
 def report_v2(result_path, app_name, snapshot_name):
     result_path_str = result_path
     result_path = pathlib.Path(f"../{result_path}")
@@ -330,19 +401,7 @@ def report_v2(result_path, app_name, snapshot_name):
     valid_actions_screenshot = str(address_book.valid_action_screenshot.relative_to(result_path.parent))
     visited_actions_screenshot = str(address_book.visited_action_screenshot.relative_to(result_path.parent))
     s_actions_screenshot = str(address_book.s_action_screenshot.relative_to(result_path.parent))
-    post_analysis_results = {'sighted': {}, 'unsighted': {}}
-    for post_result_path in snapshot_path.iterdir():
-        if post_result_path.name.startswith(POST_ANALYSIS_PREFIX):
-            analysis_name = post_result_path.name[len(POST_ANALYSIS_PREFIX)+1:-len('.jsonl')]
-            post_analysis_results['sighted'][analysis_name] = {}
-            post_analysis_results['unsighted'][analysis_name] = {}
-            with open(str(post_result_path), "r") as f:
-                for line in f.readlines():
-                    result = json.loads(line)
-                    if result['is_sighted']:
-                        post_analysis_results['sighted'][analysis_name][result['index']] = result
-                    else:
-                        post_analysis_results['unsighted'][analysis_name][result['index']] = result
+    post_analysis_results = get_post_analysis(snapshot_path=snapshot_path)
     if len(post_analysis_results['unsighted']) == 0:
         errors.append("No post-analysis result is available!")
 
@@ -354,7 +413,7 @@ def report_v2(result_path, app_name, snapshot_name):
             for line in f.readlines():
                 explore_json.append(json.loads(line))
         for action in explore_json:
-            step = create_step(address_book, result_path.parent, action, post_analysis_results['unsighted'], is_sighted=False)
+            step = create_step(address_book, result_path.parent, action, post_analysis_results['unsighted'][action['index']], is_sighted=False)
             tb_steps.append(step)
     stb_steps = []
     if not address_book.s_action_path.exists():
@@ -365,7 +424,7 @@ def report_v2(result_path, app_name, snapshot_name):
             for line in f.readlines():
                 explore_json.append(json.loads(line))
         for action in explore_json:
-            step = create_step(address_book, result_path.parent, action, post_analysis_results['sighted'], is_sighted=True)
+            step = create_step(address_book, result_path.parent, action, post_analysis_results['sighted'][action['index']], is_sighted=True)
             stb_steps.append(step)
     all_steps = {'TalkBack Exploration': tb_steps, 'Sighted TalkBack Checks': stb_steps}
     return render_template('v2_report.html',

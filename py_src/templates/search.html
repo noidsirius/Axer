@@ -1,0 +1,118 @@
+{% from "action_macro.html" import action_row with context %}
+{% from "utils_macro.html" import xml_diff_modal, xml_diff_script, image_modal, image_script with context %}
+{% extends "layout.html" %}
+{% block title %}
+    Search
+{% endblock %}
+{% block content %}
+    <div class="row">
+        <form action="{{ url_for('search_v2', result_path_str=result_path) }}" method="GET">
+            <div class="row">
+                <div class="col-4">
+                    <div class="mb-3">
+                        <label for="textSearchField" class="form-label">Text</label>
+                        <input type="text" class="form-control" name="text" id="textSearchField"
+                        {% if text_field %}
+                            value="{{ text_field }}"
+                        {% endif %}
+                        >
+                    </div>
+                    <div class="mb-3">
+                        <label for="contentDescriptionField" class="form-label">Content Description</label>
+                        <input type="text" class="form-control" name="contentDescription" id="contentDescriptionField"
+                            {% if content_description_field %}
+                               value="{{ content_description_field }}"
+                            {% endif %}
+                        >
+                    </div>
+                    <div class="mb-3">
+                        <label for="classNameField" class="form-label">Class Name</label>
+                        <input type="text" class="form-control" name="className" id="classNameField"
+                                {% if class_name_field %}
+                               value="{{ class_name_field }}"
+                                {% endif %}
+                        >
+                    </div>
+                    <label for="tbSearchField" class="form-label">Talkback Mode</label>
+                    <select class="form-select" name="tbType" id="tbSearchField" aria-label="Talkback Mode">
+                        <option value="both"
+                                {% if tb_type=='both' %}
+                                selected
+                                {% endif %}>
+                            Both
+                        </option>
+                        <option value="exp"
+                                {% if tb_type=='exp' %}
+                                selected
+                                {% endif %}>
+                            Directional
+                        </option>
+                        <option value="sighted"
+                                {% if tb_type=='sighted' %}
+                                selected
+                                {% endif %}>
+                            Random Exploration
+                        </option>
+                    </select>
+                </div>
+                <div class="col-4">
+                    <div class="mb-3">
+                        <input type="checkbox" class="form-check-input" name="hasPostAnalysis" id="hasPostAnalysisField"
+                                {% if has_post_analysis == 'on' %}
+                               checked
+                                {% endif %}
+                        >
+                        <label for="hasPostAnalysisField" class="form-label">Has Post Analysis?</label>
+                    </div>
+                    <label for="countSearchField" class="form-label">Number of Actions</label>
+                    <select class="form-select" name="count" id="tbSearchField" aria-label="Number of Actions">
+                        <option value="10"
+                                {% if count_field==10 %}
+                                selected
+                                {% endif %}>
+                            10
+                        </option>
+                        <option value="50"
+                                {% if count_field==50 %}
+                                selected
+                                {% endif %}>
+                            50
+                        </option>
+                        <option value="100"
+                                {% if count_field==100 %}
+                                selected
+                                {% endif %}>
+                            100
+                        </option>
+                    </select>
+                </div>
+                <div class="col-4">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="row" style="height:25px;"></div>
+    <hr>
+    <div class="row" style="height:25px;"></div>
+    <div class="row">
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Action</th>
+                <th scope="col">Inital</th>
+                <th scope="col">Talkback</th>
+                <th scope="col">Regular</th>
+                <th scope="col">A11y Regular</th>
+                <th scope="col">Result</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for step in action_results %}
+                {{ action_row(step) }}
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

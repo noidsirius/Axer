@@ -1,0 +1,91 @@
+{% macro action_info(action) %}
+    <table class="table">
+        <tr>
+            <td class="text-end">ResourceId</td>
+            <td class="text-start">{{ action.resourceId }}</td>
+        </tr>
+        <tr>
+            <td class="text-end">Text</td>
+            <td class="text-start">{{ action.text }}</td>
+        </tr>
+        <tr>
+            <td class="text-end">Content Description</td>
+            <td class="text-start text-truncate" style="max-width: 150px;">{{ action.contentDescription }}</td>
+        </tr>
+        <tr>
+            <td class="text-end">Class</td>
+            <td class="text-start">{{ action.class }}</td>
+        </tr>
+        <tr>
+            <td class="text-end">XPath</td>
+            <td class="text-start">
+                <button type="button" class="btn btn-light" data-bs-toggle="tooltip"
+                        data-bs-placement="top" title="{{ action.xpath }}">XPath
+                </button>
+            </td>
+        </tr>
+        <tr>
+            <td class="text-end">Bounds</td>
+            <td class="text-start">{{ action.bounds }}</td>
+        </tr>
+    </table>
+{% endmacro %}
+{% macro result_info(action_result) %}
+    {% if action_result.status == 30 %}
+        <td class="table-success">
+    {% elif action_result.status == 2 or action_result.status == 1 %}
+        <td class="table-warning">
+    {% elif action_result.status == 0 %}
+        <td class="table-danger">
+    {% elif action_result.status == 100 %}
+        <td class="table-secondary">
+    {% elif 3 <= action_result.status < 30  %}
+        <td class="table-info">
+    {% else %}
+        <td class="table-light">
+    {% endif %}
+        <ul>
+            {% for message in action_result.status_messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        <a href="#" class="showdiff btn btn-secondary">
+            Show Diff
+            <input type="hidden" class="snapshot-result-path" value="{{ action_result.snapshot_info.result_path }}">
+            <input type="hidden" class="snapshot-app" value="{{ action_result.snapshot_info.app_name }}">
+            <input type="hidden" class="snapshot-name" value="{{ action_result.snapshot_info.snapshot_name }}">
+            <input type="hidden" class="snapshot-index" value="{{ action_result.index }}">
+            <input type="hidden" class="snapshot-sighted" value="{{ 'sighted' if action_result.is_sighted else 'unsighted' }}">
+        </a>
+        </td>
+{% endmacro %}
+{% macro action_row(action_result) %}
+    <tr class="tb-step-{{ "passed" if action_result.status == 30 else "failed" }}">
+        <th scope="row">{{ action_result.index }}</th>
+        <td>
+            {{ action_info(action_result.action) }}
+        </td>
+        {% for mode in ['exp', 'tb', 'reg', 'areg'] %}
+            <td>
+                <a href="#" class="enlarge">
+                    <img src="{{ url_for('send_result_static_v2', path=action_result.mode_info[mode+'_img']) }}" class="rounded d-block mx-auto"
+                         style="width: 10rem;" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ action_result.mode_info[mode+'_result']|e }}" alt="Result of {{ mode }} Selection">
+                </a>
+                <hr>
+                <div class="d-flex justify-content-center">
+                    {% if action_result.mode_info[mode+'_log'] %}
+                        <a href="{{ url_for('send_result_static_v2', path=action_result.mode_info[mode+'_log']) }}">
+                            Log
+                        </a>
+                        -
+                    {% endif %}
+
+                    {% if action_result.mode_info[mode+'_layout'] %}
+                        <a href="{{ url_for('send_result_static_v2', path=action_result.mode_info[mode+'_layout']) }}">Layout</a>
+                    {% endif %}
+                </div>
+            </td>
+        {% endfor %}
+        {{ result_info(action_result) }}
+    </tr>
+{% endmacro %}
