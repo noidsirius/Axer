@@ -13,7 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
 from results_utils import AddressBook
 from post_analysis import do_post_analysis, get_post_analysis, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, XML_PROBLEM\
     , DIFFERENT_BEHAVIOR, UNREACHABLE, POST_ANALYSIS_PREFIX
-from search import SearchResult, get_search_manager
+from search import get_search_manager
 
 logger = logging.getLogger(__name__)
 flask_app = Flask(__name__, static_url_path='', )
@@ -276,6 +276,18 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
     return step
 
 
+@flask_app.context_processor
+def inject_user():
+    all_result_paths = []
+    parent_path = result_path = pathlib.Path(f"..")
+    for result_path in parent_path.iterdir():
+        if not result_path.is_dir():
+            continue
+        if result_path.name.endswith("_results"):
+            all_result_paths.append(result_path.name)
+    return dict(all_result_paths=all_result_paths)
+
+
 @flask_app.route(f'/v2/static/<path:path>')
 def send_result_static_v2(path):
     # TODO: Not secure at all
@@ -285,6 +297,31 @@ def send_result_static_v2(path):
             return send_from_directory("../", "404.png")
         return "The path is incorrect!"
     return send_from_directory(result_path.parent.resolve(), result_path.name)
+
+
+@flask_app.route("/v2/<result_path_str>/")
+def report_index_v2(result_path_str: str):
+    result_path = pathlib.Path(f"../{result_path_str}")
+    if not (result_path.is_dir() and result_path.exists()):
+        return "The result path is inccorrect!"
+    apps = []
+    for app_path in result_path.iterdir():
+        app_info = create_app_info(app_path)
+        if app_info is None:
+            continue
+        apps.append(app_info)
+    apps.sort(key=lambda a: a['last_update'], reverse=True)
+    return render_template('v2_index.html', apps=apps, result_path=result_path_str)
+
+
+@flask_app.route("/v2/<result_path>/app/<app_name>")
+def report_app_v2(result_path: str, app_name: str):
+    result_path = pathlib.Path(f"../{result_path}")
+    if not (result_path.is_dir() and result_path.exists()):
+        return "The result path is incorrect!"
+    app_result_dir = result_path.joinpath(app_name)
+    app = create_app_info(app_result_dir)
+    return render_template('v2_app.html', app=app, result_path=result_path)
 
 
 @flask_app.route("/v2/<result_path_str>/search", methods=['GET', 'POST'])
@@ -326,32 +363,6 @@ def search_v2(result_path_str: str):
                            action_results=action_results)
 
 
-@flask_app.route("/v2/<result_path_str>/app/<app_name>")
-def report_app_v2(result_path_str: str, app_name : str):
-    result_path = pathlib.Path(f"../{result_path_str}")
-    if not (result_path.is_dir() and result_path.exists()):
-        return "The result path is incorrect!"
-    app_result_dir = result_path.joinpath(app_name)
-    app = create_app_info(app_result_dir)
-
-    return render_template('v2_app.html', app=app, result_path=result_path_str)
-
-
-@flask_app.route("/v2/<result_path_str>/")
-def report_index_v2(result_path_str: str):
-    result_path = pathlib.Path(f"../{result_path_str}")
-    if not (result_path.is_dir() and result_path.exists()):
-        return "The result path is inccorrect!"
-    apps = []
-    for app_path in result_path.iterdir():
-        app_info = create_app_info(app_path)
-        if app_info is None:
-            continue
-        apps.append(app_info)
-    apps.sort(key=lambda a: a['last_update'], reverse=True)
-    return render_template('v2_index.html', apps=apps, result_path=result_path_str)
-
-
 @flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/diff/<index>/<sighted_str>")
 def xml_diff_v2(result_path, app_name, snapshot_name, index, sighted_str):
     is_sighted = sighted_str == "sighted"
@@ -361,7 +372,6 @@ def xml_diff_v2(result_path, app_name, snapshot_name, index, sighted_str):
     snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)
     flask_app.logger.info(f"Xml Diff for Snapshot_path: {snapshot_path}, index: {index}, is_sighted: {is_sighted}")
     address_book = AddressBook(snapshot_path)
-    # xml_name = f"M_{index}.xml" if stb == 'True' else f"{index}.xml"
     prefix = "s_" if is_sighted else ""
     tb_xml_path = address_book.get_layout_path(f'{prefix}tb', index)
     reg_xml_path = address_book.get_layout_path(f'{prefix}reg', index)

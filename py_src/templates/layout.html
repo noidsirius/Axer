@@ -23,6 +23,22 @@
             </a>
 
             <ul class="nav nav-pills">
+                <li class="nav-item">
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                            {{ result_path[:-8].capitalize() }}
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                            {% for iter_result_path in all_result_paths if iter_result_path != result_path %}
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('report_index_v2', result_path_str=iter_result_path) }}">
+                                        {{ iter_result_path[:-8].capitalize() }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </li>
                 <li class="nav-item"><a href="{{ url_for('search_v2', result_path_str=result_path) }}" class="nav-link" >Search</a></li>
             </ul>
         </header>

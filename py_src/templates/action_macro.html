@@ -59,9 +59,31 @@
         </a>
         </td>
 {% endmacro %}
-{% macro action_row(action_result) %}
+{% macro action_row(action_result, with_snapshot_info) %}
     <tr class="tb-step-{{ "passed" if action_result.status == 30 else "failed" }}">
-        <th scope="row">{{ action_result.index }}</th>
+        <th scope="row">
+            {% if with_snapshot_info %}
+                <ul>
+                    <li>Index: {{ action_result.index }}</li>
+                    <li>Snapshot: <a
+                            href="{{ url_for('report_v2',
+                                    result_path=action_result.snapshot_info.result_path,
+                                    app_name=action_result.snapshot_info.app_name,
+                                    snapshot_name=action_result.snapshot_info.snapshot_name) }}">
+                        {{ action_result.snapshot_info.snapshot_name }}
+                        </a>
+                    </li>
+                    <li>App: <a href="{{ url_for('report_app_v2',
+                                    result_path=action_result.snapshot_info.result_path,
+                                    app_name=action_result.snapshot_info.app_name) }}">
+                        {{ action_result.snapshot_info.app_name }}
+                        </a>
+                    </li>
+                </ul>
+            {% else %}
+                {{ action_result.index }}
+            {% endif %}
+        </th>
         <td>
             {{ action_info(action_result.action) }}
         </td>
