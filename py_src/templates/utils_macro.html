@@ -1,3 +1,52 @@
+{% macro compare_xml_form(left_xml_field, op_xml_field, right_xml_field) %}
+    <div class="mb-3 row">
+        <label class="form-label">Compare XML</label>
+        <div class="col-4 ">
+            <select class="form-select" name="leftXML[]" aria-label="Left XML Mode">
+                {% for item in [('None', 'None'),
+                                            ('exp','Initial'),
+                                            ('tb','TalkBack'),
+                                            ('reg','Touch'),
+                                            ('areg','A11yTouch')] %}
+                    <option value="{{ item[0] }}" class="text-end"
+                            {% if left_xml_field == item[0] %}
+                            selected
+                            {% endif %}>
+                        {{item[1]}}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-4">
+            <select class="form-select" name="opXML[]" aria-label="Comparison Operator">
+                {% for op in ['=', '≠'] %}
+                    <option value="{{ op }}" class="text-center"
+                            {% if op_xml_field == op %}
+                            selected
+                            {% endif %}>
+                        {{op}}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-4">
+            <select class="form-select" name="rightXML[]" aria-label="Right XML Mode">
+                {% for item in [('None', 'None'),
+                                            ('exp','Initial'),
+                                            ('tb','TalkBack'),
+                                            ('reg','Touch'),
+                                            ('areg','A11yTouch')] %}
+                    <option value="{{ item[0] }}" class="text-start"
+                            {% if right_xml_field == item[0] %}
+                            selected
+                            {% endif %}>
+                        {{item[1]}}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+{% endmacro %}
 {% macro xml_diff_modal() %}
     <div class="modal fade" id="xmldiffmodal" tabindex="-1" role="dialog" aria-labelledby="myXMLModalLabel"
          aria-hidden="true">

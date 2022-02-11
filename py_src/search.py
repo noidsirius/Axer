@@ -9,16 +9,84 @@ from post_analysis import get_post_analysis
 SearchResult = namedtuple('SearchResult', ['action', 'post_analysis', 'address_book', 'is_sighted'])
 
 
+class SearchQuery:
+    def __init__(self):
+        self.filters = []
+
+    def satisfies(self, action, action_post_analysis, is_sighted: bool) -> bool:
+        for i_filter in self.filters:
+            if not i_filter(action, action_post_analysis, is_sighted):
+                return False
+        return True
+
+    def contains_text(self, text):
+        def text_satisfies(action, post_analysis_results, is_sighted) -> bool:
+            if text and text.lower() not in action['element']['text'].lower():
+                return False
+            return True
+        self.filters.append(text_satisfies)
+        return self
+
+    def contains_content_description(self, content_description):
+        def content_description_satisfies(action, post_analysis_results, is_sighted) -> bool:
+            if content_description and content_description.lower() not in action['element']['contentDescription'].lower():
+                return False
+            return True
+        self.filters.append(content_description_satisfies)
+        return self
+
+    def contains_class_name(self, class_name):
+        def class_name_satisfies(action, post_analysis_results, is_sighted) -> bool:
+            if class_name and class_name.lower() not in action['element']['class'].lower():
+                return False
+            return True
+        self.filters.append(class_name_satisfies)
+        return self
+
+    def talkback_mode(self, tb_type: str):
+        def talkback_mode_satisfies(action, post_analysis_results, is_sighted) -> bool:
+            if tb_type == 'exp':
+                return is_sighted is False
+            elif tb_type == 'sighted':
+                return is_sighted is True
+            return True
+        self.filters.append(talkback_mode_satisfies)
+        return self
+
+    def post_analysis(self, only_post_analyzed: bool):
+        def post_analysis_satisfies(action, post_analysis_results, is_sighted) -> bool:
+            if only_post_analyzed:
+                return len(post_analysis_results) > 0
+            return True
+        self.filters.append(post_analysis_satisfies)
+        return self
+
+    def compare_xml(self, first_mode: str, second_mode: str, should_be_same: bool):
+        def has_same_xml_satisfies(action, post_analysis_results, is_sighted) -> bool:
+            modes = ['exp', 'tb', 'reg', 'areg']
+            if first_mode not in modes or second_mode not in modes:
+                return True
+            if len(post_analysis_results) == 0:
+                return True
+            key = f'{first_mode}_{second_mode}'
+            for post_analysis_result in post_analysis_results.values():
+                xml_similar_map = post_analysis_result.get('xml_similar_map', {})
+                if key not in xml_similar_map:
+                    continue
+                if xml_similar_map[key] != should_be_same:
+                    return False
+            return True
+
+        self.filters.append(has_same_xml_satisfies)
+        return self
+
+
 class SearchManager:
     def __init__(self, result_path: Path):
         self.result_path = result_path
 
     def search(self,
-               text: str,
-               content_description: str,
-               class_name: str,
-               tb_type: str,
-               has_post_analysis: bool = False,
+               search_query: SearchQuery,
                limit: int = 10
                ) -> List[SearchResult]:
         search_results = []
@@ -35,30 +103,16 @@ class SearchManager:
                 address_book = AddressBook(snapshot_path)
                 post_analysis_results = get_post_analysis(snapshot_path=snapshot_path)
                 action_paths = [address_book.action_path, address_book.s_action_path]
-                if tb_type == 'exp':
-                    action_paths = [address_book.action_path]
-                elif tb_type == 'sighted':
-                    action_paths = [address_book.s_action_path]
                 for action_path in action_paths:
                     is_sighted = "s_action" in action_path.name
-                    post_analysis_result = post_analysis_results['sighted' if is_sighted else 'unsighted']
-                    if has_post_analysis and len(post_analysis_result) == 0:
-                        continue
                     with open(action_path) as f:
                         for line in f.readlines():
                             action = json.loads(line)
-                            if text:
-                                if text.lower() not in action['element']['text'].lower():
-                                    continue
-                            if content_description:
-                                if content_description.lower() not in action['element']['contentDescription'].lower():
-                                    continue
-                            if class_name:
-                                if class_name.lower() not in action['element']['class'].lower():
-                                    continue
-                            post_analysis = post_analysis_results['sighted' if is_sighted else 'unsighted'].get(action['index'], {})
+                            action_post_analysis = post_analysis_results['sighted' if is_sighted else 'unsighted'].get(action['index'], {})
+                            if not search_query.satisfies(action, action_post_analysis, is_sighted):
+                                continue
                             search_result = SearchResult(action=action,
-                                                         post_analysis=post_analysis,
+                                                         post_analysis=action_post_analysis,
                                                          address_book=address_book,
                                                          is_sighted=is_sighted)
                             search_results.append(search_result)

@@ -1,12 +1,12 @@
 {% from "action_macro.html" import action_row with context %}
-{% from "utils_macro.html" import xml_diff_modal, xml_diff_script, image_modal, image_script with context %}
+{% from "utils_macro.html" import compare_xml with context %}
 {% extends "layout.html" %}
 {% block title %}
     Search
 {% endblock %}
 {% block content %}
     <div class="row">
-        <form action="{{ url_for('search_v2', result_path_str=result_path) }}" method="GET">
+        <form action="{{ url_for('search_v2', result_path_str=result_path) }}" id="search_form" method="GET">
             <div class="row">
                 <div class="col-4">
                     <div class="mb-3">
@@ -35,27 +35,33 @@
                     </div>
                     <label for="tbSearchField" class="form-label">Talkback Mode</label>
                     <select class="form-select" name="tbType" id="tbSearchField" aria-label="Talkback Mode">
-                        <option value="both"
-                                {% if tb_type=='both' %}
-                                selected
-                                {% endif %}>
-                            Both
-                        </option>
-                        <option value="exp"
-                                {% if tb_type=='exp' %}
-                                selected
-                                {% endif %}>
-                            Directional
-                        </option>
-                        <option value="sighted"
-                                {% if tb_type=='sighted' %}
-                                selected
-                                {% endif %}>
-                            Random Exploration
-                        </option>
+                        {% for item in [('both', 'Both'), ('exp', 'Directional'), ('sighted', 'Random Exploration') ] %}
+                            <option value="{{ item[0] }}"
+                                    {% if tb_type==item[0] %}
+                                    selected
+                                    {% endif %}>
+                                {{ item[1] }}
+                            </option>
+                        {% endfor  %}
                     </select>
                 </div>
                 <div class="col-4">
+                    <div class="mb-3">
+                        <label for="countSearchField" class="form-label">Number of Actions</label>
+                        <select class="form-select" name="count" id="countSearchField" aria-label="Number of Actions">
+                            {% for i in [10, 50, 100] %}
+                                <option value="{{ i }}"
+                                        {% if count_field==i %}
+                                        selected
+                                        {% endif %}>
+                                    {{i}}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% for item in xml_fields %}
+                        {{ compare_xml_form(item[0], item[1], item[2]) }}
+                    {% endfor %}
                     <div class="mb-3">
                         <input type="checkbox" class="form-check-input" name="hasPostAnalysis" id="hasPostAnalysisField"
                                 {% if has_post_analysis == 'on' %}
@@ -64,30 +70,10 @@
                         >
                         <label for="hasPostAnalysisField" class="form-label">Has Post Analysis?</label>
                     </div>
-                    <label for="countSearchField" class="form-label">Number of Actions</label>
-                    <select class="form-select" name="count" id="tbSearchField" aria-label="Number of Actions">
-                        <option value="10"
-                                {% if count_field==10 %}
-                                selected
-                                {% endif %}>
-                            10
-                        </option>
-                        <option value="50"
-                                {% if count_field==50 %}
-                                selected
-                                {% endif %}>
-                            50
-                        </option>
-                        <option value="100"
-                                {% if count_field==100 %}
-                                selected
-                                {% endif %}>
-                            100
-                        </option>
-                    </select>
                 </div>
                 <div class="col-4">
-                    <button type="submit" class="btn btn-primary">Submit</button>
+                    <button type="submit" class="btn btn-primary">Search</button>
+                    <a id="clear_form" class="btn btn-warning">Clear Form</a>
                 </div>
             </div>
         </form>
@@ -115,4 +101,18 @@
             </tbody>
         </table>
     </div>
+{% endblock %}
+{% block script_content %}
+    <script>
+        $(function () {
+            $('#clear_form').on('click', function () {
+                $(':input','#search_form')
+                    .not(':button, :submit, :reset, :hidden')
+                    .val('')
+                    .prop('checked', false)
+                    .prop('selected', false);
+            });
+        });
+    </script>
+
 {% endblock %}

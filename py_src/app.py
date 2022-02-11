@@ -9,11 +9,13 @@ import os
 import math
 import datetime
 from flask import Flask, request, jsonify, send_from_directory, render_template
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
 from results_utils import AddressBook
-from post_analysis import do_post_analysis, get_post_analysis, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, XML_PROBLEM\
+from post_analysis import do_post_analysis, get_post_analysis, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, \
+    XML_PROBLEM \
     , DIFFERENT_BEHAVIOR, UNREACHABLE, POST_ANALYSIS_PREFIX
-from search import get_search_manager
+from search import get_search_manager, SearchQuery
 
 logger = logging.getLogger(__name__)
 flask_app = Flask(__name__, static_url_path='', )
@@ -22,6 +24,8 @@ flask_app = Flask(__name__, static_url_path='', )
 # ---------------------------- TODO: Will Be removed once the old results are analyzed ---------------------
 RESULT_STATIC_URI = '/old_result_jan_12/'
 RESULT_PATH = pathlib.Path("../old_result_jan_12")
+
+
 # RESULT_PATH = pathlib.Path("../old_result_jan_12")
 
 
@@ -46,7 +50,8 @@ def report_index():
             snapshot_info['different_behavior'] = "(pending)" if pending else len(different_behaviors) + len(
                 different_behaviors_directional_unreachable)
             snapshot_info['unreachable'] = "(pending)" if pending else len(unlocatable) + len(directional_unreachable)
-            snapshot_info['last_update'] = datetime.datetime.fromtimestamp(address_book.snapshot_result_path.stat().st_mtime)
+            snapshot_info['last_update'] = datetime.datetime.fromtimestamp(
+                address_book.snapshot_result_path.stat().st_mtime)
             app_list[app_name].append(snapshot_info)
     apps = []
     for app in app_list:
@@ -157,6 +162,7 @@ def report(name):
             stb_steps.append(step)
     return render_template('report.html', tb_steps=tb_steps, name=name, stb_steps=stb_steps, errors=errors)
 
+
 # ---------------------------- End Legacy Results ---------------------
 
 
@@ -197,7 +203,7 @@ def create_snapshot_info(snapshot_path: pathlib.Path) -> Union[dict, None]:
                         count_map['other'] += 1000000
 
     snapshot_info['id'] = snapshot_name
-    snapshot_info['log_path'] = str(snapshot_path.relative_to(result_path.parent))+".log"
+    snapshot_info['log_path'] = str(snapshot_path.relative_to(result_path.parent)) + ".log"
     if analysis_count == 0:
         snapshot_info['state'] = "Pending" if not address_book.finished_path.exists() else "Unprocessed"
         for key in count_map:
@@ -236,7 +242,8 @@ def create_app_info(app_path: pathlib.Path) -> Union[dict, None]:
     return app_info
 
 
-def create_step(address_book: AddressBook, static_root_path: pathlib.Path, action: dict, action_post_analysis_results: dict, is_sighted: bool) -> dict:
+def create_step(address_book: AddressBook, static_root_path: pathlib.Path, action: dict,
+                action_post_analysis_results: dict, is_sighted: bool) -> dict:
     prefix = "s_" if is_sighted else ""
     step = {}
     step['index'] = action['index']
@@ -250,16 +257,29 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
     modes = ['exp', 'tb', 'reg', 'areg']
     for mode in modes:
         if mode == 'exp':
-            step['mode_info'][f'{mode}_img'] = address_book.get_screenshot_path(f'{prefix}{mode}', action['index'], extension='edited').relative_to(static_root_path)
+            step['mode_info'][f'{mode}_img'] = address_book.get_screenshot_path(f'{prefix}{mode}', action['index'],
+                                                                                extension='edited').relative_to(
+                static_root_path)
             if is_sighted:
-                step['mode_info'][f'{mode}_layout'] = address_book.get_layout_path(f'{prefix}{mode}', "INITIAL").relative_to(static_root_path)
+                step['mode_info'][f'{mode}_layout'] = address_book.get_layout_path(f'{prefix}{mode}',
+                                                                                   "INITIAL").relative_to(
+                    static_root_path)
             else:
-                step['mode_info'][f'{mode}_log'] = address_book.get_log_path(f'{prefix}{mode}', action['index']).relative_to(static_root_path)
-                step['mode_info'][f'{mode}_layout'] = address_book.get_layout_path(f'{prefix}{mode}', action['index']).relative_to(static_root_path)
+                step['mode_info'][f'{mode}_log'] = address_book.get_log_path(f'{prefix}{mode}',
+                                                                             action['index']).relative_to(
+                    static_root_path)
+                step['mode_info'][f'{mode}_layout'] = address_book.get_layout_path(f'{prefix}{mode}',
+                                                                                   action['index']).relative_to(
+                    static_root_path)
         elif f'{mode}_action_result' in action:
-            step['mode_info'][f'{mode}_img'] = address_book.get_screenshot_path(f'{prefix}{mode}', action['index']).relative_to(static_root_path)
-            step['mode_info'][f'{mode}_log'] = address_book.get_log_path(f'{prefix}{mode}', action['index']).relative_to(static_root_path)
-            step['mode_info'][f'{mode}_layout'] = address_book.get_layout_path(f'{prefix}{mode}', action['index']).relative_to(static_root_path)
+            step['mode_info'][f'{mode}_img'] = address_book.get_screenshot_path(f'{prefix}{mode}',
+                                                                                action['index']).relative_to(
+                static_root_path)
+            step['mode_info'][f'{mode}_log'] = address_book.get_log_path(f'{prefix}{mode}',
+                                                                         action['index']).relative_to(static_root_path)
+            step['mode_info'][f'{mode}_layout'] = address_book.get_layout_path(f'{prefix}{mode}',
+                                                                               action['index']).relative_to(
+                static_root_path)
             step['mode_info'][f'{mode}_result'] = action[f'{mode}_action_result']
         else:
             step['mode_info'][f'{mode}_img'] = '404.png'
@@ -331,6 +351,13 @@ def search_v2(result_path_str: str):
     class_name_field = request.args.get('className', None)
     tb_type = request.args.get('tbType', 'both')
     has_post_analysis = request.args.get('hasPostAnalysis', 'off')
+    left_xml_fields = request.args.getlist('leftXML[]')
+    op_xml_fields = request.args.getlist('opXML[]')
+    right_xml_fields = request.args.getlist('rightXML[]')
+    if len(left_xml_fields) == 0:
+        left_xml_fields = ['None'] * 2
+        op_xml_fields = ['=', '≠']
+        right_xml_fields = ['None'] * 2
     count_field = request.args.get('count', '10')
     if not count_field.isdecimal():
         count_field = 10
@@ -338,11 +365,20 @@ def search_v2(result_path_str: str):
     result_path = pathlib.Path(f"../{result_path_str}")
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is inccorrect!"
-    search_results = get_search_manager(result_path).search(text=text_field,
-                                                            content_description=content_description_field,
-                                                            class_name=class_name_field,
-                                                            tb_type=tb_type,
-                                                            has_post_analysis=has_post_analysis=='on',
+    search_query = SearchQuery()\
+        .talkback_mode(tb_type) \
+        .post_analysis(only_post_analyzed=has_post_analysis == 'on')
+    if text_field:
+        search_query.contains_text(text_field)
+    if content_description_field:
+        search_query.contains_content_description(content_description_field)
+    if class_name_field:
+        search_query.contains_class_name(class_name_field)
+    for (left_xml_field, op_xml_field, right_xml_field) in zip(left_xml_fields, op_xml_fields, right_xml_fields):
+        if left_xml_field != 'None' and right_xml_field != 'None':
+            search_query.compare_xml(left_xml_field, right_xml_field, should_be_same=op_xml_field == '=')
+
+    search_results = get_search_manager(result_path).search(search_query=search_query,
                                                             limit=count_field)
     action_results = []
     for search_result in search_results:
@@ -360,6 +396,7 @@ def search_v2(result_path_str: str):
                            tb_type=tb_type,
                            has_post_analysis=has_post_analysis,
                            count_field=count_field,
+                           xml_fields=zip(left_xml_fields, op_xml_fields, right_xml_fields),
                            action_results=action_results)
 
 
@@ -397,13 +434,13 @@ def report_v2(result_path, app_name, snapshot_name):
     address_book = AddressBook(snapshot_path)
     tb_steps = []
     errors = []
-    bm_log_path = str(snapshot_path.relative_to(result_path.parent))+".log"
+    bm_log_path = str(snapshot_path.relative_to(result_path.parent)) + ".log"
     error_logs = ""
     with open(f"{str(snapshot_path)}.log") as f:
         for line in f.readlines():
             if line.startswith("ERROR:"):
                 error_logs += line
-    initial_xml_path = str(address_book.get_layout_path('exp', 'INITIAL',).relative_to(result_path.parent))
+    initial_xml_path = str(address_book.get_layout_path('exp', 'INITIAL', ).relative_to(result_path.parent))
     last_explore_log_path = str(address_book.last_explore_log_path.relative_to(result_path.parent))
     all_elements_screenshot = str(address_book.all_element_screenshot.relative_to(result_path.parent))
     all_actions_screenshot = str(address_book.all_action_screenshot.relative_to(result_path.parent))
@@ -423,7 +460,8 @@ def report_v2(result_path, app_name, snapshot_name):
             for line in f.readlines():
                 explore_json.append(json.loads(line))
         for action in explore_json:
-            step = create_step(address_book, result_path.parent, action, post_analysis_results['unsighted'][action['index']], is_sighted=False)
+            step = create_step(address_book, result_path.parent, action,
+                               post_analysis_results['unsighted'][action['index']], is_sighted=False)
             tb_steps.append(step)
     stb_steps = []
     if not address_book.s_action_path.exists():
@@ -434,7 +472,8 @@ def report_v2(result_path, app_name, snapshot_name):
             for line in f.readlines():
                 explore_json.append(json.loads(line))
         for action in explore_json:
-            step = create_step(address_book, result_path.parent, action, post_analysis_results['sighted'][action['index']], is_sighted=True)
+            step = create_step(address_book, result_path.parent, action,
+                               post_analysis_results['sighted'][action['index']], is_sighted=True)
             stb_steps.append(step)
     all_steps = {'TalkBack Exploration': tb_steps, 'Sighted TalkBack Checks': stb_steps}
     return render_template('v2_report.html',
