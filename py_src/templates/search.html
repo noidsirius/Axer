@@ -62,7 +62,56 @@
                     {% for item in xml_fields %}
                         {{ compare_xml_form(item[0], item[1], item[2]) }}
                     {% endfor %}
-
+                    <div class="mb-3 row">
+                        <div class="col-4 ">
+                            <label class="form-label">TalkBack Result</label>
+                            <select class="form-select" name="tbResult" aria-label="TalkBack Result">
+                                {% for item in [('ALL', 'All'),
+                                            ('COMPLETED','Completed'),
+                                            ('FAILED','Failed'),
+                                            ('TIMEOUT','Timeout')] %}
+                                    <option value="{{ item[0] }}"
+                                            {% if tb_result_field == item[0] %}
+                                            selected
+                                            {% endif %}>
+                                        {{item[1]}}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Touch Result</label>
+                            <select class="form-select" name="regResult" aria-label="Touch Result">
+                                {% for item in [('ALL', 'All'),
+                                            ('COMPLETED','Completed'),
+                                            ('FAILED','Failed'),
+                                            ('TIMEOUT','Timeout')] %}
+                                    <option value="{{ item[0] }}"
+                                            {% if reg_result_field == item[0] %}
+                                            selected
+                                            {% endif %}>
+                                        {{item[1]}}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">A11yTouch Result</label>
+                            <select class="form-select" name="aregResult" aria-label="A11yTouch Result">
+                                {% for item in [('ALL', 'All'),
+                                            ('COMPLETED','Completed'),
+                                            ('FAILED','Failed'),
+                                            ('TIMEOUT','Timeout')] %}
+                                    <option value="{{ item[0] }}"
+                                            {% if areg_result_field == item[0] %}
+                                            selected
+                                            {% endif %}>
+                                        {{item[1]}}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
 
                 </div>
                 <div class="col-4">

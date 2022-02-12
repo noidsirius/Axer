@@ -360,6 +360,9 @@ def search_v2(result_path_str: str):
     has_post_analysis = request.args.get('hasPostAnalysis', 'off')
     include_tags_field = request.args.get('includeTags', '')
     exclude_tags_field = request.args.get('excludeTags', '')
+    tb_result_field = request.args.get('tbResult', 'ALL')
+    reg_result_field = request.args.get('regResult', 'ALL')
+    areg_result_field = request.args.get('aregResult', 'ALL')
     left_xml_fields = request.args.getlist('leftXML[]')
     op_xml_fields = request.args.getlist('opXML[]')
     right_xml_fields = request.args.getlist('rightXML[]')
@@ -385,9 +388,14 @@ def search_v2(result_path_str: str):
         search_query.contains_content_description(content_description_field)
     if class_name_field:
         search_query.contains_class_name(class_name_field)
-    flask_app.logger.error(f'=============> {include_tags} {exclude_tags}')
     if len(include_tags) > 0 or len(exclude_tags) > 0:
         search_query.contains_tags(include_tags, exclude_tags)
+    if tb_result_field:
+        search_query.executor_result('tb', tb_result_field)
+    if reg_result_field:
+        search_query.executor_result('reg', reg_result_field)
+    if areg_result_field:
+        search_query.executor_result('areg', areg_result_field)
 
     for (left_xml_field, op_xml_field, right_xml_field) in zip(left_xml_fields, op_xml_fields, right_xml_fields):
         if left_xml_field != 'None' and right_xml_field != 'None':
@@ -409,6 +417,9 @@ def search_v2(result_path_str: str):
                            content_description_field=content_description_field,
                            class_name_field=class_name_field,
                            tb_type=tb_type,
+                           tb_result_field=tb_result_field,
+                           reg_result_field=reg_result_field,
+                           areg_result_field=areg_result_field,
                            has_post_analysis=has_post_analysis,
                            count_field=count_field,
                            include_tags_field=include_tags_field,

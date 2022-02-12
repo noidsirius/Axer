@@ -88,6 +88,19 @@ class SearchQuery:
         self.filters.append(post_analysis_satisfies)
         return self
 
+    def executor_result(self, mode: str, result: str):
+        def executor_result_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
+            executor_result = action.get(f'{mode}_action_result', ('FAILED',))[0]
+            if executor_result not in ['FAILED', 'COMPLETED', 'TIMEOUT']:
+                executor_result = 'FAILED'
+            if executor_result != result:
+                return False
+            return True
+
+        if result != 'ALL':
+            self.filters.append(executor_result_satisfies)
+        return self
+
     def compare_xml(self, first_mode: str, second_mode: str, should_be_same: bool):
         def has_same_xml_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
             modes = ['exp', 'tb', 'reg', 'areg']
