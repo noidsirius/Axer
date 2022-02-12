@@ -71,7 +71,7 @@
             let sighted_str = $(this).find('.snapshot-sighted').attr('value');
 
 
-            let iframe_link = `/v2/${result_path}/app/${app_name}/snapshot/${snapshot_name}/diff/${index}/${sighted_str}`
+            let iframe_link = `/v2/${result_path}/app/${app_name}/snapshot/${snapshot_name}/action/${index}/${sighted_str}/diff`
 
             $('#diff_iframe_id').attr('src', iframe_link);
             $('#xmldiffmodal').modal('show');

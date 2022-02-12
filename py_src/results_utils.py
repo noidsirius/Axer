@@ -33,6 +33,7 @@ class AddressBook:
         self.last_explore_log_path = self.snapshot_result_path.joinpath("last_explore.log")
         self.visited_elements_path = self.snapshot_result_path.joinpath("visited.jsonl")
         self.valid_elements_path = self.snapshot_result_path.joinpath("valid_elements.jsonl")
+        self.tags_path = self.snapshot_result_path.joinpath("tags.jsonl")
         self.s_action_path = self.snapshot_result_path.joinpath("s_action.jsonl")
         self.s_action_screenshot = self.mode_path_map['s_exp'].joinpath("all_actions.png")
 

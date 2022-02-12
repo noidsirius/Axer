@@ -1,5 +1,5 @@
-{% from "action_macro.html" import action_row with context %}
-{% from "utils_macro.html" import compare_xml with context %}
+{% from "action_macro.html" import action_row, action_tag_script with context %}
+{% from "utils_macro.html" import compare_xml_form with context %}
 {% extends "layout.html" %}
 {% block title %}
     Search
@@ -62,6 +62,26 @@
                     {% for item in xml_fields %}
                         {{ compare_xml_form(item[0], item[1], item[2]) }}
                     {% endfor %}
+
+
+                </div>
+                <div class="col-4">
+                    <div class="mb-3">
+                        <label for="includeTagsField" class="form-label">Include Tags</label>
+                        <input type="text" class="form-control" name="includeTags" id="includeTagsField"
+                                {% if include_tags_field %}
+                               value="{{ include_tags_field }}"
+                                {% endif %}
+                        >
+                    </div>
+                    <div class="mb-3">
+                        <label for="excludeTagsField" class="form-label">Exclude Tags</label>
+                        <input type="text" class="form-control" name="excludeTags" id="excludeTagsField"
+                                {% if exclude_tags_field %}
+                               value="{{ exclude_tags_field }}"
+                                {% endif %}
+                        >
+                    </div>
                     <div class="mb-3">
                         <input type="checkbox" class="form-check-input" name="hasPostAnalysis" id="hasPostAnalysisField"
                                 {% if has_post_analysis == 'on' %}
@@ -70,8 +90,6 @@
                         >
                         <label for="hasPostAnalysisField" class="form-label">Has Post Analysis?</label>
                     </div>
-                </div>
-                <div class="col-4">
                     <button type="submit" class="btn btn-primary">Search</button>
                     <a id="clear_form" class="btn btn-warning">Clear Form</a>
                 </div>
@@ -114,5 +132,6 @@
             });
         });
     </script>
+    {{ action_tag_script() }}
 
 {% endblock %}

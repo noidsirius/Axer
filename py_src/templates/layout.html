@@ -76,7 +76,12 @@
             return new bootstrap.Tooltip(tooltipTriggerEl)
         })
     });
-
+    $('.copyer').on('click', function () {
+        console.log($(this))
+        let textToCopy = $(this).find('.text-to-copy').attr('value');
+        {#let textToCopy = $(element).text();#}
+        navigator.clipboard.writeText(textToCopy)
+    });
 </script>
 {{ xml_diff_script() }}
 {{ image_script() }}

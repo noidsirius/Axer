@@ -253,6 +253,13 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
         'snapshot_name': address_book.snapshot_name()
     }
     step['action'] = action['element']
+    step['tags'] = []
+    if address_book.tags_path.exists():
+        with open(address_book.tags_path) as f:
+            for line in f.readlines():
+                tag_info = json.loads(line)
+                if tag_info['index'] == action['index'] and tag_info['is_sighted'] == is_sighted:
+                    step['tags'].append(tag_info['tag'])
     step['mode_info'] = {}
     modes = ['exp', 'tb', 'reg', 'areg']
     for mode in modes:
@@ -351,6 +358,8 @@ def search_v2(result_path_str: str):
     class_name_field = request.args.get('className', None)
     tb_type = request.args.get('tbType', 'both')
     has_post_analysis = request.args.get('hasPostAnalysis', 'off')
+    include_tags_field = request.args.get('includeTags', '')
+    exclude_tags_field = request.args.get('excludeTags', '')
     left_xml_fields = request.args.getlist('leftXML[]')
     op_xml_fields = request.args.getlist('opXML[]')
     right_xml_fields = request.args.getlist('rightXML[]')
@@ -362,6 +371,8 @@ def search_v2(result_path_str: str):
     if not count_field.isdecimal():
         count_field = 10
     count_field = int(count_field)
+    include_tags = include_tags_field.split(",")
+    exclude_tags = exclude_tags_field.split(",")
     result_path = pathlib.Path(f"../{result_path_str}")
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is inccorrect!"
@@ -374,6 +385,10 @@ def search_v2(result_path_str: str):
         search_query.contains_content_description(content_description_field)
     if class_name_field:
         search_query.contains_class_name(class_name_field)
+    flask_app.logger.error(f'=============> {include_tags} {exclude_tags}')
+    if len(include_tags) > 0 or len(exclude_tags) > 0:
+        search_query.contains_tags(include_tags, exclude_tags)
+
     for (left_xml_field, op_xml_field, right_xml_field) in zip(left_xml_fields, op_xml_fields, right_xml_fields):
         if left_xml_field != 'None' and right_xml_field != 'None':
             search_query.compare_xml(left_xml_field, right_xml_field, should_be_same=op_xml_field == '=')
@@ -396,11 +411,13 @@ def search_v2(result_path_str: str):
                            tb_type=tb_type,
                            has_post_analysis=has_post_analysis,
                            count_field=count_field,
+                           include_tags_field=include_tags_field,
+                           exclude_tags_field=exclude_tags_field,
                            xml_fields=zip(left_xml_fields, op_xml_fields, right_xml_fields),
                            action_results=action_results)
 
 
-@flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/diff/<index>/<sighted_str>")
+@flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/action/<index>/<sighted_str>/diff")
 def xml_diff_v2(result_path, app_name, snapshot_name, index, sighted_str):
     is_sighted = sighted_str == "sighted"
     result_path = pathlib.Path(f"../{result_path}")
@@ -424,12 +441,28 @@ def post_analysis(result_path, app_name):
     return jsonify(result=f"{snapshot_count} snapshots of {app_name} are analyzed!")
 
 
+@flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/action/<index>/<is_sighted>/tag/<tag>")
+def tag_action(result_path, app_name, snapshot_name, index, is_sighted, tag):
+    result_path = pathlib.Path(f"../{result_path}").resolve()
+    snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)
+    if not snapshot_path.is_dir():
+        return jsonify(result=False)
+    if ',' in tag:
+        return jsonify(result=False)
+    address_book = AddressBook(snapshot_path)
+    is_sighted = is_sighted == 'sighted'
+    index = int(index)
+    with open(address_book.tags_path, 'a') as f:
+        f.write(json.dumps({'index': index, 'is_sighted': is_sighted, 'tag': tag}) + "\n")
+    return jsonify(result=True)
+
+
 @flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/report")
 def report_v2(result_path, app_name, snapshot_name):
     result_path_str = result_path
     result_path = pathlib.Path(f"../{result_path}")
     if not (result_path.is_dir() and result_path.exists()):
-        return "The result path is inccorrect!"
+        return "The result path is incorrect!"
     snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)
     address_book = AddressBook(snapshot_path)
     tb_steps = []
