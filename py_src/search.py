@@ -70,6 +70,23 @@ class SearchQuery:
         self.filters.append(tag_satisfies)
         return self
 
+    def xml_search(self, select_mode: str, query: str):
+        def xml_search_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
+            modes = ['tb', 'reg', 'areg']
+            if select_mode in modes:
+                modes = [select_mode]
+            prefix = "s_" if is_sighted else ''
+            for mode in modes:
+                layout_path = address_book.get_layout_path(mode=f"{prefix}{mode}",  index=action['index'], should_exists=True)
+                if layout_path:
+                    with open(layout_path) as f:
+                        if query.lower() in f.read().lower():
+                            return True
+            return False
+
+        self.filters.append(xml_search_satisfies)
+        return self
+
     def talkback_mode(self, tb_type: str):
         def talkback_mode_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
             if tb_type == 'exp':

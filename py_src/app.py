@@ -363,6 +363,8 @@ def search_v2(result_path_str: str):
     tb_result_field = request.args.get('tbResult', 'ALL')
     reg_result_field = request.args.get('regResult', 'ALL')
     areg_result_field = request.args.get('aregResult', 'ALL')
+    xml_search_field = request.args.get('xmlSearchQuery', None)
+    xml_search_mode = request.args.get('xmlSearchMode', 'ALL')
     left_xml_fields = request.args.getlist('leftXML[]')
     op_xml_fields = request.args.getlist('opXML[]')
     right_xml_fields = request.args.getlist('rightXML[]')
@@ -396,6 +398,8 @@ def search_v2(result_path_str: str):
         search_query.executor_result('reg', reg_result_field)
     if areg_result_field:
         search_query.executor_result('areg', areg_result_field)
+    if xml_search_field:
+        search_query.xml_search(xml_search_mode, xml_search_field)
 
     for (left_xml_field, op_xml_field, right_xml_field) in zip(left_xml_fields, op_xml_fields, right_xml_fields):
         if left_xml_field != 'None' and right_xml_field != 'None':
@@ -425,6 +429,8 @@ def search_v2(result_path_str: str):
                            include_tags_field=include_tags_field,
                            exclude_tags_field=exclude_tags_field,
                            xml_fields=zip(left_xml_fields, op_xml_fields, right_xml_fields),
+                           xml_search_field=xml_search_field,
+                           xml_search_mode=xml_search_mode,
                            action_results=action_results)
 
 
