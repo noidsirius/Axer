@@ -39,6 +39,14 @@
                                 >
                             </div>
                             <div class="mb-3">
+                                <label for="resourceIdField" class="form-label">ResourceId</label>
+                                <input type="text" class="form-control" name="resourceId" id="resourceIdField"
+                                        {% if resource_id_field %}
+                                       value="{{ resource_id_field }}"
+                                        {% endif %}
+                                >
+                            </div>
+                            <div class="mb-3">
                                 <label for="tbSearchField" class="form-label">Talkback Mode</label>
                                 <select class="form-select" name="tbType" id="tbSearchField" aria-label="Talkback Mode">
                                     {% for item in [('both', 'Both'), ('exp', 'Directional'), ('sighted', 'Random Exploration') ] %}
@@ -105,7 +113,7 @@
                     </div>
                 </div>
                 <div class="col-4">
-                    <div class="card">
+                    <div class="card mb-2">
                         <div class="card-header">
                             Layout
                         </div>
@@ -128,7 +136,24 @@
                                         {% endfor %}
                                     </select>
                                 </div>
-                                <div class="col-9">
+                                <div class="col-3">
+                                    <select class="form-select" name="xmlSearchAttr" aria-label="XML Search Attribute">
+                                        {% for item in [('ALL', 'All'),
+                                            ('text','Text'),
+                                            ('content-desc','ContentDescription'),
+                                            ('class','ClassName'),
+                                            ('resource-id','ResourceId'),
+                                            ('supportsWebAction','SupportsWebAction')] %}
+                                            <option value="{{ item[0] }}" class="text-start"
+                                                    {% if xml_search_attr == item[0] %}
+                                                    selected
+                                                    {% endif %}>
+                                                {{item[1]}}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-6">
                                     <input type="text" class="form-control" name="xmlSearchQuery" id="xmlSearchField"
                                             {% if xml_search_field %}
                                            value="{{ xml_search_field }}"
@@ -139,6 +164,34 @@
                             {% for item in xml_fields %}
                                 {{ compare_xml_form(item[0], item[1], item[2]) }}
                             {% endfor %}
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            App & Snapshot
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <label for="appField" class="form-label">App</label>
+                                <select class="form-select" name="appName" aria-label="App Name">
+                                    {% for item in app_names %}
+                                        <option value="{{ item }}" class="text-start"
+                                                {% if app_name_field == item %}
+                                                selected
+                                                {% endif %}>
+                                            {{item}}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <input type="checkbox" class="form-check-input" name="oneResultPerSnapshot" id="oneResultPerSnapshotField"
+                                        {% if one_result_per_snapshot == 'on' %}
+                                       checked
+                                        {% endif %}
+                                >
+                                <label for="oneResultPerSnapshotField" class="form-label">One Result Per Snapshot</label>
+                            </div>
                         </div>
                     </div>
                 </div>

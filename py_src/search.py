@@ -12,6 +12,17 @@ SearchResult = namedtuple('SearchResult', ['action', 'post_analysis', 'address_b
 class SearchQuery:
     def __init__(self):
         self.filters = []
+        self.valid_app = None
+
+    def is_valid_app(self, app_name):
+        if self.valid_app is None:
+            return True
+        return app_name == self.valid_app
+
+    def set_valid_app(self, app_name):
+        if app_name != 'All':
+            self.valid_app = app_name
+        return self
 
     def satisfies(self, action, action_post_analysis, address_book: AddressBook, is_sighted: bool) -> bool:
         for i_filter in self.filters:
@@ -43,6 +54,14 @@ class SearchQuery:
         self.filters.append(class_name_satisfies)
         return self
 
+    def contains_resource_id(self, resource_id):
+        def resource_id_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
+            if resource_id and resource_id.lower() not in action['element']['resourceId'].lower():
+                return False
+            return True
+        self.filters.append(resource_id_satisfies)
+        return self
+
     def contains_tags(self, include_tags: List[str], exclude_tags: List[str]):
         include_tags = [x for x in include_tags if x]
         exclude_tags = [x for x in exclude_tags if x]
@@ -70,18 +89,28 @@ class SearchQuery:
         self.filters.append(tag_satisfies)
         return self
 
-    def xml_search(self, select_mode: str, query: str):
+    def xml_search(self, select_mode: str, attr: str, query: str):
         def xml_search_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
-            modes = ['tb', 'reg', 'areg']
+            modes = ['exp', 'tb', 'reg', 'areg']
             if select_mode in modes:
                 modes = [select_mode]
             prefix = "s_" if is_sighted else ''
             for mode in modes:
-                layout_path = address_book.get_layout_path(mode=f"{prefix}{mode}",  index=action['index'], should_exists=True)
+                if mode == 'exp' and is_sighted:
+                    layout_path = address_book.get_layout_path(mode=f"{prefix}{mode}",  index="INITIAL", should_exists=True)
+                else:
+                    layout_path = address_book.get_layout_path(mode=f"{prefix}{mode}",  index=action['index'], should_exists=True)
                 if layout_path:
                     with open(layout_path) as f:
-                        if query.lower() in f.read().lower():
-                            return True
+                        if attr == 'ALL':
+                            if query.lower() in f.read().lower():
+                                return True
+                        else:
+                            for line in f.readlines():
+                                if attr in line:
+                                    value = line[line.index(attr):].split('"')[1]
+                                    if query in value:
+                                        return True
             return False
 
         self.filters.append(xml_search_satisfies)
@@ -144,7 +173,8 @@ class SearchManager:
 
     def search(self,
                search_query: SearchQuery,
-               limit: int = 10
+               limit: int = 10,
+               limit_per_snapshot: int = 1000,
                ) -> List[SearchResult]:
         search_results = []
         for app_path in self.result_path.iterdir():
@@ -152,16 +182,23 @@ class SearchManager:
                 break
             if not app_path.is_dir():
                 continue
+            if not search_query.is_valid_app(app_path.name):
+                continue
             for snapshot_path in app_path.iterdir():
                 if len(search_results) >= limit:
                     break
                 if not snapshot_path.is_dir():
                     continue
+                snapshot_result_count = 0
                 address_book = AddressBook(snapshot_path)
                 post_analysis_results = get_post_analysis(snapshot_path=snapshot_path)
                 action_paths = [address_book.action_path, address_book.s_action_path]
                 for action_path in action_paths:
+                    if len(search_results) >= limit or snapshot_result_count >= limit_per_snapshot:
+                        break
                     is_sighted = "s_action" in action_path.name
+                    if not action_path.exists():
+                        continue
                     with open(action_path) as f:
                         for line in f.readlines():
                             action = json.loads(line)
@@ -173,7 +210,8 @@ class SearchManager:
                                                          address_book=address_book,
                                                          is_sighted=is_sighted)
                             search_results.append(search_result)
-                            if len(search_results) >= limit:
+                            snapshot_result_count += 1
+                            if len(search_results) >= limit or snapshot_result_count >= limit_per_snapshot:
                                 break
         return search_results
 

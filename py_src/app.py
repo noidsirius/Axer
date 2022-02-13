@@ -356,15 +356,19 @@ def search_v2(result_path_str: str):
     text_field = request.args.get('text', None)
     content_description_field = request.args.get('contentDescription', None)
     class_name_field = request.args.get('className', None)
+    resource_id_field = request.args.get('resourceId', None)
     tb_type = request.args.get('tbType', 'both')
     has_post_analysis = request.args.get('hasPostAnalysis', 'off')
+    one_result_per_snapshot = request.args.get('oneResultPerSnapshot', 'off')
     include_tags_field = request.args.get('includeTags', '')
     exclude_tags_field = request.args.get('excludeTags', '')
+    app_name_field = request.args.get('appName', 'ALL')
     tb_result_field = request.args.get('tbResult', 'ALL')
     reg_result_field = request.args.get('regResult', 'ALL')
     areg_result_field = request.args.get('aregResult', 'ALL')
     xml_search_field = request.args.get('xmlSearchQuery', None)
     xml_search_mode = request.args.get('xmlSearchMode', 'ALL')
+    xml_search_attr = request.args.get('xmlSearchAttr', 'ALL')
     left_xml_fields = request.args.getlist('leftXML[]')
     op_xml_fields = request.args.getlist('opXML[]')
     right_xml_fields = request.args.getlist('rightXML[]')
@@ -376,6 +380,7 @@ def search_v2(result_path_str: str):
     if not count_field.isdecimal():
         count_field = 10
     count_field = int(count_field)
+    limit_per_snapshot = 1 if one_result_per_snapshot == 'on' else 10000
     include_tags = include_tags_field.split(",")
     exclude_tags = exclude_tags_field.split(",")
     result_path = pathlib.Path(f"../{result_path_str}")
@@ -383,13 +388,17 @@ def search_v2(result_path_str: str):
         return "The result path is inccorrect!"
     search_query = SearchQuery()\
         .talkback_mode(tb_type) \
-        .post_analysis(only_post_analyzed=has_post_analysis == 'on')
+        .post_analysis(only_post_analyzed=has_post_analysis == 'on')\
+        .set_valid_app(app_name_field)\
+
     if text_field:
         search_query.contains_text(text_field)
     if content_description_field:
         search_query.contains_content_description(content_description_field)
     if class_name_field:
         search_query.contains_class_name(class_name_field)
+    if resource_id_field:
+        search_query.contains_resource_id(resource_id_field)
     if len(include_tags) > 0 or len(exclude_tags) > 0:
         search_query.contains_tags(include_tags, exclude_tags)
     if tb_result_field:
@@ -399,14 +408,16 @@ def search_v2(result_path_str: str):
     if areg_result_field:
         search_query.executor_result('areg', areg_result_field)
     if xml_search_field:
-        search_query.xml_search(xml_search_mode, xml_search_field)
+        search_query.xml_search(xml_search_mode, attr=xml_search_attr, query=xml_search_field)
 
     for (left_xml_field, op_xml_field, right_xml_field) in zip(left_xml_fields, op_xml_fields, right_xml_fields):
         if left_xml_field != 'None' and right_xml_field != 'None':
             search_query.compare_xml(left_xml_field, right_xml_field, should_be_same=op_xml_field == '=')
 
+
     search_results = get_search_manager(result_path).search(search_query=search_query,
-                                                            limit=count_field)
+                                                            limit=count_field,
+                                                            limit_per_snapshot= 1 if one_result_per_snapshot == 'on' else 10000)
     action_results = []
     for search_result in search_results:
         action_result = create_step(search_result.address_book,
@@ -415,23 +426,35 @@ def search_v2(result_path_str: str):
                                     search_result.post_analysis,
                                     is_sighted=search_result.is_sighted)
         action_results.append(action_result)
+
+    app_names = ['All']
+    for app_path in result_path.iterdir():
+        if not app_path.is_dir():
+            continue
+        app_names.append(app_path.name)
+
     return render_template('search.html',
                            result_path=result_path_str,
                            text_field=text_field,
                            content_description_field=content_description_field,
                            class_name_field=class_name_field,
+                           resource_id_field=resource_id_field,
                            tb_type=tb_type,
                            tb_result_field=tb_result_field,
                            reg_result_field=reg_result_field,
                            areg_result_field=areg_result_field,
                            has_post_analysis=has_post_analysis,
+                           one_result_per_snapshot=one_result_per_snapshot,
                            count_field=count_field,
                            include_tags_field=include_tags_field,
                            exclude_tags_field=exclude_tags_field,
                            xml_fields=zip(left_xml_fields, op_xml_fields, right_xml_fields),
                            xml_search_field=xml_search_field,
                            xml_search_mode=xml_search_mode,
-                           action_results=action_results)
+                           xml_search_attr=xml_search_attr,
+                           action_results=action_results,
+                           app_name_field=app_name_field,
+                           app_names=app_names)
 
 
 @flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/action/<index>/<sighted_str>/diff")
