@@ -1,3 +1,4 @@
+{% from "utils_macro.html" import xml_diff_button with context %}
 {% macro action_info(action) %}
     <table class="table">
         <tr>
@@ -68,14 +69,16 @@
             {% endfor %}
         </ul>
         <hr>
-        <a class="showdiff btn btn-secondary">
-            Show Diff
-            <input type="hidden" class="snapshot-result-path" value="{{ action_result.snapshot_info.result_path }}">
-            <input type="hidden" class="snapshot-app" value="{{ action_result.snapshot_info.app_name }}">
-            <input type="hidden" class="snapshot-name" value="{{ action_result.snapshot_info.snapshot_name }}">
-            <input type="hidden" class="snapshot-index" value="{{ action_result.index }}">
-            <input type="hidden" class="snapshot-sighted" value="{{ 'sighted' if action_result.is_sighted else 'unsighted' }}">
-        </a>
+        {% for left_mode in ['exp', 'tb', 'reg', 'areg'] %}
+            {% for right_mode in ['exp', 'tb', 'reg', 'areg'] if left_mode < right_mode %}
+            {{  xml_diff_button(action_result.snapshot_info.result_path,
+                                action_result.snapshot_info.app_name,
+                                action_result.snapshot_info.snapshot_name,
+                                action_result.index,
+                                action_result.is_sighted,
+                                left_mode, right_mode) }}
+            {% endfor %}
+        {% endfor %}
         <hr>
         <div class="row">
             <div class="col-8">

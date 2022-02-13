@@ -3,6 +3,7 @@ import json
 import logging
 import subprocess
 from typing import Union
+from itertools import cycle
 from collections import defaultdict
 import pathlib
 import os
@@ -10,7 +11,7 @@ import math
 import datetime
 from flask import Flask, request, jsonify, send_from_directory, render_template
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
+sys.path.append(str(pathlib.Path(__file__).parent.resolve()))
 from results_utils import AddressBook
 from post_analysis import do_post_analysis, get_post_analysis, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, \
     XML_PROBLEM \
@@ -165,6 +166,8 @@ def report(name):
 
 # ---------------------------- End Legacy Results ---------------------
 
+def fix_path(path: str) -> str:
+    return f"../{path}"
 
 def create_snapshot_info(snapshot_path: pathlib.Path) -> Union[dict, None]:
     if not snapshot_path.is_dir():
@@ -267,16 +270,12 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
             step['mode_info'][f'{mode}_img'] = address_book.get_screenshot_path(f'{prefix}{mode}', action['index'],
                                                                                 extension='edited').relative_to(
                 static_root_path)
-            if is_sighted:
-                step['mode_info'][f'{mode}_layout'] = address_book.get_layout_path(f'{prefix}{mode}',
-                                                                                   "INITIAL").relative_to(
-                    static_root_path)
-            else:
+            step['mode_info'][f'{mode}_layout'] = address_book.get_layout_path(f'{prefix}{mode}',
+                                                                               action['index']).relative_to(
+                static_root_path)
+            if not is_sighted:
                 step['mode_info'][f'{mode}_log'] = address_book.get_log_path(f'{prefix}{mode}',
                                                                              action['index']).relative_to(
-                    static_root_path)
-                step['mode_info'][f'{mode}_layout'] = address_book.get_layout_path(f'{prefix}{mode}',
-                                                                                   action['index']).relative_to(
                     static_root_path)
         elif f'{mode}_action_result' in action:
             step['mode_info'][f'{mode}_img'] = address_book.get_screenshot_path(f'{prefix}{mode}',
@@ -318,17 +317,17 @@ def inject_user():
 @flask_app.route(f'/v2/static/<path:path>')
 def send_result_static_v2(path):
     # TODO: Not secure at all
-    result_path = pathlib.Path(f"../{path}")
+    result_path = pathlib.Path(fix_path(path))
     if not (result_path.exists()):
         if str(result_path).endswith(".png"):
-            return send_from_directory("../", "404.png")
+            return send_from_directory(fix_path(""), "404.png")
         return "The path is incorrect!"
     return send_from_directory(result_path.parent.resolve(), result_path.name)
 
 
 @flask_app.route("/v2/<result_path_str>/")
 def report_index_v2(result_path_str: str):
-    result_path = pathlib.Path(f"../{result_path_str}")
+    result_path = pathlib.Path(fix_path(result_path_str))
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is inccorrect!"
     apps = []
@@ -343,7 +342,7 @@ def report_index_v2(result_path_str: str):
 
 @flask_app.route("/v2/<result_path>/app/<app_name>")
 def report_app_v2(result_path: str, app_name: str):
-    result_path = pathlib.Path(f"../{result_path}")
+    result_path = pathlib.Path(fix_path(result_path))
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is incorrect!"
     app_result_dir = result_path.joinpath(app_name)
@@ -373,9 +372,9 @@ def search_v2(result_path_str: str):
     op_xml_fields = request.args.getlist('opXML[]')
     right_xml_fields = request.args.getlist('rightXML[]')
     if len(left_xml_fields) == 0:
-        left_xml_fields = ['None'] * 2
+        left_xml_fields = ['None'] * 6
         op_xml_fields = ['=', '≠']
-        right_xml_fields = ['None'] * 2
+        right_xml_fields = ['None'] * 6
     count_field = request.args.get('count', '10')
     if not count_field.isdecimal():
         count_field = 10
@@ -383,7 +382,7 @@ def search_v2(result_path_str: str):
     limit_per_snapshot = 1 if one_result_per_snapshot == 'on' else 10000
     include_tags = include_tags_field.split(",")
     exclude_tags = exclude_tags_field.split(",")
-    result_path = pathlib.Path(f"../{result_path_str}")
+    result_path = pathlib.Path(fix_path(result_path_str))
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is inccorrect!"
     search_query = SearchQuery()\
@@ -448,7 +447,7 @@ def search_v2(result_path_str: str):
                            count_field=count_field,
                            include_tags_field=include_tags_field,
                            exclude_tags_field=exclude_tags_field,
-                           xml_fields=zip(left_xml_fields, op_xml_fields, right_xml_fields),
+                           xml_fields=zip(left_xml_fields, cycle(op_xml_fields), right_xml_fields),
                            xml_search_field=xml_search_field,
                            xml_search_mode=xml_search_mode,
                            xml_search_attr=xml_search_attr,
@@ -457,33 +456,33 @@ def search_v2(result_path_str: str):
                            app_names=app_names)
 
 
-@flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/action/<index>/<sighted_str>/diff")
-def xml_diff_v2(result_path, app_name, snapshot_name, index, sighted_str):
+@flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/action/<index>/<sighted_str>/diff/<left_mode>/<right_mode>")
+def xml_diff_v2(result_path, app_name, snapshot_name, index, sighted_str, left_mode, right_mode):
     is_sighted = sighted_str == "sighted"
-    result_path = pathlib.Path(f"../{result_path}")
+    result_path = pathlib.Path(fix_path(result_path))
     if not (result_path.is_dir() and result_path.exists()):
         return f"The result path is incorrect! Result Path: {result_path}"
     snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)
     flask_app.logger.info(f"Xml Diff for Snapshot_path: {snapshot_path}, index: {index}, is_sighted: {is_sighted}")
     address_book = AddressBook(snapshot_path)
     prefix = "s_" if is_sighted else ""
-    tb_xml_path = address_book.get_layout_path(f'{prefix}tb', index)
-    reg_xml_path = address_book.get_layout_path(f'{prefix}reg', index)
-    cmd = f"diff --unified {tb_xml_path} {reg_xml_path}"
+    left_xml_path = address_book.get_layout_path(f'{prefix}{left_mode}', index)
+    right_xml_path = address_book.get_layout_path(f'{prefix}{right_mode}', index)
+    cmd = f"diff --unified {left_xml_path} {right_xml_path}"
     diff_string = subprocess.run(cmd.split(), stdout=subprocess.PIPE).stdout.decode('utf-8')
     return render_template('xml_diff.html', diff_string=[diff_string])
 
 
 @flask_app.route("/v2/<result_path>/app/<app_name>/post_analysis")
 def post_analysis(result_path, app_name):
-    result_path = pathlib.Path(f"../{result_path}").resolve()
+    result_path = pathlib.Path(fix_path(result_path)).resolve()
     snapshot_count = do_post_analysis(app_path=pathlib.Path(result_path).joinpath(app_name))
     return jsonify(result=f"{snapshot_count} snapshots of {app_name} are analyzed!")
 
 
 @flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/action/<index>/<is_sighted>/tag/<tag>")
 def tag_action(result_path, app_name, snapshot_name, index, is_sighted, tag):
-    result_path = pathlib.Path(f"../{result_path}").resolve()
+    result_path = pathlib.Path(fix_path(result_path)).resolve()
     snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)
     if not snapshot_path.is_dir():
         return jsonify(result=False)
@@ -500,7 +499,7 @@ def tag_action(result_path, app_name, snapshot_name, index, is_sighted, tag):
 @flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/report")
 def report_v2(result_path, app_name, snapshot_name):
     result_path_str = result_path
-    result_path = pathlib.Path(f"../{result_path}")
+    result_path = pathlib.Path(fix_path(result_path))
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is incorrect!"
     snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)

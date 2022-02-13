@@ -47,6 +47,18 @@
         </div>
     </div>
 {% endmacro %}
+{% macro xml_diff_button(result_path, app_name, snapshot_name, action_index, is_sighted, left_mode, right_mode) %}
+    <a class="showdiff btn btn-secondary m-2">
+        Show Diff {{ left_mode |upper }}::{{ right_mode|upper }}
+        <input type="hidden" class="snapshot-result-path" value="{{ result_path }}">
+        <input type="hidden" class="snapshot-app" value="{{ app_name }}">
+        <input type="hidden" class="snapshot-name" value="{{ snapshot_name }}">
+        <input type="hidden" class="snapshot-index" value="{{ action_index }}">
+        <input type="hidden" class="snapshot-sighted" value="{{ 'sighted' if is_sighted else 'unsighted' }}">
+        <input type="hidden" class="snapshot-left-mode" value="{{ left_mode }}">
+        <input type="hidden" class="snapshot-right-mode" value="{{ right_mode }}">
+    </a>
+{% endmacro %}
 {% macro xml_diff_modal() %}
     <div class="modal fade" id="xmldiffmodal" tabindex="-1" role="dialog" aria-labelledby="myXMLModalLabel"
          aria-hidden="true">
@@ -69,9 +81,11 @@
             let snapshot_name = $(this).find('.snapshot-name').attr('value');
             let index = $(this).find('.snapshot-index').attr('value');
             let sighted_str = $(this).find('.snapshot-sighted').attr('value');
+            let left_mode = $(this).find('.snapshot-left-mode').attr('value');
+            let right_mode = $(this).find('.snapshot-right-mode').attr('value');
 
 
-            let iframe_link = `/v2/${result_path}/app/${app_name}/snapshot/${snapshot_name}/action/${index}/${sighted_str}/diff`
+            let iframe_link = `/v2/${result_path}/app/${app_name}/snapshot/${snapshot_name}/action/${index}/${sighted_str}/diff/${left_mode}/${right_mode}`
 
             $('#diff_iframe_id').attr('src', iframe_link);
             $('#xmldiffmodal').modal('show');

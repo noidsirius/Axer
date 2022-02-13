@@ -61,6 +61,8 @@ class AddressBook:
         return self._get_path(mode, file_name, should_exists)
 
     def get_layout_path(self, mode: str, index: int, should_exists: bool = False):
+        if mode == 's_exp':
+            index = 'INITIAL'
         return self._get_path(mode, f"{index}.xml", should_exists)
 
     def get_log_path(self, mode: str, index: int, is_layout: bool = False, should_exists: bool = False):

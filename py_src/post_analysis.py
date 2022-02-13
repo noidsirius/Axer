@@ -5,7 +5,7 @@ from pathlib import Path
 import json
 import argparse
 import logging
-from snapshot import AddressBook
+from results_utils import AddressBook
 from latte_utils import ExecutionResult
 
 logger = logging.getLogger(__name__)
