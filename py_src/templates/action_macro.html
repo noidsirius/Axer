@@ -182,7 +182,8 @@
             let tag_container_element = $(this).parent().parent().parent().find('.tag-container');
             if (tag) {
                 {#let path = "/v2/"+ result_path +"/app/"+ app_name + "/post_analysis";#}
-                let path = `/v2/${result_path}/app/${app_name}/snapshot/${snapshot_name}/action/${index}/${sighted_str}/tag/${tag}`
+                let host_url = window.location.href.split("/v2/")[0]
+                let path = `${host_url}/v2/${result_path}/app/${app_name}/snapshot/${snapshot_name}/action/${index}/${sighted_str}/tag/${tag}`
                 $.getJSON(path, {},
                     function(data) {
                         if (data.result) {
