@@ -305,7 +305,7 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
 @flask_app.context_processor
 def inject_user():
     all_result_paths = []
-    parent_path = result_path = pathlib.Path(f"..")
+    parent_path = result_path = pathlib.Path(fix_path(""))
     for result_path in parent_path.iterdir():
         if not result_path.is_dir():
             continue
