@@ -342,12 +342,13 @@ def report_index_v2(result_path_str: str):
 
 @flask_app.route("/v2/<result_path>/app/<app_name>")
 def report_app_v2(result_path: str, app_name: str):
+    result_path_str = result_path
     result_path = pathlib.Path(fix_path(result_path))
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is incorrect!"
     app_result_dir = result_path.joinpath(app_name)
     app = create_app_info(app_result_dir)
-    return render_template('v2_app.html', app=app, result_path=result_path)
+    return render_template('v2_app.html', app=app, result_path=result_path_str)
 
 
 @flask_app.route("/v2/<result_path_str>/search", methods=['GET', 'POST'])
