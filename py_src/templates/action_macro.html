@@ -85,14 +85,14 @@
                 <input type="text" class="action-tag-value form-control">
             </div>
             <div class="col-4">
-                <a class="action_tag btn btn-secondary">
+                <button class="action_tag btn btn-secondary">
                     Add Tag
                     <input type="hidden" class="snapshot-result-path" value="{{ action_result.snapshot_info.result_path }}">
                     <input type="hidden" class="snapshot-app" value="{{ action_result.snapshot_info.app_name }}">
                     <input type="hidden" class="snapshot-name" value="{{ action_result.snapshot_info.snapshot_name }}">
                     <input type="hidden" class="snapshot-index" value="{{ action_result.index }}">
                     <input type="hidden" class="snapshot-sighted" value="{{ 'sighted' if action_result.is_sighted else 'unsighted' }}">
-                </a>
+                </button>
             </div>
         </div>
             <div class="m-3" >

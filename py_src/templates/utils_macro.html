@@ -48,7 +48,7 @@
     </div>
 {% endmacro %}
 {% macro xml_diff_button(result_path, app_name, snapshot_name, action_index, is_sighted, left_mode, right_mode) %}
-    <a class="showdiff btn btn-secondary m-2">
+    <button class="showdiff btn btn-secondary m-2">
         Show Diff {{ left_mode |upper }}::{{ right_mode|upper }}
         <input type="hidden" class="snapshot-result-path" value="{{ result_path }}">
         <input type="hidden" class="snapshot-app" value="{{ app_name }}">
@@ -57,7 +57,7 @@
         <input type="hidden" class="snapshot-sighted" value="{{ 'sighted' if is_sighted else 'unsighted' }}">
         <input type="hidden" class="snapshot-left-mode" value="{{ left_mode }}">
         <input type="hidden" class="snapshot-right-mode" value="{{ right_mode }}">
-    </a>
+    </button>
 {% endmacro %}
 {% macro xml_diff_modal() %}
     <div class="modal fade" id="xmldiffmodal" tabindex="-1" role="dialog" aria-labelledby="myXMLModalLabel"
