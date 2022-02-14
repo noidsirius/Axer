@@ -147,7 +147,7 @@
         </td>
         {% for mode in ['exp', 'tb', 'reg', 'areg'] %}
             <td>
-                <a href="#" class="enlarge">
+                <a class="enlarge">
                     <img src="{{ url_for('send_result_static_v2', path=action_result.mode_info[mode+'_img']) }}" class="rounded d-block mx-auto"
                          style="width: 10rem;" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ action_result.mode_info[mode+'_result']|e }}" alt="Result of {{ mode }} Selection">
                 </a>
