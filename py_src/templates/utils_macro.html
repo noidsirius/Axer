@@ -83,10 +83,8 @@
             let sighted_str = $(this).find('.snapshot-sighted').attr('value');
             let left_mode = $(this).find('.snapshot-left-mode').attr('value');
             let right_mode = $(this).find('.snapshot-right-mode').attr('value');
-
-
-            let iframe_link = `/v2/${result_path}/app/${app_name}/snapshot/${snapshot_name}/action/${index}/${sighted_str}/diff/${left_mode}/${right_mode}`
-
+            let host_url = window.location.href.split("/v2/")[0]
+            let iframe_link = `${host_url}/v2/${result_path}/app/${app_name}/snapshot/${snapshot_name}/action/${index}/${sighted_str}/diff/${left_mode}/${right_mode}`
             $('#diff_iframe_id').attr('src', iframe_link);
             $('#xmldiffmodal').modal('show');
         });

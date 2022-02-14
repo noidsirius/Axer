@@ -93,7 +93,7 @@ def report(name):
     if not explore_path.exists():
         errors.append("Explore result doesn't exist!")
     else:
-        with open(explore_path) as f:
+        with open(explore_path, encoding="utf-8") as f:
             explore_json = json.load(f)
         for index in explore_json:
             step = {}
@@ -113,11 +113,11 @@ def report(name):
             tb_xml_path = result_path.joinpath("TB").joinpath(xml_name)
             reg_xml_path = result_path.joinpath("REG").joinpath(xml_name)
             xml_problem = False
-            with open(tb_xml_path, "r") as f:
+            with open(tb_xml_path, "r", encoding="utf-8") as f:
                 tb_xml = f.read()
                 if "PROBLEM_WITH_XML" in tb_xml:
                     xml_problem = True
-            with open(reg_xml_path, "r") as f:
+            with open(reg_xml_path, "r", encoding="utf-8") as f:
                 reg_xml = f.read()
                 if "PROBLEM_WITH_XML" in reg_xml:
                     xml_problem = True
@@ -142,7 +142,7 @@ def report(name):
     if not stb_result_path.exists():
         errors.append("Sighted TalkBack result doesn't exist!")
     else:
-        with open(stb_result_path) as f:
+        with open(stb_result_path, encoding="utf-8") as f:
             stb_json = json.load(f)
         for xpath in stb_json:
             step = {}
@@ -186,7 +186,7 @@ def create_snapshot_info(snapshot_path: pathlib.Path) -> Union[dict, None]:
     for post_result_path in snapshot_path.iterdir():
         if post_result_path.name.startswith(POST_ANALYSIS_PREFIX):
             analysis_count += 1
-            with open(str(post_result_path), "r") as f:
+            with open(str(post_result_path), "r", encoding="utf-8") as f:
                 for line in f.readlines():
                     count_map['actions'] += 1
                     result = json.loads(line)
@@ -258,7 +258,7 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
     step['action'] = action['element']
     step['tags'] = []
     if address_book.tags_path.exists():
-        with open(address_book.tags_path) as f:
+        with open(address_book.tags_path, encoding="utf-8") as f:
             for line in f.readlines():
                 tag_info = json.loads(line)
                 if tag_info['index'] == action['index'] and tag_info['is_sighted'] == is_sighted:
@@ -491,7 +491,7 @@ def tag_action(result_path, app_name, snapshot_name, index, is_sighted, tag):
     address_book = AddressBook(snapshot_path)
     is_sighted = is_sighted == 'sighted'
     index = int(index)
-    with open(address_book.tags_path, 'a') as f:
+    with open(address_book.tags_path, 'a', encoding="utf-8") as f:
         f.write(json.dumps({'index': index, 'is_sighted': is_sighted, 'tag': tag}) + "\n")
     return jsonify(result=True)
 
@@ -508,7 +508,7 @@ def report_v2(result_path, app_name, snapshot_name):
     errors = []
     bm_log_path = str(snapshot_path.relative_to(result_path.parent)) + ".log"
     error_logs = ""
-    with open(f"{str(snapshot_path)}.log") as f:
+    with open(f"{str(snapshot_path)}.log", encoding="utf-8") as f:
         for line in f.readlines():
             if line.startswith("ERROR:"):
                 error_logs += line
@@ -528,7 +528,7 @@ def report_v2(result_path, app_name, snapshot_name):
         errors.append("Explore data doesn't exist!")
     else:
         explore_json = []
-        with open(address_book.action_path) as f:
+        with open(address_book.action_path, encoding="utf-8") as f:
             for line in f.readlines():
                 explore_json.append(json.loads(line))
         for action in explore_json:
@@ -540,7 +540,7 @@ def report_v2(result_path, app_name, snapshot_name):
         errors.append("Sighted TalkBack data doesn't exist!")
     else:
         explore_json = []
-        with open(address_book.s_action_path) as f:
+        with open(address_book.s_action_path, encoding="utf-8") as f:
             for line in f.readlines():
                 explore_json.append(json.loads(line))
         for action in explore_json:

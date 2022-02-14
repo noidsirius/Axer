@@ -70,7 +70,7 @@ class SearchQuery:
             if not address_book.tags_path.exists():
                 return len(exclude_tags) >= 0 and len(include_tags) == 0
             action_tags = []
-            with open(address_book.tags_path) as f:
+            with open(address_book.tags_path, encoding="utf-8") as f:
                 for line in f.readlines():
                     tag_info = json.loads(line)
                     if tag_info['index'] == action['index'] and tag_info['is_sighted'] == is_sighted:
@@ -101,7 +101,7 @@ class SearchQuery:
                 else:
                     layout_path = address_book.get_layout_path(mode=f"{prefix}{mode}",  index=action['index'], should_exists=True)
                 if layout_path:
-                    with open(layout_path) as f:
+                    with open(layout_path, encoding="utf-8") as f:
                         if attr == 'ALL':
                             if query.lower() in f.read().lower():
                                 return True
@@ -199,7 +199,7 @@ class SearchManager:
                     is_sighted = "s_action" in action_path.name
                     if not action_path.exists():
                         continue
-                    with open(action_path) as f:
+                    with open(action_path, encoding="utf-8") as f:
                         for line in f.readlines():
                             action = json.loads(line)
                             action_post_analysis = post_analysis_results['sighted' if is_sighted else 'unsighted'].get(action['index'], {})
