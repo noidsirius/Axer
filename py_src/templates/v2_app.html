@@ -8,7 +8,7 @@
     </style>
 {% endblock %}
 {% block title %}
-    List of apps
+    App {{ app.name }}
 {% endblock %}
 {% block content %}
     <div class="row">
@@ -26,12 +26,9 @@
             </tr>
             </thead>
             <tbody>
-            {% for app in apps %}
                 <tr class="app-row table-active" >
-                    <td class="table-secondary" data-bs-toggle="collapse" href="#{{ app.name.replace('.', '_') }}_row"
-                        aria-expanded="false"
-                        aria-controls="{{ app.name }}_row" >
-                        <i class="fas fa-angle-double-down"></i> {{ app.name }}
+                    <td class="table-secondary">
+                        {{ app.name }}
                     </td>
                     <td>{{ app.snapshots|length }}</td>
                     <td>{{ app.actions }}</td>
@@ -51,14 +48,13 @@
                 </tr>
                 <tr>
                     <td colspan="8">
-                        <div class="collapse" id="{{ app.name.replace('.', '_') }}_row">
+                        <div>
                             <div class="row">
                                 {{ app_snapshots(result_path, app) }}
                             </div>
                         </div>
                     </td>
                 </tr>
-            {% endfor %}
             </tbody>
         </table>
     </div>

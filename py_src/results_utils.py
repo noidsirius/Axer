@@ -33,6 +33,7 @@ class AddressBook:
         self.last_explore_log_path = self.snapshot_result_path.joinpath("last_explore.log")
         self.visited_elements_path = self.snapshot_result_path.joinpath("visited.jsonl")
         self.valid_elements_path = self.snapshot_result_path.joinpath("valid_elements.jsonl")
+        self.tags_path = self.snapshot_result_path.joinpath("tags.jsonl")
         self.s_action_path = self.snapshot_result_path.joinpath("s_action.jsonl")
         self.s_action_screenshot = self.mode_path_map['s_exp'].joinpath("all_actions.png")
 
@@ -46,11 +47,22 @@ class AddressBook:
         self.visited_elements_path.touch()
         self.s_action_path.touch()
 
+    def result_path(self) -> str:
+        return self.snapshot_result_path.parent.parent.name
+
+    def app_name(self) -> str:
+        return self.snapshot_result_path.parent.name
+
+    def snapshot_name(self) -> str:
+        return self.snapshot_result_path.name
+
     def get_screenshot_path(self, mode: str, index: Union[int, str], extension: str = None, should_exists: bool = False):
         file_name = f"{index}_{extension}.png" if extension else f"{index}.png"
         return self._get_path(mode, file_name, should_exists)
 
     def get_layout_path(self, mode: str, index: int, should_exists: bool = False):
+        if mode == 's_exp':
+            index = 'INITIAL'
         return self._get_path(mode, f"{index}.xml", should_exists)
 
     def get_log_path(self, mode: str, index: int, is_layout: bool = False, should_exists: bool = False):

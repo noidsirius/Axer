@@ -1,0 +1,115 @@
+{% macro compare_xml_form(left_xml_field, op_xml_field, right_xml_field) %}
+    <div class="mb-3 row">
+        <label class="form-label">Compare XML</label>
+        <div class="col-4 ">
+            <select class="form-select" name="leftXML[]" aria-label="Left XML Mode">
+                {% for item in [('None', 'None'),
+                                            ('exp','Initial'),
+                                            ('tb','TalkBack'),
+                                            ('reg','Touch'),
+                                            ('areg','A11yTouch')] %}
+                    <option value="{{ item[0] }}" class="text-end"
+                            {% if left_xml_field == item[0] %}
+                            selected
+                            {% endif %}>
+                        {{item[1]}}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-4">
+            <select class="form-select" name="opXML[]" aria-label="Comparison Operator">
+                {% for op in ['=', '≠'] %}
+                    <option value="{{ op }}" class="text-center"
+                            {% if op_xml_field == op %}
+                            selected
+                            {% endif %}>
+                        {{op}}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-4">
+            <select class="form-select" name="rightXML[]" aria-label="Right XML Mode">
+                {% for item in [('None', 'None'),
+                                            ('exp','Initial'),
+                                            ('tb','TalkBack'),
+                                            ('reg','Touch'),
+                                            ('areg','A11yTouch')] %}
+                    <option value="{{ item[0] }}" class="text-start"
+                            {% if right_xml_field == item[0] %}
+                            selected
+                            {% endif %}>
+                        {{item[1]}}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+{% endmacro %}
+{% macro xml_diff_button(result_path, app_name, snapshot_name, action_index, is_sighted, left_mode, right_mode) %}
+    <button class="showdiff btn btn-secondary m-2">
+        Show Diff {{ left_mode |upper }}::{{ right_mode|upper }}
+        <input type="hidden" class="snapshot-result-path" value="{{ result_path }}">
+        <input type="hidden" class="snapshot-app" value="{{ app_name }}">
+        <input type="hidden" class="snapshot-name" value="{{ snapshot_name }}">
+        <input type="hidden" class="snapshot-index" value="{{ action_index }}">
+        <input type="hidden" class="snapshot-sighted" value="{{ 'sighted' if is_sighted else 'unsighted' }}">
+        <input type="hidden" class="snapshot-left-mode" value="{{ left_mode }}">
+        <input type="hidden" class="snapshot-right-mode" value="{{ right_mode }}">
+    </button>
+{% endmacro %}
+{% macro xml_diff_modal() %}
+    <div class="modal fade" id="xmldiffmodal" tabindex="-1" role="dialog" aria-labelledby="myXMLModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog  modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <iframe id="diff_iframe_id" style="width: 100%; height: 100%" src=""></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+{% macro xml_diff_script() %}
+<script>
+    $(function () {
+        $('.showdiff').on('click', function () {
+            let result_path = $(this).find('.snapshot-result-path').attr('value');
+            let app_name = $(this).find('.snapshot-app').attr('value');
+            let snapshot_name = $(this).find('.snapshot-name').attr('value');
+            let index = $(this).find('.snapshot-index').attr('value');
+            let sighted_str = $(this).find('.snapshot-sighted').attr('value');
+            let left_mode = $(this).find('.snapshot-left-mode').attr('value');
+            let right_mode = $(this).find('.snapshot-right-mode').attr('value');
+            let host_url = window.location.href.split("/v2/")[0]
+            let iframe_link = `${host_url}/v2/${result_path}/app/${app_name}/snapshot/${snapshot_name}/action/${index}/${sighted_str}/diff/${left_mode}/${right_mode}`
+            $('#diff_iframe_id').attr('src', iframe_link);
+            $('#xmldiffmodal').modal('show');
+        });
+    });
+</script>
+{% endmacro %}
+{% macro image_modal() %}
+    <div class="modal fade" id="imagemodal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <img src="" class="imagepreview" style="width: 100%;">
+                </div>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+{% macro image_script() %}
+    <script>
+        $(function () {
+            $('.enlarge').on('click', function () {
+                $('.imagepreview').attr('src', $(this).find('img').attr('src'));
+                $('#imagemodal').modal('show');
+            });
+        });
+    </script>
+{% endmacro %}

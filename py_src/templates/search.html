@@ -1,0 +1,281 @@
+{% from "action_macro.html" import action_row, action_tag_script with context %}
+{% from "utils_macro.html" import compare_xml_form with context %}
+{% extends "layout.html" %}
+{% block title %}
+    Search
+{% endblock %}
+{% block content %}
+    <div class="row">
+        <form action="{{ url_for('search_v2', result_path_str=result_path) }}" id="search_form" method="GET">
+            <div class="row">
+                <div class="col-4">
+                    <div class="card">
+                        <div class="card-header">
+                            Action
+                        </div>
+
+                        <div class="card-body">
+                            {% for (action_attr_name, action_attr_field) in action_attrs %}
+                                <div class="mb-3">
+                                    <label for="{{ action_attr_name }}SearchField" class="form-label">{{ action_attr_name }}</label>
+                                    <input type="text" class="form-control" name="{{ action_attr_name }}" id="{{ action_attr_name }}SearchField"
+                                    {% if action_attr_field %}
+                                        value="{{ action_attr_field }}"
+                                    {% endif %}
+                                    >
+                                </div>
+                            {% endfor %}
+                            {% for (action_xml_attr_name, action_xml_attr_field) in action_xml_attrs %}
+                                <div class="mb-3">
+                                    <label for="{{ action_xml_attr_name }}SearchField" class="form-label">{{ action_xml_attr_name }}</label>
+                                    <input type="text" class="form-control" name="{{ action_xml_attr_name }}" id="{{ action_xml_attr_name }}SearchField"
+                                            {% if action_xml_attr_field %}
+                                           value="{{ action_xml_attr_field }}"
+                                            {% endif %}
+                                    >
+                                </div>
+                            {% endfor %}
+
+                            <div class="mb-3">
+                                <label for="tbSearchField" class="form-label">Talkback Mode</label>
+                                <select class="form-select" name="tbType" id="tbSearchField" aria-label="Talkback Mode">
+                                    {% for item in [('both', 'Both'), ('exp', 'Directional'), ('sighted', 'Random Exploration') ] %}
+                                        <option value="{{ item[0] }}"
+                                                {% if tb_type==item[0] %}
+                                                selected
+                                                {% endif %}>
+                                            {{ item[1] }}
+                                        </option>
+                                    {% endfor  %}
+                                </select>
+                            </div>
+                            <div class="mb-3 row">
+                                <div class="col-4 ">
+                                    <label class="form-label">TalkBack Result</label>
+                                    <select class="form-select" name="tbResult" aria-label="TalkBack Result">
+                                        {% for item in [('ALL', 'All'),
+                                                    ('COMPLETED','Completed'),
+                                                    ('FAILED','Failed'),
+                                                    ('TIMEOUT','Timeout')] %}
+                                            <option value="{{ item[0] }}"
+                                                    {% if tb_result_field == item[0] %}
+                                                    selected
+                                                    {% endif %}>
+                                                {{item[1]}}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label">Touch Result</label>
+                                    <select class="form-select" name="regResult" aria-label="Touch Result">
+                                        {% for item in [('ALL', 'All'),
+                                                    ('COMPLETED','Completed'),
+                                                    ('FAILED','Failed'),
+                                                    ('TIMEOUT','Timeout')] %}
+                                            <option value="{{ item[0] }}"
+                                                    {% if reg_result_field == item[0] %}
+                                                    selected
+                                                    {% endif %}>
+                                                {{item[1]}}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label">A11yTouch Result</label>
+                                    <select class="form-select" name="aregResult" aria-label="A11yTouch Result">
+                                        {% for item in [('ALL', 'All'),
+                                                    ('COMPLETED','Completed'),
+                                                    ('FAILED','Failed'),
+                                                    ('TIMEOUT','Timeout')] %}
+                                            <option value="{{ item[0] }}"
+                                                    {% if areg_result_field == item[0] %}
+                                                    selected
+                                                    {% endif %}>
+                                                {{item[1]}}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="card mb-2">
+                        <div class="card-header">
+                            Layout
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <label for="xmlSearchField" class="form-label">Search in XML</label>
+                                <div class="col-3">
+                                    <select class="form-select" name="xmlSearchMode" aria-label="XML Search Mode">
+                                        {% for item in [('ALL', 'All'),
+                                            ('exp','Initial'),
+                                            ('tb','TalkBack'),
+                                            ('reg','Touch'),
+                                            ('areg','A11yTouch')] %}
+                                            <option value="{{ item[0] }}" class="text-start"
+                                                    {% if xml_search_mode == item[0] %}
+                                                    selected
+                                                    {% endif %}>
+                                                {{item[1]}}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-3">
+                                    <select class="form-select" name="xmlSearchAttr" aria-label="XML Search Attribute">
+                                        {% for item in [('ALL', 'All'),
+                                            ('text','Text'),
+                                            ('content-desc','ContentDescription'),
+                                            ('class','ClassName'),
+                                            ('resource-id','ResourceId'),
+                                            ('supportsWebAction','SupportsWebAction')] %}
+                                            <option value="{{ item[0] }}" class="text-start"
+                                                    {% if xml_search_attr == item[0] %}
+                                                    selected
+                                                    {% endif %}>
+                                                {{item[1]}}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <input type="text" class="form-control" name="xmlSearchQuery" id="xmlSearchField"
+                                            {% if xml_search_field %}
+                                           value="{{ xml_search_field }}"
+                                            {% endif %}
+                                    >
+                                </div>
+                            </div>
+                            {% for item in xml_fields %}
+                                {{ compare_xml_form(item[0], item[1], item[2]) }}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            App & Snapshot
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <label for="appField" class="form-label">App</label>
+                                <select class="form-select" name="appName" aria-label="App Name">
+                                    {% for item in app_names %}
+                                        <option value="{{ item }}" class="text-start"
+                                                {% if app_name_field == item %}
+                                                selected
+                                                {% endif %}>
+                                            {{item}}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <input type="checkbox" class="form-check-input" name="oneResultPerSnapshot" id="oneResultPerSnapshotField"
+                                        {% if one_result_per_snapshot == 'on' %}
+                                       checked
+                                        {% endif %}
+                                >
+                                <label for="oneResultPerSnapshotField" class="form-label">One Result Per Snapshot</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                        <div class="card">
+                            <div class="card-header">
+                                Other
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="countSearchField" class="form-label">Number of Results</label>
+                                    <select class="form-select" name="count" id="countSearchField" aria-label="Number of Results">
+                                        {% for i in [10, 50, 100] %}
+                                            <option value="{{ i }}"
+                                                    {% if count_field==i %}
+                                                    selected
+                                                    {% endif %}>
+                                                {{i}}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="includeTagsField" class="form-label">Include Tags</label>
+                                    <input type="text" class="form-control" name="includeTags" id="includeTagsField"
+                                            {% if include_tags_field %}
+                                           value="{{ include_tags_field }}"
+                                            {% endif %}
+                                    >
+                                </div>
+                                <div class="mb-3">
+                                    <label for="excludeTagsField" class="form-label">Exclude Tags</label>
+                                    <input type="text" class="form-control" name="excludeTags" id="excludeTagsField"
+                                            {% if exclude_tags_field %}
+                                           value="{{ exclude_tags_field }}"
+                                            {% endif %}
+                                    >
+                                </div>
+                                <div class="mb-3">
+                                    <input type="checkbox" class="form-check-input" name="hasPostAnalysis" id="hasPostAnalysisField"
+                                            {% if has_post_analysis == 'on' %}
+                                           checked
+                                            {% endif %}
+                                    >
+                                    <label for="hasPostAnalysisField" class="form-label">Has Post Analysis?</label>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Search</button>
+                                <a id="clear_form" class="btn btn-warning">Clear Form</a>
+                            </div>
+                        </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="row" style="height:25px;"></div>
+    <hr>
+    <div class="row" style="height:25px;"></div>
+    <div class="row">
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Action</th>
+                <th scope="col">Inital</th>
+                <th scope="col">Talkback</th>
+                <th scope="col">Regular</th>
+                <th scope="col">A11y Regular</th>
+                <th scope="col">Result</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for step in action_results %}
+                {{ action_row(step, true) }}
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
+{% block script_content %}
+    <script>
+        $(function () {
+            $('#clear_form').on('click', function () {
+                if (confirm("Are you sure?") == true) {
+                    $(':input','#search_form')
+                        .not(':button, :submit, :reset, :hidden')
+                        .val('')
+                        .prop('checked', false)
+                        .prop('selected', false);
+                    $('#search_form').submit()
+                }
+
+            });
+        });
+    </script>
+    {{ action_tag_script() }}
+
+{% endblock %}

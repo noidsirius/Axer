@@ -1,10 +1,11 @@
 import os
+from collections import defaultdict, namedtuple
 from typing import Union
 from pathlib import Path
 import json
 import argparse
 import logging
-from snapshot import AddressBook
+from results_utils import AddressBook
 from latte_utils import ExecutionResult
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,19 @@ XML_PROBLEM = 3
 UNREACHABLE = 2
 DIFFERENT_AREG = 1
 DIFFERENT_BEHAVIOR = 0
+
+
+class PostAnalysisResult:
+    def __init__(self, action, issue_status: int, message: str, is_sighted: bool, xml_similar_map: dict = None):
+        self.action = action
+        self.index = action['index']
+        self.issue_status = issue_status
+        self.message = message
+        self.is_sighted = is_sighted
+        self.xml_similar_map = xml_similar_map
+
+    def toJSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__)
 
 
 def old_report_issues(address_book: AddressBook):
@@ -62,7 +76,7 @@ def old_report_issues(address_book: AddressBook):
            different_behaviors_directional_unreachable, pending
 
 
-def post_analyzer_v1(action, address_book: AddressBook, is_sighted: bool) -> dict:
+def post_analyzer_v1(action, address_book: AddressBook, is_sighted: bool) -> PostAnalysisResult:
     """
     Given a performed action,
     acts as an oracle and generates the accessibility result of the action
@@ -114,14 +128,14 @@ def post_analyzer_v1(action, address_book: AddressBook, is_sighted: bool) -> dic
                 message = "Different Behavior"
                 issue_status = DIFFERENT_BEHAVIOR
 
-    result = {'index': action_index,
-              'issue_status': issue_status,
-              'message': message,
-              'is_sighted': is_sighted}
+    result = PostAnalysisResult(action=action,
+                                issue_status=issue_status,
+                                message=message,
+                                is_sighted=is_sighted)
     return result
 
 
-def post_analyzer_v2(action, address_book: AddressBook, is_sighted: bool) -> dict:
+def post_analyzer_v2(action, address_book: AddressBook, is_sighted: bool) -> PostAnalysisResult:
     """
     Given a performed action,
     acts as an oracle and generates the accessibility result of the action.
@@ -133,8 +147,13 @@ def post_analyzer_v2(action, address_book: AddressBook, is_sighted: bool) -> dic
     """
     action_index = action['index']
     prefix = "s_" if is_sighted else ""
-    modes = ['tb', 'reg', 'areg']
-    xml_path_map = {mode: address_book.get_layout_path(f'{prefix}{mode}', action_index) for mode in modes}
+    modes = ['exp', 'tb', 'reg', 'areg']
+    xml_path_map = {}
+    for mode in modes:
+        if mode == 'exp' and is_sighted:
+            xml_path_map[mode] = address_book.get_layout_path(f'{prefix}{mode}', "INITIAL")
+        else:
+            xml_path_map[mode] = address_book.get_layout_path(f'{prefix}{mode}', action_index)
     xml_content_map = {}
     xml_problem = False
     for mode in modes:
@@ -147,47 +166,50 @@ def post_analyzer_v2(action, address_book: AddressBook, is_sighted: bool) -> dic
     issue_status = SUCCESS
     message_list = []
     for mode in modes:
+        if mode == 'exp':
+            continue
         if "FAILED" in action[f'{mode}_action_result'][0] or "COMPLETED_BY_HELP" in action[f'{mode}_action_result'][0]:
             message_list.append(f"{mode} Failed!")
             issue_status = EXEC_FAILURE
         elif "TIMEOUT" in action[f'{mode}_action_result'][0]:
             message_list.append(f"{mode} Timeout!")
             issue_status = EXEC_TIMEOUT
+    xml_similar = {}
+    for i, mode in enumerate(modes):
+        for mode2 in modes[i+1:]:
+            xml_similar[f"{mode}_{mode2}"] = (xml_content_map[mode] == xml_content_map[mode2])
+            xml_similar[f"{mode2}_{mode}"] = xml_similar[f"{mode}_{mode2}"]
     if issue_status == SUCCESS:
         if xml_problem:
             message_list.append("Problem with XML")
             issue_status = XML_PROBLEM
         else:
-            xml_similar = {}
-            for i, mode in enumerate(modes):
-                for mode2 in modes[i+1:]:
-                    xml_similar[(mode, mode2)] = (xml_content_map[mode] == xml_content_map[mode2])
-                    xml_similar[(mode2, mode)] = xml_similar[(mode, mode2)]
             if is_sighted:
-                if xml_similar[('tb', 'reg')]:
+                if xml_similar['tb_reg']:
                     message_list.append("Unreachable")
                     issue_status = UNREACHABLE
                 else:
                     message_list.append("Different Behavior")
                     issue_status = DIFFERENT_BEHAVIOR
-                if not xml_similar[('reg', 'areg')]:
+                if not xml_similar['reg_areg']:
                     message_list.append("Different Behavior in Areg")
                     issue_status = DIFFERENT_AREG
             else:
-                if not xml_similar[('tb', 'reg')]:
+                if not xml_similar['tb_reg']:
                     message_list.append("Different Behavior")
                     issue_status = DIFFERENT_BEHAVIOR
-                elif not xml_similar[('reg', 'areg')]:
+                elif not xml_similar['reg_areg']:
                     message_list.append("Different Behavior in Areg")
                     issue_status = DIFFERENT_AREG
 
     if issue_status == SUCCESS:
         message_list = ["Accessible"]
 
-    result = {'index': action_index,
-              'issue_status': issue_status,
-              'message': "\n".join(message_list),
-              'is_sighted': is_sighted}
+    result = PostAnalysisResult(action=action,
+                                issue_status=issue_status,
+                                message="\n".join(message_list),
+                                is_sighted=is_sighted,
+                                xml_similar_map=xml_similar)
     return result
 
 
@@ -255,9 +277,10 @@ def do_post_analysis(name: str = None,
         logger.info(f"Post-analyzing Snapshot in path'{snapshot_path}'...")
         address_book = AddressBook(snapshot_path)
         if not address_book.finished_path.exists():
-            logger.error(f"A")
+            logger.error(f"The snapshot didn't finish!")
             continue
         if address_book.snapshot_result_path.joinpath(output_name).exists():
+            logger.debug(f"The post analysis is already done!")
             continue
         try:
             with open(address_book.snapshot_result_path.joinpath(output_name), 'w') as write_file:
@@ -265,19 +288,38 @@ def do_post_analysis(name: str = None,
                     for line in read_file.readlines():
                         action = json.loads(line)
                         result = post_analyzer(action, address_book, is_sighted=False)
-                        write_file.write(json.dumps(result) + "\n")
+                        write_file.write(result.toJSON() + "\n")
                 with open(address_book.s_action_path) as read_file:
                     for line in read_file.readlines():
                         action = json.loads(line)
                         result = post_analyzer(action, address_book, is_sighted=True)
-                        write_file.write(json.dumps(result) + "\n")
+                        write_file.write(result.toJSON() + "\n")
         except Exception as e:
-            logger.error(f"Exception: {e}")
+            logger.error(f"Exception:", exc_info=e)
             if address_book.snapshot_result_path.joinpath(output_name).exists():
                 os.remove(address_book.snapshot_result_path.joinpath(output_name))
         analyzed += 1
     return analyzed
 
+
+def get_post_analysis(snapshot_path: Union[str, Path]) -> dict:
+    if isinstance(snapshot_path, str):
+        snapshot_path = Path(snapshot_path)
+    post_analysis_results = {'sighted': defaultdict(dict), 'unsighted': defaultdict(dict)}
+    if not snapshot_path.is_dir():
+        return post_analysis_results
+
+    for post_result_path in snapshot_path.iterdir():
+        if post_result_path.name.startswith(POST_ANALYSIS_PREFIX):
+            analysis_name = post_result_path.name[len(POST_ANALYSIS_PREFIX)+1:-len('.jsonl')]
+            with open(str(post_result_path), "r") as f:
+                for line in f.readlines():
+                    result = json.loads(line)
+                    if result['is_sighted']:
+                        post_analysis_results['sighted'][result['index']][analysis_name] = result
+                    else:
+                        post_analysis_results['unsighted'][result['index']][analysis_name] = result
+    return post_analysis_results
 
 
 if __name__ == "__main__":

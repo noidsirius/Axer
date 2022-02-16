@@ -1,0 +1,102 @@
+{% from "action_macro.html" import action_row with context %}
+{% macro snapshot_action(step) %}
+    {{ action_row(step) }}
+{% endmacro %}
+{% macro snapshot_summary(all_elements_screenshot,
+                          initial_xml_path,
+                          all_actions_screenshot,
+                          visited_actions_in_other_screenshot,
+                          valid_actions_screenshot,
+                          visited_actions_screenshot,
+                          s_actions_screenshot,
+                          bm_log_path,
+                          last_explore_log_path,
+                          error_logs
+                          ) %}
+    <div class="row">
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+
+                <th scope="col">All Elements</th>
+                <th scope="col">All Actions</th>
+                <th scope="col">Redundant Actions<br> (Visited in other snapshots)</th>
+                <th scope="col">Valid Elements </th>
+                <th scope="col">Visited Actions</th>
+                <th scope="col">Sighted Remaining Elements</th>
+                <th scope="col">...</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>
+                    <a href="#" class="enlarge">
+                        <img src="{{ url_for('send_result_static_v2', path=all_elements_screenshot) }}" class="rounded d-block mx-auto"
+                             style="width: 10rem;">
+                    </a>
+                    <hr>
+                    <a href="{{ url_for('send_result_static_v2', path=initial_xml_path) }}">Layout</a>
+                </td>
+                <td>
+                    <a href="#" class="enlarge">
+                        <img src="{{ url_for('send_result_static_v2', path=all_actions_screenshot) }}" class="rounded d-block mx-auto"
+                             style="width: 10rem;">
+                    </a>
+                </td>
+                <td>
+                    <a href="#" class="enlarge">
+                        <img src="{{ url_for('send_result_static_v2', path=visited_actions_in_other_screenshot) }}" class="rounded d-block mx-auto"
+                             style="width: 10rem;">
+                    </a>
+                </td>
+                <td>
+                    <a href="#" class="enlarge">
+                        <img src="{{ url_for('send_result_static_v2', path=valid_actions_screenshot) }}" class="rounded d-block mx-auto"
+                             style="width: 10rem;">
+                    </a>
+                </td>
+                <td>
+                    <a href="#" class="enlarge">
+                        <img src="{{ url_for('send_result_static_v2', path=visited_actions_screenshot) }}" class="rounded d-block mx-auto"
+                             style="width: 10rem;">
+                    </a>
+                </td>
+                <td>
+                    <a href="#" class="enlarge">
+                        <img src="{{ url_for('send_result_static_v2', path=s_actions_screenshot) }}" class="rounded d-block mx-auto"
+                             style="width: 10rem;">
+                    </a>
+                </td>
+                <th scope="row">
+                    <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=bm_log_path) }}">BlindMonkey Log</a>
+                    <hr>
+                    {% if error_logs %}
+                        <a class="btn btn-warning"
+                           data-bs-toggle="collapse"
+                           href="#errorLogs" role="button" aria-expanded="false" aria-controls="errorLogs">
+                            Error logs
+                        </a>
+                        <hr>
+                    {% endif %}
+                    <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=last_explore_log_path) }}">Last Explore Log</a>
+                    <hr>
+                    <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=initial_xml_path) }}">Layout </a>
+                    <hr>
+{#                    <div class="form-check form-switch">#}
+{#                        <input class="form-check-input" type="checkbox" id="tb_steps_switch" checked>#}
+{#                        <label class="form-check-label" for="flexSwitchCheckDefault">Hide passed actions</label>#}
+{#                    </div>#}
+                </th>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="row collapse" id="errorLogs">
+        <div class="card">
+            <div class="card-header bg-warning text-white">Error logs</div>
+            <div class="card card-body">
+                {{ error_logs.replace('\n','<br>').replace("ERROR", "<span class='text-danger'>ERROR</span>") | safe }}
+            </div>
+        </div>
+    </div>
+{% endmacro %}
