@@ -89,7 +89,7 @@ def annotate_elements(source_img: Union[str, Path],
                       scale: int = 5):
     bounds = []
     for element in elements:
-        if not element['bounds'] or element['bounds'] == 'null':
+        if element is None or not element['bounds'] or element['bounds'] == 'null':
             logger.warning(f"The bounds of element {element} is empty!")
             continue
         bounds.append(convert_bounds(element['bounds']))

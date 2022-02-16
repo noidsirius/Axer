@@ -1,50 +1,20 @@
 {% from "utils_macro.html" import xml_diff_button with context %}
 {% macro action_info(action) %}
     <table class="table">
-        <tr>
-            <td class="text-end">ResourceId</td>
-            <td class="text-start text-truncate" style="max-width: 10em;">
-                <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ action.resourceId }}">
-                    {{ action.resourceId }}
-                </span>
-            </td>
-        </tr>
-        <tr>
-            <td class="text-end">Text</td>
-            <td class="text-start text-truncate" style="max-width: 10em;">
-                <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ action.text }}">
-                    {{ action.text }}
-                </span>
-            </td>
-        </tr>
-        <tr>
-            <td class="text-end">Content Description</td>
-            <td class="text-start text-truncate" style="max-width: 10em;">
-                <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ action.contentDescription }}">
-                    {{ action.contentDescription }}
-                </span>
-            </td>
-        </tr>
-        <tr>
-            <td class="text-end">Class</td>
-            <td class="text-start text-truncate" style="max-width: 10em;">
-                <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ action.class }}">
-                    {{ action.class }}
-                </span>
-            </td>
-        </tr>
-        <tr>
-            <td class="text-end">XPath</td>
-            <td class="text-start text-truncate" style="max-width: 10em;">
-                <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ action.xpath }}">
-                    {{ action.xpath }}
-                </span>
-            </td>
-        </tr>
-        <tr>
-            <td class="text-end">Bounds</td>
-            <td class="text-start">{{ action.bounds }}</td>
-        </tr>
+        {% for attr in ['resourceId', 'text', 'contentDescription', 'xpath', 'bounds', 'detailed_element'] %}
+            <tr>
+                <td class="text-end">{{ attr }}</td>
+                <td class="text-start text-truncate" style="max-width: 10em;">
+                    <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ action[attr] }}">
+                        <a class="btn copyer">
+                                {{ action[attr] }}
+                                <input type="hidden" class="text-to-copy"
+                                       value="{{ action[attr] }}">
+                            </a>
+                    </span>
+                </td>
+            </tr>
+        {% endfor %}
     </table>
 {% endmacro %}
 {% macro result_info(action_result) %}

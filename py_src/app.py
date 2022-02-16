@@ -256,6 +256,7 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
         'snapshot_name': address_book.snapshot_name()
     }
     step['action'] = action['element']
+    step['action']['detailed_element'] = action.get('detailed_element', 'null')
     step['tags'] = []
     if address_book.tags_path.exists():
         with open(address_book.tags_path, encoding="utf-8") as f:
@@ -357,7 +358,7 @@ def search_v2(result_path_str: str):
     action_attr_fields = []
     for action_attr in action_attr_names:
         action_attr_fields.append(request.args.get(action_attr, None))
-    action_xml_attr_names = ['clickable']
+    action_xml_attr_names = ['clickable', 'NAF']
     action_xml_attr_fields = []
     for action_xml_attr in action_xml_attr_names:
         action_xml_attr_fields.append(request.args.get(action_xml_attr, None))
@@ -366,7 +367,7 @@ def search_v2(result_path_str: str):
     one_result_per_snapshot = request.args.get('oneResultPerSnapshot', 'off')
     include_tags_field = request.args.get('includeTags', '')
     exclude_tags_field = request.args.get('excludeTags', '')
-    app_name_field = request.args.get('appName', 'ALL')
+    app_name_field = request.args.get('appName', 'All')
     tb_result_field = request.args.get('tbResult', 'ALL')
     reg_result_field = request.args.get('regResult', 'ALL')
     areg_result_field = request.args.get('aregResult', 'ALL')
@@ -377,9 +378,9 @@ def search_v2(result_path_str: str):
     op_xml_fields = request.args.getlist('opXML[]')
     right_xml_fields = request.args.getlist('rightXML[]')
     if len(left_xml_fields) == 0:
-        left_xml_fields = ['None'] * 6
+        left_xml_fields = ['None'] * 2
         op_xml_fields = ['=', '≠']
-        right_xml_fields = ['None'] * 6
+        right_xml_fields = ['None'] * 2
     count_field = request.args.get('count', '10')
     if not count_field.isdecimal():
         count_field = 10
@@ -521,6 +522,7 @@ def report_v2(result_path, app_name, snapshot_name):
     visited_actions_in_other_screenshot = str(address_book.redundant_action_screenshot.relative_to(result_path.parent))
     valid_actions_screenshot = str(address_book.valid_action_screenshot.relative_to(result_path.parent))
     visited_actions_screenshot = str(address_book.visited_action_screenshot.relative_to(result_path.parent))
+    visited_elements_screenshot = str(address_book.visited_elements_screenshot.relative_to(result_path.parent))
     s_actions_screenshot = str(address_book.s_action_screenshot.relative_to(result_path.parent))
     post_analysis_results = get_post_analysis(snapshot_path=snapshot_path)
     if len(post_analysis_results['unsighted']) == 0:
@@ -559,6 +561,7 @@ def report_v2(result_path, app_name, snapshot_name):
                            all_elements_screenshot=all_elements_screenshot,
                            all_actions_screenshot=all_actions_screenshot,
                            visited_actions_in_other_screenshot=visited_actions_in_other_screenshot,
+                           visited_elements_screenshot=visited_elements_screenshot,
                            visited_actions_screenshot=visited_actions_screenshot,
                            valid_actions_screenshot=valid_actions_screenshot,
                            s_actions_screenshot=s_actions_screenshot,

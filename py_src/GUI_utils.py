@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, List
+from typing import Callable, List, Union
 import json
 import asyncio
 from lxml import etree
@@ -47,6 +47,48 @@ def are_equal_elements(element1: dict, element2: dict) -> bool:
         if element1[key] != element2[key]:
             return False
     return True
+
+
+def get_element_from_xpath(tree, xpath: str):
+    if tree is None:
+        return None
+    if tree.tag != 'hierarchy':
+        return None
+    class_names = xpath.split("/")
+    for class_name_item in class_names[1:]:
+        index = 1
+        class_name = class_name_item.split('[')[0]
+        if class_name_item.endswith(']'):
+            index = int(class_name_item.split('[')[1].split(']')[0])
+        count = 0
+        for child in tree.getchildren():
+            child_attribs = dict(child.attrib.items())
+            if class_name == child_attribs.get('class', "NONE"):
+                count += 1
+            if count == index:
+                tree = child
+                break
+        if count != index:
+            return None
+    return tree
+
+
+def is_clickable_element_or_none(dom: str, xpath: str) -> bool:
+    dom_utf8 = dom.encode('utf-8')
+    parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
+    tree = etree.fromstring(dom_utf8, parser)
+    element = get_element_from_xpath(tree, xpath)
+    if element is None:
+        logger.error(f"The element could not be found in layout! Xpath: {xpath}")
+        return True
+    while element is not None:
+        attrs = dict(element.attrib.items())
+        if attrs.get('clickable', 'false') == 'true':
+            return True
+        element = element.getparent()
+    return False
+
+
 
 
 def get_elements(dom: str, filter_query: Callable[[etree.Element], bool] = None) -> List:

@@ -45,6 +45,10 @@ class SearchQuery:
         def action_xml_attr_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
             action_attr_values = [action['element'][attr] for attr in ['bounds', 'resourceId', 'class']]
             prefix = "s_" if is_sighted else ""
+            if 'detailed_element' in action and action['detailed_element']:
+                if attr_name not in action['detailed_element']:
+                    return False
+                return value in action['detailed_element'][attr_name]
             layout_path = address_book.get_layout_path(f'{prefix}exp', action['index'], should_exists=True)
             if layout_path is None:
                 return False

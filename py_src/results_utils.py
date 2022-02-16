@@ -29,6 +29,7 @@ class AddressBook:
         self.valid_action_screenshot = self.mode_path_map['exp'].joinpath("valid_actions.png")
         self.redundant_action_screenshot = self.mode_path_map['exp'].joinpath("redundant_actions.png")
         self.visited_action_screenshot = self.mode_path_map['exp'].joinpath("visited_actions.png")
+        self.visited_elements_screenshot = self.mode_path_map['exp'].joinpath("visited_elements.png")
         self.finished_path = self.snapshot_result_path.joinpath("finished.flag")
         self.last_explore_log_path = self.snapshot_result_path.joinpath("last_explore.log")
         self.visited_elements_path = self.snapshot_result_path.joinpath("visited.jsonl")
@@ -122,6 +123,7 @@ class ResultWriter:
                    tb_action_result: Union[str, ExecutionResult],
                    reg_action_result: ExecutionResult,
                    areg_action_result: ExecutionResult = None,
+                   detailed_element: dict = None,
                    is_sighted: bool = False):
         action_index = self.get_action_index()
         if not is_sighted:
@@ -155,6 +157,8 @@ class ResultWriter:
                       'tb_action_result': tb_action_result,
                       'reg_action_result': reg_action_result,
                       'areg_action_result': areg_action_result,
+                      'detailed_element': detailed_element,
+                      'is_sighted': is_sighted
                       }
         self.actions.append(new_action)
         action_path = self.address_book.s_action_path if is_sighted else self.address_book.action_path

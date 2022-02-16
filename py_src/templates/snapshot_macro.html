@@ -7,6 +7,7 @@
                           all_actions_screenshot,
                           visited_actions_in_other_screenshot,
                           valid_actions_screenshot,
+                          visited_elements_screenshot,
                           visited_actions_screenshot,
                           s_actions_screenshot,
                           bm_log_path,
@@ -22,6 +23,7 @@
                 <th scope="col">All Actions</th>
                 <th scope="col">Redundant Actions<br> (Visited in other snapshots)</th>
                 <th scope="col">Valid Elements </th>
+                <th scope="col">Visited Elements</th>
                 <th scope="col">Visited Actions</th>
                 <th scope="col">Sighted Remaining Elements</th>
                 <th scope="col">...</th>
@@ -52,6 +54,12 @@
                 <td>
                     <a href="#" class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=valid_actions_screenshot) }}" class="rounded d-block mx-auto"
+                             style="width: 10rem;">
+                    </a>
+                </td>
+                <td>
+                    <a href="#" class="enlarge">
+                        <img src="{{ url_for('send_result_static_v2', path=visited_elements_screenshot) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
                 </td>

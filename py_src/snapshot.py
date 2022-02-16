@@ -5,7 +5,7 @@ from collections import defaultdict
 from typing import Callable, List, Tuple, Union
 from ppadb.client_async import ClientAsync as AdbClient
 
-from GUI_utils import get_elements, are_equal_elements, get_actions_from_layout
+from GUI_utils import get_elements, are_equal_elements, get_actions_from_layout, is_clickable_element_or_none
 from a11y_service import A11yServiceManager
 from adb_utils import load_snapshot, save_snapshot, is_android_activity_on_top, get_current_activity_name
 from latte_utils import latte_capture_layout as capture_layout, get_unsuccessful_execution_result
@@ -31,6 +31,7 @@ class Snapshot:
         self.writer = ResultWriter(address_book)
         self.visited_elements_in_app = {} if visited_elements_in_app is None else visited_elements_in_app
         # -------------
+        self.init_layout = None
         self.visible_elements = []
         self.valid_resource_ids = set()
         self.valid_xpaths = {}
@@ -70,8 +71,8 @@ class Snapshot:
         self.writer.start_explore()
         # ------------- TODO: think about it later ----------
         # dom = await capture_layout()
-        layout = await self.writer.capture_current_state(self.device, mode="exp", index="INITIAL", has_layout=True)
-        self.visible_elements = get_elements(layout)
+        self.init_layout = await self.writer.capture_current_state(self.device, mode="exp", index="INITIAL", has_layout=True)
+        self.visible_elements = get_elements(self.init_layout)
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.all_element_screenshot,
                           self.visible_elements,
@@ -80,7 +81,7 @@ class Snapshot:
                           scale=10)
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.all_action_screenshot,
-                          get_actions_from_layout(layout),
+                          get_actions_from_layout(self.init_layout),
                           outline=(255, 0, 255),
                           width=10,
                           scale=10)
@@ -169,6 +170,10 @@ class Snapshot:
                 self.writer.visit_element(command_json, 'repetitive', self.valid_xpaths[command_json['xpath']])
                 logger.info("Has seen this xpath more than twice")
                 continue
+            if not is_clickable_element_or_none(self.init_layout, command_json['xpath']):
+                self.writer.visit_element(command_json, 'unclickable', self.valid_xpaths[command_json['xpath']])
+                logger.info("The element is not clickable!")
+                continue
             self.writer.visit_element(command_json, 'selected', self.valid_xpaths[command_json['xpath']])
             # TODO: make it a counter
             if command_json['resourceId'] != 'null':
@@ -190,34 +195,42 @@ class Snapshot:
             logger.info(f"Action Index: {self.writer.get_action_index()}")
             await save_snapshot(self.tmp_snapshot)
             click_command_str = await tb_focused_node()
-            if click_command_str is not None:
-                if click_command_str != next_focused_element and next_focused_element is not None:
-                    logger.error(f"The current focused element is different from the navigation's result."
-                                 f"Current: {click_command_str}, NextFocusedElement: {next_focused_element}")
-                self.tb_commands.append(click_command_str)
-                modes = ['tb', 'reg', 'areg']
-                result_map = {}
-                for mode in modes:
-                    logger.info(f"Executing select in Mode: {mode}")
-                    if mode != 'tb':
-                        if not await load_snapshot(self.initial_snapshot):
-                            logger.error("Error in loading snapshot")
-                            return False
-                        log_message, result_map[mode] = await padb_logger.execute_async_with_log(
-                            execute_command(click_command_str, executor_name=mode))
-                    else:
-                        log_message, result_map[mode] = await padb_logger.execute_async_with_log(
-                            tb_perform_select())
-                    layout = await self.writer.capture_current_state(self.device, mode,
-                                                                     self.writer.get_action_index(),
-                                                                     log_message=log_message)
-                # ------------------- Add action to results ---------------
-                self.writer.add_action(element=json.loads(click_command_str),
-                                       tb_action_result=result_map['tb'],
-                                       reg_action_result=result_map['reg'],
-                                       areg_action_result=result_map.get('areg', None))
-            else:
+
+            if click_command_str is None:
                 logger.error(f"The focused node is None, expected focused node: {next_focused_element}")
+            else:
+                click_command = json.loads(click_command_str)
+                if not is_clickable_element_or_none(self.init_layout, click_command['xpath']):
+                    logger.info(f"The focused node is not clickable, Action: {click_command}")
+                else:
+                    if click_command_str != next_focused_element and next_focused_element is not None:
+                        logger.error(f"The current focused element is different from the navigation's result."
+                                     f"Current: {click_command_str}, NextFocusedElement: {next_focused_element}")
+                    self.tb_commands.append(click_command_str)
+                    modes = ['tb', 'reg', 'areg']
+                    result_map = {}
+                    for mode in modes:
+                        logger.info(f"Executing select in Mode: {mode}")
+                        if mode != 'tb':
+                            if not await load_snapshot(self.initial_snapshot):
+                                logger.error("Error in loading snapshot")
+                                return False
+                            log_message, result_map[mode] = await padb_logger.execute_async_with_log(
+                                execute_command(click_command_str, executor_name=mode))
+                        else:
+                            log_message, result_map[mode] = await padb_logger.execute_async_with_log(
+                                tb_perform_select())
+                        layout = await self.writer.capture_current_state(self.device, mode,
+                                                                         self.writer.get_action_index(),
+                                                                         log_message=log_message)
+                    # ------------------- Add action to results ---------------
+                    self.writer.add_action(element=click_command,
+                                           tb_action_result=result_map['tb'],
+                                           reg_action_result=result_map['reg'],
+                                           areg_action_result=result_map.get('areg', None),
+                                           detailed_element=self.valid_xpaths.get(click_command['xpath'], None),
+                                           is_sighted=False)
+
             # ------------------- Navigate Next -------------------
             tb_navigate_log, next_focused_element = await self.navigate_next(padb_logger)
             if not next_focused_element:
@@ -235,6 +248,12 @@ class Snapshot:
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.visited_action_screenshot,
                           [json.loads(str_command) for str_command in self.tb_commands],
+                          outline=(255, 0, 255),
+                          width=10,
+                          scale=10)
+        annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
+                          self.address_book.visited_elements_screenshot,
+                          [visited_element['detailed_element'] for visited_element in self.writer.visited_elements],
                           outline=(255, 0, 255),
                           width=10,
                           scale=10)
@@ -308,9 +327,10 @@ class Snapshot:
                 #     continue
 
                 logger.info(f"Writing action {self.writer.get_action_index()}")
-                self.writer.add_action(action,
-                                       result_map['tb'],
-                                       result_map['reg'],
+                self.writer.add_action(element=action,
+                                       tb_action_result=result_map['tb'],
+                                       reg_action_result=result_map['reg'],
                                        areg_action_result=result_map.get('areg', None),
+                                       detailed_element=self.valid_xpaths.get(action['xpath'], None),
                                        is_sighted=True)
         logger.info("Done validating remaining actions.")
