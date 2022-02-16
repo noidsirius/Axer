@@ -1,4 +1,5 @@
 #!/bin/bash
+SNAPSHOT_TIMEOUT=600
 RESULT_PATH=$(realpath ../dev_results)
 APK_PATH=$1
 APK_PATH=$(realpath "$APK_PATH")
@@ -15,11 +16,11 @@ sleep 5
 source ../.env/bin/activate
 for SNAPSHOT in $(../scripts/list_snapshots.sh); do
   APP_NAME=${SNAPSHOT%%_*}
-  if [[ "$APP_NAME" != *"$APK_NAME"* ]]; then
-    continue
-  fi
+#  if [[ "$APP_NAME" != *"$APK_NAME"* ]]; then
+#    continue
+#  fi
   echo "Snapshot $SNAPSHOT in App $APP_NAME"
-    python main.py --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --debug
+    gtimeout $SNAPSHOT_TIMEOUT python main.py --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --debug
   #		python post_analysis.py --snapshot-path $RESULT_PATH/$APP_NAME/$SNAPSHOT --name V1
     TMP_SNAPSHOT=$SNAPSHOT"_TMP"
     adb emu avd snapshot delete "$TMP_SNAPSHOT"

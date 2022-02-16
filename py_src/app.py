@@ -353,10 +353,14 @@ def report_app_v2(result_path: str, app_name: str):
 
 @flask_app.route("/v2/<result_path_str>/search", methods=['GET', 'POST'])
 def search_v2(result_path_str: str):
-    text_field = request.args.get('text', None)
-    content_description_field = request.args.get('contentDescription', None)
-    class_name_field = request.args.get('className', None)
-    resource_id_field = request.args.get('resourceId', None)
+    action_attr_names = ['text', 'contentDescription', 'class', 'resourceId']
+    action_attr_fields = []
+    for action_attr in action_attr_names:
+        action_attr_fields.append(request.args.get(action_attr, None))
+    action_xml_attr_names = ['clickable']
+    action_xml_attr_fields = []
+    for action_xml_attr in action_xml_attr_names:
+        action_xml_attr_fields.append(request.args.get(action_xml_attr, None))
     tb_type = request.args.get('tbType', 'both')
     has_post_analysis = request.args.get('hasPostAnalysis', 'off')
     one_result_per_snapshot = request.args.get('oneResultPerSnapshot', 'off')
@@ -391,14 +395,14 @@ def search_v2(result_path_str: str):
         .post_analysis(only_post_analyzed=has_post_analysis == 'on')\
         .set_valid_app(app_name_field)\
 
-    if text_field:
-        search_query.contains_text(text_field)
-    if content_description_field:
-        search_query.contains_content_description(content_description_field)
-    if class_name_field:
-        search_query.contains_class_name(class_name_field)
-    if resource_id_field:
-        search_query.contains_resource_id(resource_id_field)
+    for action_attr, value in zip(action_attr_names, action_attr_fields):
+        if value:
+            search_query.contains_action_attr(action_attr, value)
+
+    for action_attr, value in zip(action_xml_attr_names, action_xml_attr_fields):
+        if value:
+            search_query.contains_action_xml_attr(action_attr, value)
+
     if len(include_tags) > 0 or len(exclude_tags) > 0:
         search_query.contains_tags(include_tags, exclude_tags)
     if tb_result_field:
@@ -414,10 +418,9 @@ def search_v2(result_path_str: str):
         if left_xml_field != 'None' and right_xml_field != 'None':
             search_query.compare_xml(left_xml_field, right_xml_field, should_be_same=op_xml_field == '=')
 
-
     search_results = get_search_manager(result_path).search(search_query=search_query,
                                                             limit=count_field,
-                                                            limit_per_snapshot= 1 if one_result_per_snapshot == 'on' else 10000)
+                                                            limit_per_snapshot= limit_per_snapshot)
     action_results = []
     for search_result in search_results:
         action_result = create_step(search_result.address_book,
@@ -435,10 +438,8 @@ def search_v2(result_path_str: str):
 
     return render_template('search.html',
                            result_path=result_path_str,
-                           text_field=text_field,
-                           content_description_field=content_description_field,
-                           class_name_field=class_name_field,
-                           resource_id_field=resource_id_field,
+                           action_attrs=zip(action_attr_names, action_attr_fields),
+                           action_xml_attrs=zip(action_xml_attr_names, action_xml_attr_fields),
                            tb_type=tb_type,
                            tb_result_field=tb_result_field,
                            reg_result_field=reg_result_field,

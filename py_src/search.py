@@ -30,36 +30,33 @@ class SearchQuery:
                 return False
         return True
 
-    def contains_text(self, text):
-        def text_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
-            if text and text.lower() not in action['element']['text'].lower():
+    def contains_action_attr(self, attr_name: str, value: str):
+        def action_attr_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
+            if attr_name not in action['element']:
+                return False
+            if value.lower() not in action['element'][attr_name].lower():
                 return False
             return True
-        self.filters.append(text_satisfies)
+        if value and attr_name:
+            self.filters.append(action_attr_satisfies)
         return self
 
-    def contains_content_description(self, content_description):
-        def content_description_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
-            if content_description and content_description.lower() not in action['element']['contentDescription'].lower():
+    def contains_action_xml_attr(self, attr_name: str, value: str):
+        def action_xml_attr_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
+            action_attr_values = [action['element'][attr] for attr in ['bounds', 'resourceId', 'class']]
+            prefix = "s_" if is_sighted else ""
+            layout_path = address_book.get_layout_path(f'{prefix}exp', action['index'], should_exists=True)
+            if layout_path is None:
                 return False
-            return True
-        self.filters.append(content_description_satisfies)
-        return self
+            with open(layout_path) as f:
+                for line in f.readlines():
+                    if all(v in line for v in action_attr_values) and attr_name in line:
+                        attr_value = line.split(f'{attr_name}')[1].split('"')[1]
+                        return value in attr_value
+            return False
 
-    def contains_class_name(self, class_name):
-        def class_name_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
-            if class_name and class_name.lower() not in action['element']['class'].lower():
-                return False
-            return True
-        self.filters.append(class_name_satisfies)
-        return self
-
-    def contains_resource_id(self, resource_id):
-        def resource_id_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
-            if resource_id and resource_id.lower() not in action['element']['resourceId'].lower():
-                return False
-            return True
-        self.filters.append(resource_id_satisfies)
+        if value and attr_name:
+            self.filters.append(action_xml_attr_satisfies)
         return self
 
     def contains_tags(self, include_tags: List[str], exclude_tags: List[str]):

@@ -13,39 +13,29 @@
                         <div class="card-header">
                             Action
                         </div>
+
                         <div class="card-body">
-                            <div class="mb-3">
-                                <label for="textSearchField" class="form-label">Text</label>
-                                <input type="text" class="form-control" name="text" id="textSearchField"
-                                {% if text_field %}
-                                    value="{{ text_field }}"
-                                {% endif %}
-                                >
-                            </div>
-                            <div class="mb-3">
-                                <label for="contentDescriptionField" class="form-label">Content Description</label>
-                                <input type="text" class="form-control" name="contentDescription" id="contentDescriptionField"
-                                    {% if content_description_field %}
-                                       value="{{ content_description_field }}"
+                            {% for (action_attr_name, action_attr_field) in action_attrs %}
+                                <div class="mb-3">
+                                    <label for="{{ action_attr_name }}SearchField" class="form-label">{{ action_attr_name }}</label>
+                                    <input type="text" class="form-control" name="{{ action_attr_name }}" id="{{ action_attr_name }}SearchField"
+                                    {% if action_attr_field %}
+                                        value="{{ action_attr_field }}"
                                     {% endif %}
-                                >
-                            </div>
-                            <div class="mb-3">
-                                <label for="classNameField" class="form-label">Class Name</label>
-                                <input type="text" class="form-control" name="className" id="classNameField"
-                                        {% if class_name_field %}
-                                       value="{{ class_name_field }}"
-                                        {% endif %}
-                                >
-                            </div>
-                            <div class="mb-3">
-                                <label for="resourceIdField" class="form-label">ResourceId</label>
-                                <input type="text" class="form-control" name="resourceId" id="resourceIdField"
-                                        {% if resource_id_field %}
-                                       value="{{ resource_id_field }}"
-                                        {% endif %}
-                                >
-                            </div>
+                                    >
+                                </div>
+                            {% endfor %}
+                            {% for (action_xml_attr_name, action_xml_attr_field) in action_xml_attrs %}
+                                <div class="mb-3">
+                                    <label for="{{ action_xml_attr_name }}SearchField" class="form-label">{{ action_xml_attr_name }}</label>
+                                    <input type="text" class="form-control" name="{{ action_xml_attr_name }}" id="{{ action_xml_attr_name }}SearchField"
+                                            {% if action_xml_attr_field %}
+                                           value="{{ action_xml_attr_field }}"
+                                            {% endif %}
+                                    >
+                                </div>
+                            {% endfor %}
+
                             <div class="mb-3">
                                 <label for="tbSearchField" class="form-label">Talkback Mode</label>
                                 <select class="form-select" name="tbType" id="tbSearchField" aria-label="Talkback Mode">
