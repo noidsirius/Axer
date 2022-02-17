@@ -171,11 +171,14 @@ public class Utils {
         serializer.startTag("", "node");
         if (!nafExcludedClass(node) && !nafCheck(node))
             serializer.attribute("", "NAF", Boolean.toString(true));
-        serializer.attribute("", "index", Integer.toString(index));
+        // Extra Attributes
         serializer.attribute("", "importantForAccessibility", Boolean.toString(node.isImportantForAccessibility()));
         serializer.attribute("", "supportsWebAction", Boolean.toString(supportsWebAction));
         serializer.attribute("", "clickableSpan", Boolean.toString(hasClickableSpan));
+        serializer.attribute("", "drawingOrder", Integer.toString(node.getDrawingOrder()));
 //        serializer.attribute("", "visible", Boolean.toString(node.isVisibleToUser()));
+        // Regular Attributes
+        serializer.attribute("", "index", Integer.toString(index));
         serializer.attribute("", "text", safeCharSeqToString(node.getText()));
         serializer.attribute("", "resource-id", safeCharSeqToString(node.getViewIdResourceName()));
         serializer.attribute("", "class", safeCharSeqToString(node.getClassName()));

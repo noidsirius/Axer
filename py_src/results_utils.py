@@ -5,8 +5,7 @@ import shutil
 from pathlib import Path
 from typing import Optional, Union, List
 from adb_utils import get_current_activity_name
-from latte_utils import latte_capture_layout as capture_layout
-from latte_utils import ExecutionResult
+from latte_executor_utils import ExecutionResult, latte_capture_layout as capture_layout
 from padb_utils import ParallelADBLogger, save_screenshot
 from utils import annotate_rectangle
 

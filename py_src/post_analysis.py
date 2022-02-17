@@ -6,7 +6,7 @@ import json
 import argparse
 import logging
 from results_utils import AddressBook
-from latte_utils import ExecutionResult
+from latte_executor_utils import ExecutionResult
 
 logger = logging.getLogger(__name__)
 

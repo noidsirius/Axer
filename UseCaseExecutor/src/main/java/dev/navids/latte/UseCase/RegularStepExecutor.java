@@ -20,7 +20,7 @@ public class RegularStepExecutor implements StepExecutor {
 
     @Override
     public boolean executeStep(StepCommand step) {
-        Log.i(LatteService.TAG, "Reg Executing Step " + step);
+        Log.i(LatteService.TAG, "Reg Executing Step " + step + " Physical Touch: " + is_physical);
         if(step.getState() != StepState.RUNNING)
             return false;
         if(step instanceof LocatableStep){
@@ -94,9 +94,11 @@ public class RegularStepExecutor implements StepExecutor {
                 clickStep.setState(StepState.FAILED);
                 return false;
             }
-            clickableNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-            clickStep.setState(StepState.COMPLETED);
-            return true;
+            ActualWidgetInfo clickableWidget = ActualWidgetInfo.createFromA11yNode(clickableNode);
+            boolean result = clickableNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            Log.i(LatteService.TAG, "Clicking on widget: " + clickableWidget.completeToString(true));
+            clickStep.setState(result ? StepState.COMPLETED : StepState.FAILED);
+            return result;
         }
     }
 

@@ -5,12 +5,12 @@ from collections import defaultdict
 from typing import Callable, List, Tuple, Union
 from ppadb.client_async import ClientAsync as AdbClient
 
-from GUI_utils import get_elements, are_equal_elements, get_actions_from_layout, is_clickable_element_or_none
+from GUI_utils import get_elements, are_equal_elements, get_actions_from_layout, is_clickable_element_or_none,\
+    get_element_from_xpath
 from a11y_service import A11yServiceManager
 from adb_utils import load_snapshot, save_snapshot, is_android_activity_on_top, get_current_activity_name
-from latte_utils import latte_capture_layout as capture_layout, get_unsuccessful_execution_result
-from latte_utils import tb_navigate_next, tb_perform_select, tb_focused_node, \
-    reg_execute_command, areg_execute_command, stb_execute_command, execute_command, get_missing_actions
+from latte_executor_utils import tb_navigate_next, tb_perform_select, tb_focused_node, execute_command,\
+    get_missing_actions, latte_capture_layout as capture_layout
 from padb_utils import ParallelADBLogger
 from results_utils import AddressBook, ResultWriter
 from utils import annotate_elements
@@ -130,14 +130,17 @@ class Snapshot:
                 'Log Message' (the logs during the navigation) and
                 'Next Command' (the newly focused element). If Next Command is None, the navigation is finished.
         """
+        logger.info("Navigating to the next element")
         if not await load_snapshot(self.tmp_snapshot):
             logger.debug("Error in loading snapshot")
             return "The snapshot could not be loaded!", None
+        all_log_message = ""
         while True:
             log_message, next_command_str = await padb_logger.execute_async_with_log(tb_navigate_next())
+            all_log_message += log_message
             if next_command_str is None:
                 logger.error("TalkBack cannot navigate to the next element")
-                return log_message, None
+                return all_log_message, None
             if await is_android_activity_on_top():
                 logger.info("We are not in the app under test!")
                 return f"The current activity is {await get_current_activity_name()}", None
@@ -149,37 +152,37 @@ class Snapshot:
                     logger.info(
                         f"The XPath {command_json['xpath']}"
                         f" is visited more than {EXPLORE_VISIT_LIMIT} times, break. ")
-                    return log_message, None
+                    return all_log_message, None
             else:
                 logger.error(f"The xpath is null for element {command_json}")
             # TODO: Update visited* with next_command_json
             # TODO: Skip if the position is also the same
             if command_json['xpath'] not in self.valid_xpaths:
                 self.writer.visit_element(command_json, 'skipped', None)
-                logger.info("Not a valid xpath!")
+                logger.debug("Not a valid xpath!")
                 continue
             if next_command_str in self.tb_commands:
                 self.writer.visit_element(command_json, 'repetitive', self.valid_xpaths[command_json['xpath']])
-                logger.info("Has seen this command before!")
+                logger.debug("Has seen this command before!")
                 continue
             if command_json['resourceId'] in self.visited_resource_ids:
                 self.writer.visit_element(command_json, 'repetitive', self.valid_xpaths[command_json['xpath']])
-                logger.info("Has seen this resourceId")
+                logger.debug("Has seen this resourceId")
                 continue
             if self.visited_xpath_count[command_json['xpath']] > 1:  # TODO: Configurable
                 self.writer.visit_element(command_json, 'repetitive', self.valid_xpaths[command_json['xpath']])
-                logger.info("Has seen this xpath more than twice")
+                logger.debug("Has seen this xpath more than twice")
                 continue
             if not is_clickable_element_or_none(self.init_layout, command_json['xpath']):
                 self.writer.visit_element(command_json, 'unclickable', self.valid_xpaths[command_json['xpath']])
-                logger.info("The element is not clickable!")
+                logger.debug("The element is not clickable!")
                 continue
             self.writer.visit_element(command_json, 'selected', self.valid_xpaths[command_json['xpath']])
             # TODO: make it a counter
             if command_json['resourceId'] != 'null':
                 self.visited_resource_ids.add(command_json['resourceId'])
             break
-        return log_message, next_command_str
+        return all_log_message, next_command_str
 
     async def explore(self) -> bool:
         if not await self.emulator_setup():
@@ -196,7 +199,7 @@ class Snapshot:
             await save_snapshot(self.tmp_snapshot)
             click_command_str = await tb_focused_node()
 
-            if click_command_str is None:
+            if click_command_str is None or click_command_str == 'Error':
                 logger.error(f"The focused node is None, expected focused node: {next_focused_element}")
             else:
                 click_command = json.loads(click_command_str)
@@ -264,6 +267,7 @@ class Snapshot:
         if not await load_snapshot(self.initial_snapshot):
             logger.error("Error in loading snapshot")
             return []
+        await asyncio.sleep(2)
         dom = await capture_layout()
         all_actions = get_actions_from_layout(dom)
         result = []
@@ -287,10 +291,6 @@ class Snapshot:
     async def validate_by_stb(self):
         logger.info("Validating remaining actions.")
         self.writer.start_stb()
-        if not await load_snapshot(self.initial_snapshot):
-            logger.error("Error in loading snapshot")
-            return []
-        await asyncio.sleep(2)
         important_actions = await self.get_important_actions()
         tb_done_actions = self.get_tb_done_actions()
         tb_undone_actions = get_missing_actions(important_actions, tb_done_actions)
@@ -308,6 +308,8 @@ class Snapshot:
             for index, action in enumerate(tb_undone_actions):
                 logger.info(
                     f"Missing action {self.writer.get_action_index()}, count: {index} / {len(tb_undone_actions)}")
+                if get_element_from_xpath(initial_layout, action['xpath']) is None:
+                    continue
                 result_map = {}
                 modes = ['reg', 'areg', 'tb']
                 for mode in modes:

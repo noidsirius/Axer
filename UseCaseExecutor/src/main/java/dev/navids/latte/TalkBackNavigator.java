@@ -146,9 +146,14 @@ public class TalkBackNavigator {
     public void currentFocus() {
         Utils.deleteFile(Config.v().FINISH_ACTION_FILE_PATH);
         WidgetInfo widgetInfo = ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getFocusedNode());
-        Log.i(LatteService.TAG, "The focused node is: " + widgetInfo + " Xpath: " + widgetInfo.getXpath());
-        JSONObject jsonCommand = widgetInfo.getJSONCommand("xpath", false, "click");
-        String jsonCommandStr = jsonCommand != null ? jsonCommand.toString() : "Error";
-        Utils.createFile(Config.v().FINISH_ACTION_FILE_PATH, jsonCommandStr);
+        if (widgetInfo != null) {
+            Log.i(LatteService.TAG, "The focused node is: " + widgetInfo + (widgetInfo != null ? " Xpath: " + widgetInfo.getXpath() : ""));
+            JSONObject jsonCommand = widgetInfo.getJSONCommand("xpath", false, "click");
+            String jsonCommandStr = jsonCommand != null ? jsonCommand.toString() : "Error";
+            Utils.createFile(Config.v().FINISH_ACTION_FILE_PATH, jsonCommandStr);
+        }
+        else{
+            Utils.createFile(Config.v().FINISH_ACTION_FILE_PATH, "Error");
+        }
     }
 }
