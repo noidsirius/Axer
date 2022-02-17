@@ -1,5 +1,5 @@
 #!/bin/bash
-SNAPSHOT_TIMEOUT=600
+SNAPSHOT_TIMEOUT=900
 RESULT_PATH=$(realpath ../dev_results)
 APK_PATH=$1
 APK_PATH=$(realpath "$APK_PATH")

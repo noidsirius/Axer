@@ -36,6 +36,7 @@ async def capture_layout(device_name: str = DEVICE_NAME) -> str:
 
 
 async def load_snapshot(snapshot_name, device_name: str = DEVICE_NAME) -> bool:
+    logger.debug(f"Loading snapshot {snapshot_name}..")
     cmd = f"adb -s {device_name} emu avd snapshot load {snapshot_name}"
     r_code, stdout, stderr = await run_bash(cmd)
     if "OK" not in stdout:
@@ -80,13 +81,14 @@ async def read_local_android_file(file_path: str,
                                   wait_time: int = -1,
                                   remove_after_read: bool = True,
                                   device_name: str = DEVICE_NAME) -> Optional[str]:
-    sleep_time = 1
+    sleep_time = 0.5
     index = 0
     while not await local_android_file_exists(file_path, pkg_name, device_name=device_name):
         if 0 < wait_time < index * sleep_time:
             return None
         index += 1
-        logger.debug(f"Waiting for {file_path}")
+        if index % 4 == 0:
+            logger.debug(f"Waiting {int(index * sleep_time)} seconds for {file_path}")
         await asyncio.sleep(sleep_time)
     cmd = f"adb -s {device_name} exec-out run-as {pkg_name} cat files/{file_path}"
     _, content, _ = await run_bash(cmd)

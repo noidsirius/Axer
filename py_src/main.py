@@ -6,6 +6,7 @@ import logging
 from consts import DEVICE_NAME, ADB_HOST, ADB_PORT
 from ppadb.client_async import ClientAsync as AdbClient
 from results_utils import AddressBook, read_all_visited_elements_in_app
+from logger_utils import ColoredFormatter
 from snapshot import Snapshot
 
 logger = logging.getLogger(__name__)
@@ -50,18 +51,17 @@ if __name__ == "__main__":
     else:
         level = logging.INFO
 
-    if args.quiet:
-        logging.basicConfig(filename=log_path,
-                            filemode='w')
-    else:
-        logging.basicConfig(handlers=[
-                                logging.FileHandler(log_path, mode='w'),
-                                logging.StreamHandler()])
+    logger_handlers = [logging.FileHandler(log_path, mode='w')]
+    logger_handlers[0].setFormatter(ColoredFormatter(detailed=True, use_color=True))
+    if not args.quiet:
+        logger_handlers.append(logging.StreamHandler())
+        logger_handlers[-1].setFormatter(ColoredFormatter(detailed=False, use_color=True))
+    logging.basicConfig(handlers=logger_handlers)
     # ---------------- Start Hack -----------
     py_src_path = Path(sys.argv[0]).parent
     py_src_file_names = [p.name[:-len(".py")] for p in py_src_path.iterdir() if p.is_file() and p.name.endswith(".py")]
     for name in logging.root.manager.loggerDict:
-        if name in py_src_file_names:
+        if name in py_src_file_names or name == "__main__":
             logging.getLogger(name).setLevel(level)
     # ----------------- End Hack ------------
     logger.info(f"Analyzing Snapshot '{args.snapshot}' in app '{args.app_name}'...")

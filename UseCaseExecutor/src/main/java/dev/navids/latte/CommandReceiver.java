@@ -19,6 +19,7 @@ import com.google.android.apps.common.testing.accessibility.framework.checks.Tou
 import com.google.android.apps.common.testing.accessibility.framework.uielement.AccessibilityHierarchyAndroid;
 
 import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.xmlpull.v1.XmlSerializer;
@@ -29,8 +30,10 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import dev.navids.latte.UseCase.RegularStepExecutor;
@@ -41,6 +44,106 @@ public class CommandReceiver extends BroadcastReceiver {
     static final String ACTION_COMMAND_INTENT = "dev.navids.latte.COMMAND";
     static final String ACTION_COMMAND_CODE = "command";
     static final String ACTION_COMMAND_EXTRA = "extra";
+    interface CommandEvent {
+        void doAction(String extra);
+    }
+    private Map<String, CommandEvent> commandEventMap = new HashMap<>();
+
+    public CommandReceiver() {
+        super();
+        // ----------- General ----------------
+        commandEventMap.put("is_live", (extra) -> Utils.createFile(String.format(Config.v().IS_LIVE_FILE_PATH_PATTERN, extra), "I'm alive " + extra));
+        commandEventMap.put("log", (extra) -> Utils.getAllA11yNodeInfo(true));
+        commandEventMap.put("report_a11y_issues", (extra) -> {
+            Context context2 = LatteService.getInstance().getApplicationContext();
+            Set<AccessibilityHierarchyCheck> contrastChecks = new HashSet<>(Arrays.asList(
+                    AccessibilityCheckPreset.getHierarchyCheckForClass(TextContrastCheck.class),
+                    AccessibilityCheckPreset.getHierarchyCheckForClass(ImageContrastCheck.class)
+            ));
+            Set<AccessibilityHierarchyCheck> touchTargetChecks = new HashSet<>(Arrays.asList(
+                    AccessibilityCheckPreset.getHierarchyCheckForClass(TouchTargetSizeCheck.class)
+            ));
+            Set<AccessibilityHierarchyCheck> checks =
+                    AccessibilityCheckPreset.getAccessibilityHierarchyChecksForPreset(
+                            AccessibilityCheckPreset.LATEST);
+            if(extra.equals("contrast"))
+                checks = contrastChecks;
+            else if(extra.equals("touch"))
+                checks = touchTargetChecks;
+            AccessibilityNodeInfo rootNode = LatteService.getInstance().getRootInActiveWindow();
+            AccessibilityHierarchyAndroid hierarchy = AccessibilityHierarchyAndroid.newBuilder(rootNode, context2).build();
+            List<AccessibilityHierarchyCheckResult> results = new ArrayList<>();
+            for (AccessibilityHierarchyCheck check : checks) {
+                Parameters params = new Parameters();
+                params.putCustomTouchTargetSize(39);
+                results.addAll(check.runCheckOnHierarchy(hierarchy, null, params));
+            }
+            List<AccessibilityHierarchyCheckResult> returnedResult = AccessibilityCheckResultUtils.getResultsForType(
+                    results, AccessibilityCheckResult.AccessibilityCheckResultType.ERROR);
+            returnedResult.addAll(AccessibilityCheckResultUtils.getResultsForType(
+                    results, AccessibilityCheckResult.AccessibilityCheckResultType.WARNING));
+            Log.i(LatteService.TAG, "Issue Size: " + returnedResult.size() + " " + results.size());
+        });
+        commandEventMap.put("capture_layout", (extra) -> {
+            try {
+                XmlSerializer serializer = Xml.newSerializer();
+                StringWriter stringWriter = new StringWriter();
+                serializer.setOutput(stringWriter);
+                serializer.startDocument("UTF-8", true);
+                serializer.startTag("", "hierarchy");
+                serializer.attribute("", "rotation", "0"); // TODO:
+                Utils.dumpNodeRec(serializer, 0);
+                serializer.endTag("", "hierarchy");
+                serializer.endDocument();
+                Utils.createFile(Config.v().LAYOUT_FILE_PATH, stringWriter.toString());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+        // ---------------------------- TalkBack Navigation -----------
+        commandEventMap.put("nav_next", (extra) -> TalkBackNavigator.v().nextFocus(null));
+        commandEventMap.put("nav_select", (extra) -> TalkBackNavigator.v().selectFocus(null));
+        commandEventMap.put("nav_current_focus", (extra) -> TalkBackNavigator.v().currentFocus());
+        commandEventMap.put("tb_a11y_tree", (extra) -> TalkBackNavigator.v().logTalkBackTreeNodeList(null));
+        commandEventMap.put("nav_clear_history", (extra) -> TalkBackNavigator.v().clearHistory());
+        commandEventMap.put("nav_interrupt", (extra) -> TalkBackNavigator.v().interrupt());
+        // --------------------------- UseCase Executor ----------------
+        commandEventMap.put("enable", (extra) -> UseCaseExecutor.v().enable());
+        commandEventMap.put("disable", (extra) -> UseCaseExecutor.v().disable());
+        commandEventMap.put("init", (extra) -> {
+            String usecase_path = extra;
+            File file = new File(usecase_path);
+            JSONParser jsonParser = new JSONParser();
+            JSONArray commandsJson = null;
+            try (FileReader reader = new FileReader(file)) {
+                // TODO: tons of refactor!
+                //Read JSON file
+                Object obj = jsonParser.parse(reader);
+                commandsJson = (JSONArray) obj;
+                UseCaseExecutor.v().init(commandsJson);
+            } catch (IOException | ParseException e) {
+                e.printStackTrace();
+            }
+        });
+        commandEventMap.put("start", (extra) -> UseCaseExecutor.v().start());
+        commandEventMap.put("stop", (extra) -> UseCaseExecutor.v().stop());
+        commandEventMap.put("step_clear", (extra) -> UseCaseExecutor.v().clearHistory());
+        commandEventMap.put("step_execute", (extra) -> UseCaseExecutor.v().initiateCustomStep(extra));
+        commandEventMap.put("step_interrupt", (extra) -> UseCaseExecutor.v().interruptCustomStepExecution());
+        commandEventMap.put("set_delay", (extra) -> UseCaseExecutor.v().setDelay(Long.parseLong(extra)));
+        commandEventMap.put("set_step_executor", (extra) -> {
+            StepExecutor stepExecutor = LatteService.getInstance().getStepExecutor(extra);
+            if(stepExecutor != null) {
+                if(extra.equals("talkback"))
+                    RegularStepExecutor.is_physical = false;
+                UseCaseExecutor.v().setStepExecutor(stepExecutor);
+            }
+        });
+        commandEventMap.put("set_physical_touch", (extra) -> {
+            RegularStepExecutor.is_physical = extra.equals("true");
+            Log.i(LatteService.TAG, String.format("RegularStepExecutor %suse physical touch", RegularStepExecutor.is_physical ? "" : "does NOT "));
+        });
+    }
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -55,144 +158,43 @@ public class CommandReceiver extends BroadcastReceiver {
                 .replace("__^^^^__", "|")
                 .replace("__^_^^__", "$")
                 .replace("__^-^^__", "*")
-                .replace("__^^_^__", "&"); // TODO: Configurable
+                .replace("__^^_^__", "&")
+                .replace("__^^-^__", "[")
+                .replace("__^^^^^__", "]"); // TODO: Configurable
 
         if (command == null || extra == null) {
             Log.e(LatteService.TAG, "The command or extra message is null!");
             return;
         }
         Log.i(LatteService.TAG, String.format("The command %s received!", command + (extra.equals("NONE") ? "" : " - " + extra)));
-        switch (command) {
-            // ----------- General ----------------
-            case "log":
-                Utils.getAllA11yNodeInfo(true);
-                break;
-            case "report_a11y_issues":
-            {
-//                Parameters
-                Context context2 = LatteService.getInstance().getApplicationContext();
-                Set<AccessibilityHierarchyCheck> contrastChecks = new HashSet<>(Arrays.asList(
-                        AccessibilityCheckPreset.getHierarchyCheckForClass(TextContrastCheck.class),
-                        AccessibilityCheckPreset.getHierarchyCheckForClass(ImageContrastCheck.class)
-                ));
-                Set<AccessibilityHierarchyCheck> touchTargetChecks = new HashSet<>(Arrays.asList(
-                        AccessibilityCheckPreset.getHierarchyCheckForClass(TouchTargetSizeCheck.class)
-                ));
-                Set<AccessibilityHierarchyCheck> checks =
-                        AccessibilityCheckPreset.getAccessibilityHierarchyChecksForPreset(
-                                AccessibilityCheckPreset.LATEST);
-                if(extra.equals("contrast"))
-                    checks = contrastChecks;
-                else if(extra.equals("touch"))
-                    checks = touchTargetChecks;
-                AccessibilityNodeInfo rootNode = LatteService.getInstance().getRootInActiveWindow();
-                AccessibilityHierarchyAndroid hierarchy = AccessibilityHierarchyAndroid.newBuilder(rootNode, context2).build();
-                List<AccessibilityHierarchyCheckResult> results = new ArrayList<>();
-                for (AccessibilityHierarchyCheck check : checks) {
-                    Parameters params = new Parameters();
-                    params.putCustomTouchTargetSize(39);
-                    results.addAll(check.runCheckOnHierarchy(hierarchy, null, params));
-                }
-                List<AccessibilityHierarchyCheckResult> returnedResult = AccessibilityCheckResultUtils.getResultsForType(
-                        results, AccessibilityCheckResult.AccessibilityCheckResultType.ERROR);
-                returnedResult.addAll(AccessibilityCheckResultUtils.getResultsForType(
-                        results, AccessibilityCheckResult.AccessibilityCheckResultType.WARNING));
-                Log.i(LatteService.TAG, "Issue Size: " + returnedResult.size() + " " + results.size());
-//                for(AccessibilityHierarchyCheckResult res : results){
-//                    Log.i(LatteService.TAG, "    " + res.getType().name() + " " + res.getShortMessage(Locale.getDefault()) + " " + res.getElement().getClassName());
-//                }
-            }
-                break;
-            case "capture_layout":
+        try {
+            if (command.equals("sequence")) {
                 try {
-                    XmlSerializer serializer = Xml.newSerializer();
-                    StringWriter stringWriter = new StringWriter();
-                    serializer.setOutput(stringWriter);
-                    serializer.startDocument("UTF-8", true);
-                    serializer.startTag("", "hierarchy");
-                    serializer.attribute("", "rotation", "0"); // TODO:
-                    Utils.dumpNodeRec(serializer, 0);
-                    serializer.endTag("", "hierarchy");
-                    serializer.endDocument();
-                    Utils.createFile(Config.v().LAYOUT_FILE_PATH, stringWriter.toString());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                break;
-            // ---------------------------- TalkBack Navigation -----------
-            case "nav_next":
-                TalkBackNavigator.v().nextFocus(null);
-                break;
-            case "nav_current_focus":
-                TalkBackNavigator.v().currentFocus();
-                break;
-            case "tb_a11y_tree":
-                TalkBackNavigator.v().logTalkBackTreeNodeList(null);
-                break;
-            case "nav_clear_history":
-                TalkBackNavigator.v().clearHistory();
-                break;
-            case "nav_interrupt":
-                TalkBackNavigator.v().interrupt();
-                break;
-            case "nav_select":
-                TalkBackNavigator.v().selectFocus(null);
-                break;
-            // --------------------------- UseCase Executor ----------------
-            case "enable":
-                UseCaseExecutor.v().enable();
-                break;
-            case "disable":
-                UseCaseExecutor.v().disable();
-                break;
-            case "init":
-                String usecase_path = extra;
-                File file = new File(usecase_path);
-                JSONParser jsonParser = new JSONParser();
-                JSONArray commandsJson = null;
-                try (FileReader reader = new FileReader(file)) {
-                    // TODO: tons of refactor!
-                    //Read JSON file
-                    Object obj = jsonParser.parse(reader);
+                    JSONParser jsonParser = new JSONParser();
+                    JSONArray commandsJson = null;
+                    Object obj = null;
+                    obj = jsonParser.parse(extra);
                     commandsJson = (JSONArray) obj;
-                    UseCaseExecutor.v().init(commandsJson);
-                } catch (IOException | ParseException e) {
+                    for (int i = 0; i < commandsJson.size(); i++) {
+                        JSONObject commandJson = (JSONObject) commandsJson.get(i);
+                        String commandStr = (String) commandJson.getOrDefault("command", "NONE");
+                        String extraStr = (String) commandJson.getOrDefault("extra", "NONE");
+                        if (commandEventMap.containsKey(commandStr)) {
+                            Log.i(LatteService.TAG, String.format("Executing command %s with extraStr %s!", commandStr, extraStr));
+                            commandEventMap.get(commandStr).doAction(extraStr);
+                        }
+                    }
+
+                } catch (ParseException e) {
                     e.printStackTrace();
                 }
-                break;
-            case "start":
-                UseCaseExecutor.v().start();
-                break;
-            case "stop":
-                UseCaseExecutor.v().stop();
-                break;
-            case "step_clear":
-                UseCaseExecutor.v().clearHistory();
-                break;
-            case "step_execute":
-                UseCaseExecutor.v().initiateCustomStep(extra);
-                break;
-            case "step_interrupt":
-                UseCaseExecutor.v().interruptCustomStepExecution();
-                break;
-            case "set_delay":
-                long delay = Long.valueOf(extra);
-                UseCaseExecutor.v().setDelay(delay);
-                break;
-            case "set_step_executor":
-                StepExecutor stepExecutor = LatteService.getInstance().getStepExecutor(extra);
-                if(stepExecutor != null) {
-                    if(extra.equals("talkback"))
-                        RegularStepExecutor.is_physical = false;
-                    UseCaseExecutor.v().setStepExecutor(stepExecutor);
-                }
-                break;
-            case "set_physical_touch":
-                RegularStepExecutor.is_physical = extra.equals("true");
-                Log.i(LatteService.TAG, String.format("RegularStepExecutor %suse physical touch", RegularStepExecutor.is_physical ? "" : "does NOT "));
-                break;
-            default:
-                break;
+            } else {
+                if (commandEventMap.containsKey(command))
+                    commandEventMap.get(command).doAction(extra);
+            }
+        }
+        catch (Exception e){
+            Log.e(LatteService.TAG, "Exception happens during command receiver execution", e);
         }
     }
 }

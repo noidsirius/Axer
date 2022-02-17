@@ -59,7 +59,7 @@ class SearchQuery:
                         return value in attr_value
             return False
 
-        if value and attr_name:
+        if value and attr_name and value != 'Any':
             self.filters.append(action_xml_attr_satisfies)
         return self
 

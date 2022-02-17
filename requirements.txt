@@ -7,3 +7,4 @@ Jinja2==3.0.1
 Flask==2.0.1
 Pillow==8.2.0
 xmlformatter
+ansi2html

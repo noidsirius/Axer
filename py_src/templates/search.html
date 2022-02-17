@@ -15,26 +15,35 @@
                         </div>
 
                         <div class="card-body">
-                            {% for (action_attr_name, action_attr_field) in action_attrs %}
-                                <div class="mb-3">
-                                    <label for="{{ action_attr_name }}SearchField" class="form-label">{{ action_attr_name }}</label>
-                                    <input type="text" class="form-control" name="{{ action_attr_name }}" id="{{ action_attr_name }}SearchField"
-                                    {% if action_attr_field %}
-                                        value="{{ action_attr_field }}"
-                                    {% endif %}
-                                    >
-                                </div>
-                            {% endfor %}
-                            {% for (action_xml_attr_name, action_xml_attr_field) in action_xml_attrs %}
-                                <div class="mb-3">
-                                    <label for="{{ action_xml_attr_name }}SearchField" class="form-label">{{ action_xml_attr_name }}</label>
-                                    <input type="text" class="form-control" name="{{ action_xml_attr_name }}" id="{{ action_xml_attr_name }}SearchField"
-                                            {% if action_xml_attr_field %}
-                                           value="{{ action_xml_attr_field }}"
-                                            {% endif %}
-                                    >
-                                </div>
-                            {% endfor %}
+                            <div class="row mb-3">
+                                {% for (action_attr_name, action_attr_field) in action_attrs %}
+                                    <div class="col-3">
+                                        <label for="{{ action_attr_name }}SearchField" class="form-label">{{ action_attr_name }}</label>
+                                        <input type="text" class="form-control" name="{{ action_attr_name }}" id="{{ action_attr_name }}SearchField"
+                                        {% if action_attr_field %}
+                                            value="{{ action_attr_field }}"
+                                        {% endif %}
+                                        >
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="row mb-3">
+                                {% for (action_xml_attr_name, action_xml_attr_field) in action_xml_attrs %}
+                                    <div class="col-2">
+                                        <label for="{{ action_xml_attr_name }}SearchField" class="form-label">{{ action_xml_attr_name }}</label>
+                                        <select class="form-select" name="{{ action_xml_attr_name }}" id="{{ action_xml_attr_name }}SearchField" aria-label="{{ action_xml_attr_name }}e">
+                                            {% for item in ['Any', 'true', 'false'] %}
+                                                <option value="{{ item }}"
+                                                        {% if action_xml_attr_field==item %}
+                                                        selected
+                                                        {% endif %}>
+                                                    {{ item }}
+                                                </option>
+                                            {% endfor  %}
+                                        </select>
+                                    </div>
+                                {% endfor %}
+                            </div>
 
                             <div class="mb-3">
                                 <label for="tbSearchField" class="form-label">Talkback Mode</label>

@@ -49,9 +49,15 @@ def are_equal_elements(element1: dict, element2: dict) -> bool:
     return True
 
 
-def get_element_from_xpath(tree, xpath: str):
+def get_element_from_xpath(tree: Union[str, etree.Element], xpath: str):
     if tree is None:
         return None
+    if isinstance(tree, str):
+        # tree is a layout string
+        dom_utf8 = tree.encode('utf-8')
+        parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
+        tree = etree.fromstring(dom_utf8, parser)
+
     if tree.tag != 'hierarchy':
         return None
     class_names = xpath.split("/")
@@ -74,10 +80,7 @@ def get_element_from_xpath(tree, xpath: str):
 
 
 def is_clickable_element_or_none(dom: str, xpath: str) -> bool:
-    dom_utf8 = dom.encode('utf-8')
-    parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
-    tree = etree.fromstring(dom_utf8, parser)
-    element = get_element_from_xpath(tree, xpath)
+    element = get_element_from_xpath(dom, xpath)
     if element is None:
         logger.error(f"The element could not be found in layout! Xpath: {xpath}")
         return True

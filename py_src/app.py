@@ -9,6 +9,7 @@ import pathlib
 import os
 import math
 import datetime
+from ansi2html import Ansi2HTMLConverter
 from flask import Flask, request, jsonify, send_from_directory, render_template
 
 sys.path.append(str(pathlib.Path(__file__).parent.resolve()))
@@ -316,14 +317,25 @@ def inject_user():
 
 
 @flask_app.route(f'/v2/static/<path:path>')
-def send_result_static_v2(path):
+def send_result_static_v2(path: str):
     # TODO: Not secure at all
-    result_path = pathlib.Path(fix_path(path))
-    if not (result_path.exists()):
-        if str(result_path).endswith(".png"):
+    show_debug = 'debug' in request.args.keys()
+    path = pathlib.Path(fix_path(path))
+    if not (path.exists()):
+        if path.name.endswith(".png"):
             return send_from_directory(fix_path(""), "404.png")
         return "The path is incorrect!"
-    return send_from_directory(result_path.parent.resolve(), result_path.name)
+    if path.name.endswith('.log'):
+
+        with open(path) as f:
+            content = ""
+            for line in f.readlines():
+                if 'DEBUG' not in line or show_debug:
+                    content += line
+        html_log = Ansi2HTMLConverter().convert(content)
+        return html_log
+
+    return send_from_directory(path.parent.resolve(), path.name)
 
 
 @flask_app.route("/v2/<result_path_str>/")
@@ -358,10 +370,10 @@ def search_v2(result_path_str: str):
     action_attr_fields = []
     for action_attr in action_attr_names:
         action_attr_fields.append(request.args.get(action_attr, None))
-    action_xml_attr_names = ['clickable', 'NAF']
+    action_xml_attr_names = ['clickable', 'NAF', 'clickableSpan', 'focused', 'focusable', 'enabled']
     action_xml_attr_fields = []
     for action_xml_attr in action_xml_attr_names:
-        action_xml_attr_fields.append(request.args.get(action_xml_attr, None))
+        action_xml_attr_fields.append(request.args.get(action_xml_attr, 'Any'))
     tb_type = request.args.get('tbType', 'both')
     has_post_analysis = request.args.get('hasPostAnalysis', 'off')
     one_result_per_snapshot = request.args.get('oneResultPerSnapshot', 'off')
@@ -401,7 +413,7 @@ def search_v2(result_path_str: str):
             search_query.contains_action_attr(action_attr, value)
 
     for action_attr, value in zip(action_xml_attr_names, action_xml_attr_fields):
-        if value:
+        if value and value != 'Any':
             search_query.contains_action_xml_attr(action_attr, value)
 
     if len(include_tags) > 0 or len(exclude_tags) > 0:

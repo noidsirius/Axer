@@ -4,7 +4,8 @@ import logging
 import json
 from ppadb.client_async import ClientAsync as AdbClient
 from padb_utils import ParallelADBLogger, save_screenshot
-from latte_utils import talkback_tree_nodes, latte_capture_layout, talkback_nav_command, FINAL_ACITON_FILE
+from latte_utils import is_latte_live
+from latte_executor_utils import talkback_nav_command, talkback_tree_nodes, latte_capture_layout, FINAL_ACITON_FILE
 from GUI_utils import get_actions_from_layout
 from utils import annotate_elements
 from adb_utils import read_local_android_file
@@ -23,6 +24,8 @@ async def execute_latte_command(device, command: str, extra: str):
     if command == "capture_layout":
         log, layout = await padb_logger.execute_async_with_log(latte_capture_layout())
         logger.info(layout)
+    if command == "is_live":
+        logger.info(f"Is Latte live? {await is_latte_live()}")
     if command == "get_actions":  # The extra is the output path
         await save_screenshot(device, extra)
         log, layout = await padb_logger.execute_async_with_log(latte_capture_layout())

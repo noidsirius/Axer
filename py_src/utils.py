@@ -90,7 +90,7 @@ def annotate_elements(source_img: Union[str, Path],
     bounds = []
     for element in elements:
         if element is None or not element['bounds'] or element['bounds'] == 'null':
-            logger.warning(f"The bounds of element {element} is empty!")
+            logger.debug(f"The bounds of element {element} is empty!")
             continue
         bounds.append(convert_bounds(element['bounds']))
     annotate_rectangle(source_img,
