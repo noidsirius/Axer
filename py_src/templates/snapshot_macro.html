@@ -5,6 +5,8 @@
 {% macro snapshot_summary(all_elements_screenshot,
                           initial_xml_path,
                           all_actions_screenshot,
+                          atf_issues_screenshot,
+                          atf_issues_path,
                           visited_actions_in_other_screenshot,
                           valid_actions_screenshot,
                           visited_elements_screenshot,
@@ -20,6 +22,7 @@
             <tr>
 
                 <th scope="col">All Elements</th>
+                <th scope="col">ATF Issues</th>
                 <th scope="col">All Actions</th>
                 <th scope="col">Redundant Actions<br> (Visited in other snapshots)</th>
                 <th scope="col">Valid Elements </th>
@@ -38,6 +41,14 @@
                     </a>
                     <hr>
                     <a href="{{ url_for('send_result_static_v2', path=initial_xml_path) }}">Layout</a>
+                </td>
+                <td>
+                    <a href="#" class="enlarge">
+                        <img src="{{ url_for('send_result_static_v2', path=atf_issues_screenshot) }}" class="rounded d-block mx-auto"
+                             style="width: 10rem;">
+                    </a>
+                    <hr>
+                    <a href="{{ url_for('send_result_static_v2', path=atf_issues_path) }}">ATF Issues</a>
                 </td>
                 <td>
                     <a href="#" class="enlarge">

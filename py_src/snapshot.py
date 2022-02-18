@@ -10,7 +10,7 @@ from GUI_utils import get_elements, are_equal_elements, get_actions_from_layout,
 from a11y_service import A11yServiceManager
 from adb_utils import load_snapshot, save_snapshot, is_android_activity_on_top, get_current_activity_name
 from latte_executor_utils import tb_navigate_next, tb_perform_select, tb_focused_node, execute_command,\
-    get_missing_actions, latte_capture_layout as capture_layout
+    get_missing_actions, latte_capture_layout as capture_layout, report_atf_issues
 from padb_utils import ParallelADBLogger
 from results_utils import AddressBook, ResultWriter
 from utils import annotate_elements
@@ -73,7 +73,19 @@ class Snapshot:
         self.writer.start_explore()
         # ------------- TODO: think about it later ----------
         # dom = await capture_layout()
+
         self.init_layout = await self.writer.capture_current_state(self.device, mode="exp", index="INITIAL", has_layout=True)
+        atf_issues = await report_atf_issues()
+        logger.info(f"There are {len(atf_issues)} ATF issues in this screen!")
+        with open(self.address_book.atf_issues_path, "w") as f:
+            for issue in atf_issues:
+                f.write(json.dumps(issue) + "\n")
+        annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
+                          self.address_book.atf_issues_screenshot,
+                          atf_issues,
+                          outline=(255, 0, 255),
+                          width=10,
+                          scale=10)
         self.visible_elements = get_elements(self.init_layout)
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.all_element_screenshot,

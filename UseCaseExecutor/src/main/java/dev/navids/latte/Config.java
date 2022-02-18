@@ -16,6 +16,7 @@ public class Config {
     public final String FINISH_NAVIGATION_FILE_PATH = "finish_nav_result.txt";
     public final String FINISH_ACTION_FILE_PATH = "finish_nav_action.txt";
     public final String LAYOUT_FILE_PATH = "a11y_layout.xml";
+    public final String ATF_ISSUES_FILE_PATH = "aft_a11y_issues.jsonl";
     public final String IS_LIVE_FILE_PATH_PATTERN = "is_live_%s.txt";
     public final long GESTURE_DURATION = 400;
     public final long FOCUS_CHANGE_TIME = 100;

@@ -1,7 +1,7 @@
 import asyncio
 import json
 import random
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 import logging
 import xmlformatter
 from collections import namedtuple
@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 FINAL_ACITON_FILE = "finish_nav_action.txt"
 CUSTOM_STEP_RESULT = "custom_step_result.txt"
 LAYOUT_FILE_PATH = "a11y_layout.xml"
+ATF_ISSUES_FILE_PATH = "aft_a11y_issues.jsonl"
 ExecutionResult = namedtuple('ExecutionResult',
                              ['state', 'events', 'time', 'resourceId', 'className', 'contentDescription',
                               'xpath', 'bound'])
@@ -58,6 +59,25 @@ async def latte_capture_layout() -> str:
         await A11yServiceManager.setup_latte_a11y_services(tb=True)
     return layout
 
+
+async def report_atf_issues() -> List:
+    report_jsonl = None
+    for i in range(3):
+        logger.debug(f"Reporting ATF issues, Try: {i}")
+        await A11yServiceManager.enable('latte')
+        await send_command_to_latte("report_a11y_issues")
+        report_jsonl = await read_local_android_file(ATF_ISSUES_FILE_PATH, wait_time=LAYOUT_TIMEOUT_TIME)
+        if report_jsonl:
+            break
+    if report_jsonl is None:
+        logger.error(f"Timeout for reporting ATF issues.")
+        return []
+    issues = []
+    for line in report_jsonl.split("\n"):
+        if line:
+            issues.append(json.loads(line))
+
+    return issues
 
 async def talkback_tree_nodes(padb_logger: ParallelADBLogger, verbose: bool = False) -> (dict, str):
     """

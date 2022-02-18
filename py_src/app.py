@@ -530,6 +530,8 @@ def report_v2(result_path, app_name, snapshot_name):
     initial_xml_path = str(address_book.get_layout_path('exp', 'INITIAL', ).relative_to(result_path.parent))
     last_explore_log_path = str(address_book.last_explore_log_path.relative_to(result_path.parent))
     all_elements_screenshot = str(address_book.all_element_screenshot.relative_to(result_path.parent))
+    atf_issues_screenshot = str(address_book.atf_issues_screenshot.relative_to(result_path.parent))
+    atf_issues_path = str(address_book.atf_issues_path.relative_to(result_path.parent))
     all_actions_screenshot = str(address_book.all_action_screenshot.relative_to(result_path.parent))
     visited_actions_in_other_screenshot = str(address_book.redundant_action_screenshot.relative_to(result_path.parent))
     valid_actions_screenshot = str(address_book.valid_action_screenshot.relative_to(result_path.parent))
@@ -572,6 +574,8 @@ def report_v2(result_path, app_name, snapshot_name):
                            initial_xml_path=initial_xml_path,
                            all_elements_screenshot=all_elements_screenshot,
                            all_actions_screenshot=all_actions_screenshot,
+                           atf_issues_screenshot=atf_issues_screenshot,
+                           atf_issues_path=atf_issues_path,
                            visited_actions_in_other_screenshot=visited_actions_in_other_screenshot,
                            visited_elements_screenshot=visited_elements_screenshot,
                            visited_actions_screenshot=visited_actions_screenshot,

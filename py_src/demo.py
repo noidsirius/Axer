@@ -5,7 +5,8 @@ import json
 from ppadb.client_async import ClientAsync as AdbClient
 from padb_utils import ParallelADBLogger, save_screenshot
 from latte_utils import is_latte_live
-from latte_executor_utils import talkback_nav_command, talkback_tree_nodes, latte_capture_layout, FINAL_ACITON_FILE
+from latte_executor_utils import talkback_nav_command, talkback_tree_nodes, latte_capture_layout,\
+    FINAL_ACITON_FILE, report_atf_issues
 from GUI_utils import get_actions_from_layout
 from utils import annotate_elements
 from adb_utils import read_local_android_file
@@ -26,6 +27,11 @@ async def execute_latte_command(device, command: str, extra: str):
         logger.info(layout)
     if command == "is_live":
         logger.info(f"Is Latte live? {await is_latte_live()}")
+    if command == 'report_atf_issues':
+        issues = await report_atf_issues()
+        logger.info(f"Reported Issues: {len(issues)}")
+        for issue in issues:
+            logger.info(f"\tType: {issue['ATFSeverity']} - {issue['ATFType']} - {issue['resourceId']} - {issue['bounds']}")
     if command == "get_actions":  # The extra is the output path
         await save_screenshot(device, extra)
         log, layout = await padb_logger.execute_async_with_log(latte_capture_layout())

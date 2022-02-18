@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -82,7 +83,17 @@ public class CommandReceiver extends BroadcastReceiver {
                     results, AccessibilityCheckResult.AccessibilityCheckResultType.ERROR);
             returnedResult.addAll(AccessibilityCheckResultUtils.getResultsForType(
                     results, AccessibilityCheckResult.AccessibilityCheckResultType.WARNING));
-            Log.i(LatteService.TAG, "Issue Size: " + returnedResult.size() + " " + results.size());
+//            Log.i(LatteService.TAG, "Issue Size: " + returnedResult.size() + " " + results.size());
+            StringBuilder report_jsonl = new StringBuilder();
+            for (AccessibilityHierarchyCheckResult res: returnedResult) {
+                ATFWidgetInfo widgetInfo = ATFWidgetInfo.createFromViewHierarchyElement(res);
+                if (widgetInfo == null)
+                    continue;
+                org.json.JSONObject jsonCommand = widgetInfo.getJSONCommand("", false, "");
+                String jsonCommandStr = jsonCommand != null ? jsonCommand.toString() : "Error";
+                report_jsonl.append(jsonCommandStr).append("\n");
+            }
+            Utils.createFile(Config.v().ATF_ISSUES_FILE_PATH, report_jsonl.toString());
         });
         commandEventMap.put("capture_layout", (extra) -> {
             try {

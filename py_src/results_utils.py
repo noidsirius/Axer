@@ -22,8 +22,10 @@ class AddressBook:
         self.mode_path_map = {}
         for mode in navigate_modes:
             self.mode_path_map[mode] = self.snapshot_result_path.joinpath(mode.upper())
+        self.atf_issues_path = self.mode_path_map['exp'].joinpath("atf_issues.jsonl")
         self.action_path = self.snapshot_result_path.joinpath("action.jsonl")
         self.all_element_screenshot = self.mode_path_map['exp'].joinpath("all_elements.png")
+        self.atf_issues_screenshot = self.mode_path_map['exp'].joinpath("atf_elements.png")
         self.all_action_screenshot = self.mode_path_map['exp'].joinpath("all_actions.png")
         self.valid_action_screenshot = self.mode_path_map['exp'].joinpath("valid_actions.png")
         self.redundant_action_screenshot = self.mode_path_map['exp'].joinpath("redundant_actions.png")
