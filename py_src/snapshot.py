@@ -14,7 +14,7 @@ from latte_executor_utils import tb_navigate_next, tb_perform_select, tb_focused
 from padb_utils import ParallelADBLogger
 from results_utils import AddressBook, ResultWriter
 from utils import annotate_elements
-from consts import EXPLORE_VISIT_LIMIT, DEVICE_NAME, ADB_HOST, ADB_PORT
+from consts import EXPLORE_VISIT_LIMIT, DEVICE_NAME, ADB_HOST, ADB_PORT, BLIND_MONKEY_TAG, BLIND_MONKEY_INSTRUMENTED_TAG
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +24,12 @@ class Snapshot:
                  snapshot_name: str,
                  address_book: AddressBook,
                  visited_elements_in_app: dict = None,
+                 instrumented_log: bool = False,
                  device=None):
         self.initial_snapshot = snapshot_name
         self.tmp_snapshot = self.initial_snapshot + "_TMP"
         self.address_book = address_book
+        self.instrumented_log = instrumented_log
         self.writer = ResultWriter(address_book)
         self.visited_elements_in_app = {} if visited_elements_in_app is None else visited_elements_in_app
         # -------------
@@ -135,9 +137,19 @@ class Snapshot:
             logger.debug("Error in loading snapshot")
             return "The snapshot could not be loaded!", None
         all_log_message = ""
+        tags = [BLIND_MONKEY_TAG]
+        if self.instrumented_log:
+            tags.append(BLIND_MONKEY_INSTRUMENTED_TAG)
+
         while True:
-            log_message, next_command_str = await padb_logger.execute_async_with_log(tb_navigate_next())
-            all_log_message += log_message
+            log_message_map, next_command_str = await padb_logger.execute_async_with_log(tb_navigate_next(), tags=tags)
+            if len(tags) == 1:
+                all_log_message += log_message_map
+            else:
+                all_log_message += "".join(f"---Start {key}-----\n"
+                                             f"{value}\n"
+                                             f"----End {key}----\n"
+                                             for (key, value) in log_message_map.items())
             if next_command_str is None:
                 logger.error("TalkBack cannot navigate to the next element")
                 return all_log_message, None
@@ -214,18 +226,31 @@ class Snapshot:
                     result_map = {}
                     for mode in modes:
                         logger.info(f"Executing select in Mode: {mode}")
+                        tags = [BLIND_MONKEY_TAG]
+                        if self.instrumented_log:
+                            tags.append(BLIND_MONKEY_INSTRUMENTED_TAG)
+                        log_message = None
+                        instrumented_log_message = None
                         if mode != 'tb':
                             if not await load_snapshot(self.initial_snapshot):
                                 logger.error("Error in loading snapshot")
                                 return False
-                            log_message, result_map[mode] = await padb_logger.execute_async_with_log(
-                                execute_command(click_command_str, executor_name=mode))
+                            log_message_map, result_map[mode] = await padb_logger.execute_async_with_log(
+                                execute_command(click_command_str, executor_name=mode),
+                                tags=tags)
                         else:
-                            log_message, result_map[mode] = await padb_logger.execute_async_with_log(
-                                tb_perform_select())
+                            log_message_map, result_map[mode] = await padb_logger.execute_async_with_log(
+                                tb_perform_select(),
+                                tags=tags)
+                        if len(tags) == 1:
+                            log_message = log_message_map
+                        else:
+                            log_message = log_message_map[BLIND_MONKEY_TAG]
+                            instrumented_log_message = log_message_map[BLIND_MONKEY_INSTRUMENTED_TAG]
                         layout = await self.writer.capture_current_state(self.device, mode,
                                                                          self.writer.get_action_index(),
-                                                                         log_message=log_message)
+                                                                         log_message=log_message,
+                                                                         instrumented_log_message=instrumented_log_message)
                     # ------------------- Add action to results ---------------
                     self.writer.add_action(element=click_command,
                                            tb_action_result=result_map['tb'],
@@ -312,16 +337,26 @@ class Snapshot:
                     continue
                 result_map = {}
                 modes = ['reg', 'areg', 'tb']
+                tags = [BLIND_MONKEY_TAG]
+                if self.instrumented_log:
+                    tags.append(BLIND_MONKEY_INSTRUMENTED_TAG)
                 for mode in modes:
                     if not await load_snapshot(self.initial_snapshot):
                         logger.error("Error in loading snapshot")
                         return []
                     executor = mode if mode != 'tb' else 'stb'
-                    log_message, result_map[mode] = await padb_logger.execute_async_with_log(
+                    log_message_map, result_map[mode] = await padb_logger.execute_async_with_log(
                         execute_command(json.dumps(action), executor_name=executor))
+                    if len(tags) == 1:
+                        log_message = log_message_map
+                        instrumented_log_message = None
+                    else:
+                        log_message = log_message_map[BLIND_MONKEY_TAG]
+                        instrumented_log_message = log_message_map[BLIND_MONKEY_INSTRUMENTED_TAG]
                     layout = await self.writer.capture_current_state(self.device, f"s_{mode}",
                                                                      self.writer.get_action_index(),
-                                                                     log_message=log_message)
+                                                                     log_message=log_message,
+                                                                     instrumented_log_message=instrumented_log_message)
                 # if reg_layout == initial_layout or reg_result.state != 'COMPLETED':  # the action is not meaningful
                 #     logger.info(f"Writing action {self.writer.get_action_index()}")
                 #     self.writer.add_action(action, get_unsuccessful_execution_result("UNKNOWN"), reg_result,

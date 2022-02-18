@@ -69,6 +69,10 @@ class AddressBook:
         file_name = f"{index}_layout.log" if is_layout else f"{index}.log"
         return self._get_path(mode, file_name, should_exists)
 
+    def get_instrumented_log_path(self, mode: str, index: int, should_exists: bool = False):
+        file_name = f"{index}_instrumented.log"
+        return self._get_path(mode, file_name, should_exists)
+
     def get_activity_name_path(self, mode: str, index: int, should_exists: bool = False):
         return self._get_path(mode, f"{index}_activity_name.txt", should_exists)
 
@@ -172,8 +176,12 @@ class ResultWriter:
     def start_stb(self):
         self.actions = []
 
-    async def capture_current_state(self, device, mode: str, index: Union[int, str], has_layout=True,
-                                    log_message: Optional[str] = None) -> str:
+    async def capture_current_state(self, device,
+                                    mode: str,
+                                    index: Union[int, str],
+                                    has_layout=True,
+                                    log_message: Optional[str] = None,
+                                    instrumented_log_message: Optional[str] = None) -> str:
         await asyncio.sleep(3)
         await save_screenshot(device, self.address_book.get_screenshot_path(mode, index))
         activity_name = await get_current_activity_name()
@@ -193,6 +201,9 @@ class ResultWriter:
             with open(self.address_book.get_log_path(mode, index), mode='w') as f:
                 f.write(log_message)
 
+        if instrumented_log_message:
+            with open(self.address_book.get_instrumented_log_path(mode, index), mode='w') as f:
+                f.write(instrumented_log_message)
         return layout  # TODO: Remove it
 
     def write_last_navigate_log(self, log_message: str):

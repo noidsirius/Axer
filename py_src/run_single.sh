@@ -1,10 +1,12 @@
 #!/bin/bash
-SNAPSHOT_TIMEOUT=900
+SNAPSHOT_TIMEOUT=90
 RESULT_PATH=$(realpath ../dev_results)
 APK_PATH=$1
 APK_PATH=$(realpath "$APK_PATH")
 RESULT_PATH=${2:-$(realpath ../dev_results)}
 RESULT_PATH=$(realpath "$RESULT_PATH")
+MAX_SNAPSHOT=1
+STOAT_PATH=$(realpath ~/Workspaces/python/Stoat/)
 APK_NAME=$(basename "$APK_PATH")
 APK_NAME="${APK_NAME%.*}"
 deactivate
@@ -12,13 +14,13 @@ echo "Running APK $APK_NAME, the result will be written in $RESULT_PATH"
 ../scripts/load_snapshot.sh BASE
 echo "Sleep 5 seconds"
 sleep 5
-~/Workspaces/python/Stoat/explore.sh "$APK_PATH" # TODO: Make the path variable
+$STOAT_PATH/explore.sh "$APK_PATH" "$MAX_SNAPSHOT"
 source ../.env/bin/activate
 for SNAPSHOT in $(../scripts/list_snapshots.sh); do
-  APP_NAME=${SNAPSHOT%%_*}
-#  if [[ "$APP_NAME" != *"$APK_NAME"* ]]; then
-#    continue
-#  fi
+  APP_NAME=${SNAPSHOT%%.S_*}
+  if [[ "$APP_NAME" != *"$APK_NAME"* ]]; then
+    continue
+  fi
   echo "Snapshot $SNAPSHOT in App $APP_NAME"
     gtimeout $SNAPSHOT_TIMEOUT python main.py --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --debug
   #		python post_analysis.py --snapshot-path $RESULT_PATH/$APP_NAME/$SNAPSHOT --name V1

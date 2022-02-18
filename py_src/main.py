@@ -12,13 +12,14 @@ from snapshot import Snapshot
 logger = logging.getLogger(__name__)
 
 
-def analyze_snapshot(device, snapshot_path: Path):
+def analyze_snapshot(device, snapshot_path: Path, is_instrumented: bool):
 
     visited_elements_in_app = read_all_visited_elements_in_app(snapshot_path.parent)
     logger.info(f"There are {len(visited_elements_in_app)} already visited elements in this app!")
     address_book = AddressBook(snapshot_path)
     snapshot = Snapshot(snapshot_path.name, address_book,
                         visited_elements_in_app=visited_elements_in_app,
+                        instrumented_log=is_instrumented,
                         device=device)
     success_explore = asyncio.run(snapshot.explore())
     if not success_explore:
@@ -37,6 +38,7 @@ if __name__ == "__main__":
     parser.add_argument('--adb-host', type=str, default=ADB_HOST, help='The host address of ADB')
     parser.add_argument('--adb-port', type=int, default=ADB_PORT, help='The port number of ADB')
     parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--instrumented', action='store_true', help='Indicates the app is instrumented, will store logs')
     parser.add_argument('--quiet', action='store_true')
     args = parser.parse_args()
 
@@ -68,7 +70,7 @@ if __name__ == "__main__":
     try:
         client = AdbClient(host=args.adb_host, port=args.adb_port)
         device = asyncio.run(client.device(args.device))
-        analyze_snapshot(device, snapshot_result_path)
+        analyze_snapshot(device, snapshot_result_path, args.instrumented)
     except Exception as e:
         logger.error("Exception happened in analyzing the snapshot", exc_info=e)
     logger.info(f"Done Analyzing Snapshot '{args.snapshot}' in app '{args.app_name}'")
