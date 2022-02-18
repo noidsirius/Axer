@@ -101,7 +101,7 @@ class ResultWriter:
         use_detailed = detailed_element is not None
         if use_detailed:
             for key in visited_element:
-                if key not in detailed_element:
+                if key not in detailed_element or key == 'bounds':
                     continue
                 if visited_element[key] != detailed_element[key]:
                     use_detailed = False
