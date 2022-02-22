@@ -314,7 +314,13 @@ def inject_user():
             continue
         if result_path.name.endswith("_results"):
             all_result_paths.append(result_path.name)
-    return dict(all_result_paths=all_result_paths)
+
+    def static_path_fixer(path: Union[str, pathlib.Path], result_path: str) -> str:
+        if isinstance(path, pathlib.Path):
+            path = str(path)
+        return path[path.find(result_path):]
+
+    return dict(all_result_paths=all_result_paths, static_path_fixer=static_path_fixer)
 
 
 @flask_app.route(f'/v2/static/<path:path>')
@@ -529,23 +535,11 @@ def report_v2(result_path, app_name, snapshot_name):
     address_book = AddressBook(snapshot_path)
     tb_steps = []
     errors = []
-    bm_log_path = str(snapshot_path.relative_to(result_path.parent)) + ".log"
     error_logs = ""
     with open(f"{str(snapshot_path)}.log", encoding="utf-8") as f:
         for line in f.readlines():
             if line.startswith("ERROR:"):
                 error_logs += line
-    initial_xml_path = str(address_book.get_layout_path('exp', 'INITIAL', ).relative_to(result_path.parent))
-    last_explore_log_path = str(address_book.last_explore_log_path.relative_to(result_path.parent))
-    all_elements_screenshot = str(address_book.all_element_screenshot.relative_to(result_path.parent))
-    atf_issues_screenshot = str(address_book.atf_issues_screenshot.relative_to(result_path.parent))
-    atf_issues_path = str(address_book.atf_issues_path.relative_to(result_path.parent))
-    all_actions_screenshot = str(address_book.all_action_screenshot.relative_to(result_path.parent))
-    visited_actions_in_other_screenshot = str(address_book.redundant_action_screenshot.relative_to(result_path.parent))
-    valid_actions_screenshot = str(address_book.valid_action_screenshot.relative_to(result_path.parent))
-    visited_actions_screenshot = str(address_book.visited_action_screenshot.relative_to(result_path.parent))
-    visited_elements_screenshot = str(address_book.visited_elements_screenshot.relative_to(result_path.parent))
-    s_actions_screenshot = str(address_book.s_action_screenshot.relative_to(result_path.parent))
     post_analysis_results = get_post_analysis(snapshot_path=snapshot_path)
     if len(post_analysis_results['unsighted']) == 0:
         errors.append("No post-analysis result is available!")
@@ -577,19 +571,8 @@ def report_v2(result_path, app_name, snapshot_name):
     return render_template('v2_report.html',
                            result_path=result_path_str,
                            app_name=app_name,
-                           bm_log_path=bm_log_path,
+                           address_book=address_book,
                            error_logs=error_logs,
-                           initial_xml_path=initial_xml_path,
-                           all_elements_screenshot=all_elements_screenshot,
-                           all_actions_screenshot=all_actions_screenshot,
-                           atf_issues_screenshot=atf_issues_screenshot,
-                           atf_issues_path=atf_issues_path,
-                           visited_actions_in_other_screenshot=visited_actions_in_other_screenshot,
-                           visited_elements_screenshot=visited_elements_screenshot,
-                           visited_actions_screenshot=visited_actions_screenshot,
-                           valid_actions_screenshot=valid_actions_screenshot,
-                           s_actions_screenshot=s_actions_screenshot,
-                           last_explore_log_path=last_explore_log_path,
                            all_steps=all_steps,
                            name=snapshot_name,
                            errors=errors)

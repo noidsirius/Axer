@@ -52,6 +52,9 @@ class AddressBook:
     def result_path(self) -> str:
         return self.snapshot_result_path.parent.parent.name
 
+    def get_bm_log_path(self) -> Path:
+        return self.snapshot_result_path.parent.joinpath(self.snapshot_result_path.name + ".log")
+
     def app_name(self) -> str:
         return self.snapshot_result_path.parent.name
 
