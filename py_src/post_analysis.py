@@ -216,7 +216,9 @@ def post_analyzer_v2(action, address_book: AddressBook, is_sighted: bool) -> Pos
 def do_post_analysis(name: str = None,
                      result_path: Union[str, Path] = None,
                      app_path: Union[str, Path] = None,
-                     snapshot_path: Union[str, Path] = None) -> int:
+                     snapshot_path: Union[str, Path] = None,
+                     force: bool = False,
+                     override: bool = False) -> int:
     post_analyzers = {
         "V1": post_analyzer_v1,
         "V2": post_analyzer_v2,
@@ -276,10 +278,10 @@ def do_post_analysis(name: str = None,
     for snapshot_path in snapshot_paths:
         logger.info(f"Post-analyzing Snapshot in path'{snapshot_path}'...")
         address_book = AddressBook(snapshot_path)
-        if not address_book.finished_path.exists():
+        if not force and not address_book.finished_path.exists():
             logger.error(f"The snapshot didn't finish!")
             continue
-        if address_book.snapshot_result_path.joinpath(output_name).exists():
+        if not override and address_book.snapshot_result_path.joinpath(output_name).exists():
             logger.debug(f"The post analysis is already done!")
             continue
         try:
@@ -329,6 +331,8 @@ if __name__ == "__main__":
     parser.add_argument('--result-path', type=str, help="Path of the result's path")
     parser.add_argument('--name', type=str, required=True, help="Analysis Name")
     parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--force', action='store_true')
+    parser.add_argument('--override', action='store_true')
     parser.add_argument('--log-path', type=str, help="Path where logs are written")
     args = parser.parse_args()
 
@@ -348,4 +352,6 @@ if __name__ == "__main__":
     do_post_analysis(name=args.name,
                      result_path=args.result_path,
                      app_path=args.app_path,
-                     snapshot_path=args.snapshot_path)
+                     snapshot_path=args.snapshot_path,
+                     force=args.force,
+                     override=args.override)

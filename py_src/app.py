@@ -10,6 +10,7 @@ import os
 import math
 import datetime
 from ansi2html import Ansi2HTMLConverter
+from json2html import json2html
 from flask import Flask, request, jsonify, send_from_directory, render_template
 
 sys.path.append(str(pathlib.Path(__file__).parent.resolve()))
@@ -326,7 +327,6 @@ def send_result_static_v2(path: str):
             return send_from_directory(fix_path(""), "404.png")
         return "The path is incorrect!"
     if path.name.endswith('.log'):
-
         with open(path) as f:
             content = ""
             for line in f.readlines():
@@ -334,6 +334,12 @@ def send_result_static_v2(path: str):
                     content += line
         html_log = Ansi2HTMLConverter().convert(content)
         return html_log
+    if path.name.endswith('.jsonl'):
+        content_list = []
+        with open(path) as f:
+            for line in f.readlines():
+                content_list.append(json.loads(line))
+        return json2html.convert(content_list)
 
     return send_from_directory(path.parent.resolve(), path.name)
 
@@ -375,7 +381,7 @@ def search_v2(result_path_str: str):
     for action_xml_attr in action_xml_attr_names:
         action_xml_attr_fields.append(request.args.get(action_xml_attr, 'Any'))
     tb_type = request.args.get('tbType', 'both')
-    has_post_analysis = request.args.get('hasPostAnalysis', 'off')
+    post_analysis_result = request.args.get('postAnalysisResult', 'ANY')
     one_result_per_snapshot = request.args.get('oneResultPerSnapshot', 'off')
     include_tags_field = request.args.get('includeTags', '')
     exclude_tags_field = request.args.get('excludeTags', '')
@@ -405,7 +411,7 @@ def search_v2(result_path_str: str):
         return "The result path is inccorrect!"
     search_query = SearchQuery()\
         .talkback_mode(tb_type) \
-        .post_analysis(only_post_analyzed=has_post_analysis == 'on')\
+        .post_analysis(post_analysis_result=post_analysis_result)\
         .set_valid_app(app_name_field)\
 
     for action_attr, value in zip(action_attr_names, action_attr_fields):
@@ -432,10 +438,11 @@ def search_v2(result_path_str: str):
             search_query.compare_xml(left_xml_field, right_xml_field, should_be_same=op_xml_field == '=')
 
     search_results = get_search_manager(result_path).search(search_query=search_query,
-                                                            limit=count_field,
+                                                            # limit=count_field,
                                                             limit_per_snapshot= limit_per_snapshot)
+    result_count = len(search_results)
     action_results = []
-    for search_result in search_results:
+    for search_result in search_results[:count_field]:
         action_result = create_step(search_result.address_book,
                                     result_path.parent,
                                     search_result.action,
@@ -451,13 +458,14 @@ def search_v2(result_path_str: str):
 
     return render_template('search.html',
                            result_path=result_path_str,
+                           result_count=result_count,
                            action_attrs=zip(action_attr_names, action_attr_fields),
                            action_xml_attrs=zip(action_xml_attr_names, action_xml_attr_fields),
                            tb_type=tb_type,
                            tb_result_field=tb_result_field,
                            reg_result_field=reg_result_field,
                            areg_result_field=areg_result_field,
-                           has_post_analysis=has_post_analysis,
+                           post_analysis_result=post_analysis_result,
                            one_result_per_snapshot=one_result_per_snapshot,
                            count_field=count_field,
                            include_tags_field=include_tags_field,

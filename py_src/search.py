@@ -4,7 +4,9 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Union, List
 from results_utils import AddressBook
-from post_analysis import get_post_analysis
+from post_analysis import get_post_analysis, SUCCESS, EXEC_FAILURE, \
+    XML_PROBLEM , DIFFERENT_BEHAVIOR, UNREACHABLE, POST_ANALYSIS_PREFIX
+
 
 SearchResult = namedtuple('SearchResult', ['action', 'post_analysis', 'address_book', 'is_sighted'])
 
@@ -127,12 +129,24 @@ class SearchQuery:
         self.filters.append(talkback_mode_satisfies)
         return self
 
-    def post_analysis(self, only_post_analyzed: bool):
+    def post_analysis(self, post_analysis_result: str):
         def post_analysis_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
-            if only_post_analyzed:
+            if post_analysis_result == 'PROCESSED':
                 return len(post_analysis_results) > 0
-            return True
-        self.filters.append(post_analysis_satisfies)
+            issue_status = [result['issue_status'] for result in post_analysis_results.values()]
+            if post_analysis_result == 'ACCESSIBLE':
+                return SUCCESS in issue_status
+            elif post_analysis_result == 'FAILURE':
+                return EXEC_FAILURE in issue_status
+            elif post_analysis_result == 'UNREACHABLE':
+                return UNREACHABLE in issue_status
+            elif post_analysis_result == 'DIFFERENTBEHAVIOR':
+                return DIFFERENT_BEHAVIOR in issue_status
+            elif post_analysis_result == 'OTHER':
+                return not any(x in [SUCCESS, UNREACHABLE, DIFFERENT_BEHAVIOR, EXEC_FAILURE] for x in issue_status)
+            return False
+        if post_analysis_result != 'ANY':
+            self.filters.append(post_analysis_satisfies)
         return self
 
     def executor_result(self, mode: str, result: str):
@@ -174,7 +188,7 @@ class SearchManager:
 
     def search(self,
                search_query: SearchQuery,
-               limit: int = 10,
+               limit: int = 10000,
                limit_per_snapshot: int = 1000,
                ) -> List[SearchResult]:
         search_results = []

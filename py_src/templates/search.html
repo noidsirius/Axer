@@ -108,6 +108,26 @@
                                     </select>
                                 </div>
                             </div>
+                            <div class="mb-3">
+                                <label for="postAnalysisResultField" class="form-label">Post Analysis Result</label>
+                                <select class="form-select" name="postAnalysisResult" id="postAnalysisResultField" aria-label="Post Analysis Result">
+                                    {% for item in [('ANY', 'Any'),
+                                                    ('PROCESSED', 'Processed'),
+                                                    ('ACCESSIBLE', 'Accessible'),
+                                                    ('FAILURE', 'Failure'),
+                                                    ('UNREACHABLE', 'Unreachable'),
+                                                    ('DIFFERENTBEHAVIOR', 'Different Behavior'),
+                                                    ('OTHER', 'Other')] %}
+                                        <option value="{{ item[0] }}"
+                                                {% if post_analysis_result==item[0] %}
+                                                selected
+                                                {% endif %}>
+                                            {{ item[1] }}
+                                        </option>
+                                    {% endfor  %}
+                                </select>
+                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -229,14 +249,6 @@
                                             {% endif %}
                                     >
                                 </div>
-                                <div class="mb-3">
-                                    <input type="checkbox" class="form-check-input" name="hasPostAnalysis" id="hasPostAnalysisField"
-                                            {% if has_post_analysis == 'on' %}
-                                           checked
-                                            {% endif %}
-                                    >
-                                    <label for="hasPostAnalysisField" class="form-label">Has Post Analysis?</label>
-                                </div>
                                 <button type="submit" class="btn btn-primary">Search</button>
                                 <a id="clear_form" class="btn btn-warning">Clear Form</a>
                             </div>
@@ -247,7 +259,10 @@
     </div>
     <div class="row" style="height:25px;"></div>
     <hr>
-    <div class="row" style="height:25px;"></div>
+    <div class="row" style="height:25px;">
+        Number of results: {{ result_count }}
+    </div>
+    <hr>
     <div class="row">
         <table class="table table-bordered">
             <thead>

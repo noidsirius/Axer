@@ -1,11 +1,10 @@
 #!/bin/bash
-SNAPSHOT_TIMEOUT=90
-RESULT_PATH=$(realpath ../dev_results)
+SNAPSHOT_TIMEOUT=900
 APK_PATH=$1
 APK_PATH=$(realpath "$APK_PATH")
 RESULT_PATH=${2:-$(realpath ../dev_results)}
 RESULT_PATH=$(realpath "$RESULT_PATH")
-MAX_SNAPSHOT=2
+MAX_SNAPSHOT=5
 STOAT_PATH=$(realpath ~/Workspaces/python/Stoat/)
 APK_NAME=$(basename "$APK_PATH")
 APK_NAME="${APK_NAME%.*}"

@@ -1,8 +1,8 @@
 #!/bin/bash
 FLAG=1
-RESULT_PATH=$(realpath ../az2_results)
+RESULT_PATH=$(realpath ../az_results)
 LAST_APK_FILE="com.alamrida350.Driving_Licence"
-for APK_FILE in ../BM_APKs/androzoo2_apks/*.apk; do
+for APK_FILE in ../BM_APKs/androzoo_apks/*.apk; do
 	if [ "$(basename "$APK_FILE")" = "$LAST_APK_FILE.apk" ]; then
 		FLAG=1
 	fi
