@@ -1,12 +1,10 @@
 package dev.navids.latte.UseCase;
 
-import android.graphics.Rect;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Pair;
 import android.view.accessibility.AccessibilityNodeInfo;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import dev.navids.latte.ActionUtils;
@@ -51,6 +49,8 @@ public class RegularStepExecutor implements StepExecutor {
                     return executeClick((ClickStep) locatableStep, node);
                 else if(locatableStep instanceof TypeStep)
                     return executeType((TypeStep) locatableStep, node);
+                else if(locatableStep instanceof FocusStep)
+                    return executeFocus((FocusStep) locatableStep, node);
                 else {
                     Log.e(LatteService.TAG, "This locatable step is unrecognizable " + locatableStep);
                     locatableStep.setState(StepState.FAILED);
@@ -100,6 +100,17 @@ public class RegularStepExecutor implements StepExecutor {
             clickStep.setState(result ? StepState.COMPLETED : StepState.FAILED);
             return result;
         }
+    }
+
+    private boolean executeFocus(FocusStep focusStep, AccessibilityNodeInfo node){
+        AccessibilityNodeInfo currentFocusedNode = LatteService.getInstance().getFocusedNode();
+        if (currentFocusedNode != null)
+            currentFocusedNode.performAction(AccessibilityNodeInfo.ACTION_CLEAR_FOCUS);
+        ActualWidgetInfo focusableWidget = ActualWidgetInfo.createFromA11yNode(node);
+        boolean result = node.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+        Log.i(LatteService.TAG, "Focusing on widget: " + focusableWidget.completeToString(true));
+        focusStep.setState(result ? StepState.COMPLETED : StepState.FAILED);
+        return result;
     }
 
     private boolean executeType(TypeStep typeStep, AccessibilityNodeInfo node){

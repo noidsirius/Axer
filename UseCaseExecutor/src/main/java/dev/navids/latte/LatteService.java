@@ -19,11 +19,16 @@ import dev.navids.latte.UseCase.TalkBackStepExecutor;
 public class LatteService extends AccessibilityService {
     private static LatteService instance;
 
+    public AccessibilityNodeInfo getAccessibilityFocusedNode() {
+        return accessibilityFocusedNode;
+    }
+
     public AccessibilityNodeInfo getFocusedNode() {
         return focusedNode;
     }
 
     private AccessibilityNodeInfo focusedNode;
+    private AccessibilityNodeInfo accessibilityFocusedNode;
     CommandReceiver receiver;
     public boolean isConnected() {
         return connected;
@@ -80,6 +85,9 @@ public class LatteService extends AccessibilityService {
             return;
         }
         if(event.getEventType() == AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED) {
+            accessibilityFocusedNode = event.getSource();
+        }
+        else if(event.getEventType() == AccessibilityEvent.TYPE_VIEW_FOCUSED) {
             focusedNode = event.getSource();
         }
 //        Log.i(TAG, "   Type : " +AccessibilityEvent.eventTypeToString(event.getEventType()));

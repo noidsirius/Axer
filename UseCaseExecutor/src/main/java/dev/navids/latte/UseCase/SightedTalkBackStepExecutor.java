@@ -48,13 +48,13 @@ public class SightedTalkBackStepExecutor implements StepExecutor {
                     return false;
                 }
                 locatableStep.increaseActingAttempts();
-                locatableStep.setActedWidget(ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getFocusedNode()));
+                locatableStep.setActedWidget(ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getAccessibilityFocusedNode()));
                 if(locatableStep instanceof ClickStep){
                     ActionUtils.performDoubleTap();
                     locatableStep.setState(StepState.COMPLETED);
                 }
                 else if(locatableStep instanceof TypeStep){
-                    ActionUtils.performType(LatteService.getInstance().getFocusedNode(), ((TypeStep) locatableStep).getText());
+                    ActionUtils.performType(LatteService.getInstance().getAccessibilityFocusedNode(), ((TypeStep) locatableStep).getText());
                     locatableStep.setState(StepState.COMPLETED);
                 }
                 else{

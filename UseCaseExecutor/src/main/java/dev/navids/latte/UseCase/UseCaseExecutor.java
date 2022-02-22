@@ -225,6 +225,8 @@ public class UseCaseExecutor{
                 stepCommand = new TypeStep(stepJson);
             else if (ClickStep.isClickStep(action))
                 stepCommand = new ClickStep(stepJson);
+            else if (FocusStep.isFocusStep(action))
+                stepCommand = new FocusStep(stepJson);
             else
                 stepCommand = null;
             return stepCommand;
