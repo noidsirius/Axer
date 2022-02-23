@@ -544,6 +544,28 @@ def tag_action(result_path, app_name, snapshot_name, index, is_sighted, tag):
     return jsonify(result=True)
 
 
+@flask_app.route("/v2/<result_path>/tags")
+def tags_list(result_path):
+    result_path_str = result_path
+    result_path = pathlib.Path(fix_path(result_path)).resolve()
+    if not result_path.is_dir():
+        return jsonify(result=False)
+    tags = []
+    for app_path in result_path.iterdir():
+        if not app_path.is_dir():
+            continue
+        for snapshot_dir in app_path.iterdir():
+            if not snapshot_dir.is_dir():
+                continue
+            address_book = AddressBook(snapshot_dir)
+            if not address_book.tags_path.exists():
+                continue
+            with open(address_book.tags_path, 'r', encoding="utf-8") as f:
+                for line in f.readlines():
+                    tags.append(json.loads(line)['tag'])
+    return render_template('tags.html', result_path=result_path_str, tags=tags)
+
+
 @flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/report")
 def report_v2(result_path, app_name, snapshot_name):
     result_path_str = result_path
