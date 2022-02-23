@@ -550,7 +550,7 @@ def tags_list(result_path):
     result_path = pathlib.Path(fix_path(result_path)).resolve()
     if not result_path.is_dir():
         return jsonify(result=False)
-    tags = []
+    tags = set()
     for app_path in result_path.iterdir():
         if not app_path.is_dir():
             continue
@@ -562,7 +562,7 @@ def tags_list(result_path):
                 continue
             with open(address_book.tags_path, 'r', encoding="utf-8") as f:
                 for line in f.readlines():
-                    tags.append(json.loads(line)['tag'])
+                    tags.add(json.loads(line)['tag'])
     return render_template('tags.html', result_path=result_path_str, tags=tags)
 
 
