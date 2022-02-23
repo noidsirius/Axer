@@ -171,6 +171,7 @@ def report(name):
 def fix_path(path: str) -> str:
     return f"../{path}"
 
+
 def create_snapshot_info(snapshot_path: pathlib.Path) -> Union[dict, None]:
     if not snapshot_path.is_dir():
         return None
@@ -267,8 +268,16 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
                 if tag_info['index'] == action['index'] and tag_info['is_sighted'] == is_sighted:
                     step['tags'].append(tag_info['tag'])
     step['mode_info'] = {}
+
     modes = ['exp', 'tb', 'reg', 'areg']
+    step['xml_similar'] = defaultdict(dict)
     for mode in modes:
+        for right_mode in modes:
+            if right_mode != mode:
+                step['xml_similar'][mode][right_mode] = all(action_post_analysis_results[ana_name]['xml_similar_map'][f"{mode}_{right_mode}"] for ana_name in
+                                                        action_post_analysis_results)
+            else:
+                step['xml_similar'][mode][right_mode] = True
         if mode == 'exp':
             step['mode_info'][f'{mode}_img'] = address_book.get_screenshot_path(f'{prefix}{mode}', action['index'],
                                                                                 extension='edited').relative_to(
@@ -320,7 +329,17 @@ def inject_user():
             path = str(path)
         return path[path.find(result_path):]
 
-    return dict(all_result_paths=all_result_paths, static_path_fixer=static_path_fixer)
+    mode_to_repr = defaultdict(lambda: 'UNKOWN',
+        {
+            'exp': 'Initial',
+            'tb': 'TalkBack',
+            'reg': 'Touch',
+            'areg': 'A11y API'
+        })
+
+    return dict(all_result_paths=all_result_paths,
+                static_path_fixer=static_path_fixer,
+                mode_to_repr=mode_to_repr)
 
 
 @flask_app.route(f'/v2/static/<path:path>')

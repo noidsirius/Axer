@@ -39,16 +39,25 @@
             {% endfor %}
         </ul>
         <hr>
+    <div class="row">
         {% for left_mode in ['exp', 'tb', 'reg', 'areg'] %}
-            {% for right_mode in ['exp', 'tb', 'reg', 'areg'] if left_mode < right_mode %}
-            {{  xml_diff_button(action_result.snapshot_info.result_path,
+            {% set outer_loop = loop %}
+            {% for right_mode in ['exp', 'tb', 'reg', 'areg']%}
+                    {% if outer_loop.index < loop.index %}
+                        <div class="col-4 d-flex justify-content-center">
+                            {{  xml_diff_button(action_result.snapshot_info.result_path,
                                 action_result.snapshot_info.app_name,
                                 action_result.snapshot_info.snapshot_name,
                                 action_result.index,
                                 action_result.is_sighted,
-                                left_mode, right_mode) }}
+                                left_mode, right_mode,
+                                action_result['xml_similar'][left_mode][right_mode]) }}
+                        </div>
+                    {% endif %}
             {% endfor %}
         {% endfor %}
+    </div>
+
         <hr>
         <div class="row">
             <div class="col-8">
