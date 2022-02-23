@@ -12,7 +12,18 @@ logger = logging.getLogger(__name__)
 
 POST_ANALYSIS_PREFIX = 'post_analysis_result'
 
-LAST_VERSION = "V2"
+LAST_VERSION = "V3"
+# V3
+ACCESSIBLE = 30
+OTHER = 20
+EXTERNAL_SERVICE = 19
+LOADING = 18
+INEFFECTIVE = 15
+CRASHED = 13
+API_SMELL = 2
+A11Y_WARNING = 1
+A11Y_FAILURE = 0
+# V2
 SUCCESS = 30
 EXEC_FAILURE = 20
 EXEC_TIMEOUT = 10
@@ -213,15 +224,165 @@ def post_analyzer_v2(action, address_book: AddressBook, is_sighted: bool) -> Pos
     return result
 
 
+def post_analyzer_v3(action, address_book: AddressBook, is_sighted: bool) -> PostAnalysisResult:
+    """
+    Given a performed action,
+    acts as an oracle and generates the accessibility result of the action.
+    In this version, the result of A11yNodeInfo Regular (or areg) is also considered
+    :param action: The action created during BlindMonkey exploration or sighted clicking
+    :param address_book: AddressBook
+    :param is_sighted: Determines if the actions is performed during Sighted clicking
+    :return: a dictionary of action index to its result with a message
+    """
+    def is_loading(xml_similar, xml_content_map, action) -> bool:
+        return any("android.widget.ProgressBar" in xml_content_map[mode] for mode in ['tb', 'reg', 'areg']) and \
+            "android.widget.ProgressBar" not  in xml_content_map['exp']
+
+    def login_with(xml_similar, xml_content_map, action) -> bool:
+        action_texts = [action['element']['text'].lower(), action['element']['contentDescription'].lower()]
+        return any(service in action_text for service in ['microsoft', 'google', 'facebook'] for action_text in action_texts)
+
+    action_index = action['index']
+    prefix = "s_" if is_sighted else ""
+    modes = ['exp', 'tb', 'reg', 'areg']
+    xml_path_map = {}
+    for mode in modes:
+        if mode == 'exp' and is_sighted:
+            xml_path_map[mode] = address_book.get_layout_path(f'{prefix}{mode}', "INITIAL")
+        else:
+            xml_path_map[mode] = address_book.get_layout_path(f'{prefix}{mode}', action_index)
+    xml_content_map = {}
+    xml_problem = False
+    for mode in modes:
+        if not xml_path_map[mode].exists():
+            xml_problem = True
+        else:
+            with open(xml_path_map[mode], "r") as f:
+                xml_content_map[mode] = f.read()
+
+    issue_status = ACCESSIBLE
+    message_list = []
+    for mode in modes:
+        if mode == 'exp':
+            continue
+        if "FAILED" in action[f'{mode}_action_result'][0] or "COMPLETED_BY_HELP" in action[f'{mode}_action_result'][0]:
+            message_list.append(f"{mode} Failed!")
+            issue_status = min(issue_status, OTHER)
+        elif "TIMEOUT" in action[f'{mode}_action_result'][0]:
+            message_list.append(f"{mode} Timeout!")
+            issue_status = min(issue_status, OTHER)
+        if 'package="android"' in xml_content_map[mode] and \
+                ("keeps stopping" in xml_content_map[mode] or "isn't responding" in xml_content_map[mode]):
+            message_list.append(f"{mode} crashed!")
+            issue_status = min(issue_status, CRASHED)
+    xml_similar = {}
+    for i, mode in enumerate(modes):
+        for mode2 in modes[i+1:]:
+            xml_similar[f"{mode}_{mode2}"] = (xml_content_map[mode] == xml_content_map[mode2])
+            xml_similar[f"{mode2}_{mode}"] = xml_similar[f"{mode}_{mode2}"]
+
+    if issue_status == ACCESSIBLE or "FAILED" in action[f'areg_action_result'][0] or "COMPLETED_BY_HELP" in action[f'tb_action_result'][0]:
+        if xml_problem:
+            message_list.append("Problem with XML")
+            issue_status = OTHER
+        else:
+            if is_sighted:
+                if "COMPLETED_BY_HELP" in action[f'tb_action_result'][0]:
+                    if xml_similar['exp_areg']:
+                        message_list.append("Ineffective")
+                        issue_status = INEFFECTIVE
+                    elif not xml_similar['reg_areg']:
+                        message_list.append("areg overlapping!")
+                        issue_status = API_SMELL
+                    else:
+                        message_list.append("Directional Unreachable")
+                        issue_status = A11Y_WARNING
+                elif "FAILED" in action[f'areg_action_result'][0]:
+                    if xml_similar['exp_tb']:
+                        message_list.append("Ineffective")
+                        issue_status = INEFFECTIVE
+                elif xml_similar['tb_reg']:
+                    if xml_similar['exp_tb']:
+                        message_list.append("Ineffective")
+                        issue_status = INEFFECTIVE
+                    else:
+                        message_list.append("Directional Unreachable")
+                        issue_status = A11Y_WARNING
+                else:
+                    if xml_similar['exp_reg']:
+                        message_list.append("Overlapping")
+                        issue_status = API_SMELL
+                    elif login_with(xml_similar, xml_content_map, action):
+                        message_list.append("External Service")
+                        message_list.append("Directional Unreachable")
+                        issue_status = A11Y_WARNING
+                    elif 'package="com.android.chrome"' in xml_content_map['tb']\
+                            and 'package="com.android.chrome"' in xml_content_map['reg']:
+                        message_list.append("Directional Unreachable")
+                        issue_status = A11Y_WARNING
+                    elif is_loading(xml_similar, xml_content_map, action):
+                        message_list.append("Directional Unreachable")
+                        message_list.append("Loading")
+                        issue_status = A11Y_WARNING
+                    else:
+                        message_list.append("Different Behavior")
+                        issue_status = A11Y_FAILURE
+            else:
+                if "FAILED" in action[f'areg_action_result'][0]:
+                    if xml_similar['exp_tb']:
+                        message_list.append("Ineffective")
+                        issue_status = INEFFECTIVE
+                elif not xml_similar['tb_reg']:
+                    if xml_similar['exp_reg']:
+                        if 'android.widget.NumberPicker' in action['element']['xpath']:
+                            message_list.append("NumberPicker")
+                            issue_status = OTHER
+                        else:
+                            message_list.append("Overlapping")
+                            issue_status = A11Y_WARNING
+                    elif 'package="com.android.chrome"' in xml_content_map['tb'] \
+                            and 'package="com.android.chrome"' in xml_content_map['reg']:
+                        message_list.append("Accessible")
+                        issue_status = ACCESSIBLE
+                    else:
+                        if login_with(xml_similar, xml_content_map, action):
+                            message_list.append("Login with Service")
+                            issue_status = EXTERNAL_SERVICE
+                        elif is_loading(xml_similar, xml_content_map, action):
+                            message_list.append("Loading")
+                            issue_status = LOADING
+                        else:
+                            message_list.append("Different Behavior")
+                            issue_status = A11Y_FAILURE
+                elif not xml_similar['reg_areg']:
+                    if is_loading(xml_similar, xml_content_map, action):
+                        message_list.append("Loading")
+                        issue_status = LOADING
+                    else:
+                        message_list.append("Different Behavior in areg!")
+                        issue_status = A11Y_FAILURE
+
+    if issue_status == ACCESSIBLE:
+        message_list = ["Accessible"]
+
+    result = PostAnalysisResult(action=action,
+                                issue_status=issue_status,
+                                message="\n".join(reversed(message_list)),
+                                is_sighted=is_sighted,
+                                xml_similar_map=xml_similar)
+    return result
+
 def do_post_analysis(name: str = None,
                      result_path: Union[str, Path] = None,
                      app_path: Union[str, Path] = None,
                      snapshot_path: Union[str, Path] = None,
                      force: bool = False,
-                     override: bool = False) -> int:
+                     override: bool = False,
+                     remove: bool = False) -> int:
     post_analyzers = {
         "V1": post_analyzer_v1,
         "V2": post_analyzer_v2,
+        "V3": post_analyzer_v3,
     }
     if name is None:
         name = LAST_VERSION
@@ -278,6 +439,11 @@ def do_post_analysis(name: str = None,
     for snapshot_path in snapshot_paths:
         logger.info(f"Post-analyzing Snapshot in path'{snapshot_path}'...")
         address_book = AddressBook(snapshot_path)
+        if remove:
+            if address_book.snapshot_result_path.joinpath(output_name).exists():
+                address_book.snapshot_result_path.joinpath(output_name).unlink()
+            continue
+
         if not force and not address_book.finished_path.exists():
             logger.error(f"The snapshot didn't finish!")
             continue
@@ -333,6 +499,7 @@ if __name__ == "__main__":
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--force', action='store_true')
     parser.add_argument('--override', action='store_true')
+    parser.add_argument('--remove', action='store_true')
     parser.add_argument('--log-path', type=str, help="Path where logs are written")
     args = parser.parse_args()
 
@@ -354,4 +521,5 @@ if __name__ == "__main__":
                      app_path=args.app_path,
                      snapshot_path=args.snapshot_path,
                      force=args.force,
-                     override=args.override)
+                     override=args.override,
+                     remove=args.remove)

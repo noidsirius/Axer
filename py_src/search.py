@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Union, List
 from results_utils import AddressBook
 from post_analysis import get_post_analysis, SUCCESS, EXEC_FAILURE, \
-    XML_PROBLEM , DIFFERENT_BEHAVIOR, UNREACHABLE, POST_ANALYSIS_PREFIX
-
+    XML_PROBLEM, DIFFERENT_BEHAVIOR, UNREACHABLE, POST_ANALYSIS_PREFIX, A11Y_FAILURE, A11Y_WARNING, OTHER, INEFFECTIVE, \
+    CRASHED, API_SMELL, EXTERNAL_SERVICE, LOADING
 
 SearchResult = namedtuple('SearchResult', ['action', 'post_analysis', 'address_book', 'is_sighted'])
 
@@ -136,14 +136,22 @@ class SearchQuery:
             issue_status = [result['issue_status'] for result in post_analysis_results.values()]
             if post_analysis_result == 'ACCESSIBLE':
                 return SUCCESS in issue_status
-            elif post_analysis_result == 'FAILURE':
-                return EXEC_FAILURE in issue_status
-            elif post_analysis_result == 'UNREACHABLE':
-                return UNREACHABLE in issue_status
-            elif post_analysis_result == 'DIFFERENTBEHAVIOR':
-                return DIFFERENT_BEHAVIOR in issue_status
+            elif post_analysis_result == 'A11Y_FAILURE':
+                return A11Y_FAILURE in issue_status
+            elif post_analysis_result == 'A11Y_WARNING':
+                return A11Y_WARNING in issue_status
+            elif post_analysis_result == 'API_SMELL':
+                return API_SMELL in issue_status
+            elif post_analysis_result == 'EXTERNAL_SERVICE':
+                return EXTERNAL_SERVICE in issue_status
+            elif post_analysis_result == 'LOADING':
+                return LOADING in issue_status
+            elif post_analysis_result == 'INEFFECTIVE':
+                return INEFFECTIVE in issue_status
+            elif post_analysis_result == 'CRASHED':
+                return CRASHED in issue_status
             elif post_analysis_result == 'OTHER':
-                return not any(x in [SUCCESS, UNREACHABLE, DIFFERENT_BEHAVIOR, EXEC_FAILURE] for x in issue_status)
+                return OTHER in issue_status # or not any(x in [SUCCESS, UNREACHABLE, DIFFERENT_BEHAVIOR, EXEC_FAILURE] for x in issue_status)
             return False
         if post_analysis_result != 'ANY':
             self.filters.append(post_analysis_satisfies)

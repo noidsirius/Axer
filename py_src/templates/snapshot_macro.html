@@ -60,6 +60,8 @@
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.visited_elements_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
+                    <hr>
+                    <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.visited_elements_path, result_path)) }}">Visited Elements</a>
                 </td>
                 <td>
                     <a href="#" class="enlarge">

@@ -168,6 +168,15 @@ def report(name):
 
 # ---------------------------- End Legacy Results ---------------------
 
+mode_to_repr = defaultdict(lambda: 'UNKNOWN',
+                           {
+                               'exp': 'Initial',
+                               'tb': 'TalkBack',
+                               'areg': 'A11y API',
+                               'reg': 'Touch'
+                           })
+
+
 def fix_path(path: str) -> str:
     return f"../{path}"
 
@@ -308,11 +317,13 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
     step['status'] = min(
         [100] + [action_post_analysis_results[ana_name]['issue_status'] for ana_name in
                  action_post_analysis_results])
-    step['status_messages'] = [
-        f"{ana_name}: {action_post_analysis_results[ana_name]['message']}" for ana_name in
-        action_post_analysis_results]
+    step['status_messages'] = []
+    for ana_name in action_post_analysis_results:
+        message = f"{ana_name}: {action_post_analysis_results[ana_name]['message']}"
+        for mode, repr in mode_to_repr.items():
+            message = message.replace(mode, f"{repr}")
+        step['status_messages'].append(message)
     return step
-
 
 @flask_app.context_processor
 def inject_user():
@@ -328,14 +339,6 @@ def inject_user():
         if isinstance(path, pathlib.Path):
             path = str(path)
         return path[path.find(result_path):]
-
-    mode_to_repr = defaultdict(lambda: 'UNKOWN',
-        {
-            'exp': 'Initial',
-            'tb': 'TalkBack',
-            'reg': 'Touch',
-            'areg': 'A11y API'
-        })
 
     return dict(all_result_paths=all_result_paths,
                 static_path_fixer=static_path_fixer,

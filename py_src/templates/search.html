@@ -114,9 +114,13 @@
                                     {% for item in [('ANY', 'Any'),
                                                     ('PROCESSED', 'Processed'),
                                                     ('ACCESSIBLE', 'Accessible'),
-                                                    ('FAILURE', 'Failure'),
-                                                    ('UNREACHABLE', 'Unreachable'),
-                                                    ('DIFFERENTBEHAVIOR', 'Different Behavior'),
+                                                    ('A11Y_FAILURE', 'A11y Failure'),
+                                                    ('A11Y_WARNING', 'A11y Warning'),
+                                                    ('API_SMELL', 'API Smell'),
+                                                    ('EXTERNAL_SERVICE', 'External Service'),
+                                                    ('LOADING', 'Loading Screen'),
+                                                    ('INEFFECTIVE', 'Ineffective Action'),
+                                                    ('CRASHED', 'Crashed'),
                                                     ('OTHER', 'Other')] %}
                                         <option value="{{ item[0] }}"
                                                 {% if post_analysis_result==item[0] %}

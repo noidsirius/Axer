@@ -189,10 +189,10 @@ class Snapshot:
                 self.writer.visit_element(command_json, 'repetitive', self.valid_xpaths[command_json['xpath']])
                 logger.debug("Has seen this command before!")
                 continue
-            if command_json['resourceId'] in self.visited_resource_ids:
-                self.writer.visit_element(command_json, 'repetitive', self.valid_xpaths[command_json['xpath']])
-                logger.debug("Has seen this resourceId")
-                continue
+            # if command_json['resourceId'] in self.visited_resource_ids:
+            #     self.writer.visit_element(command_json, 'repetitive', self.valid_xpaths[command_json['xpath']])
+            #     logger.debug("Has seen this resourceId")
+            #     continue
             if self.visited_xpath_count[command_json['xpath']] > 1:  # TODO: Configurable
                 self.writer.visit_element(command_json, 'repetitive', self.valid_xpaths[command_json['xpath']])
                 logger.debug("Has seen this xpath more than twice")
