@@ -190,8 +190,8 @@ def create_snapshot_info(snapshot_path: pathlib.Path) -> Union[dict, None]:
     snapshot_info = {}
     count_map = {
         'actions': 0,
-        'different_behavior': 0,
-        'unreachable': 0,
+        'failure': 0,
+        'warning': 0,
         'other': 0,
     }
     analysis_count = 0
@@ -202,20 +202,12 @@ def create_snapshot_info(snapshot_path: pathlib.Path) -> Union[dict, None]:
                 for line in f.readlines():
                     count_map['actions'] += 1
                     result = json.loads(line)
-                    if result['issue_status'] == XML_PROBLEM:
+                    if 10 < result['issue_status'] <= 20:
                         count_map['other'] += 1
-                    elif result['issue_status'] == REG_FAILURE:
-                        count_map['other'] += 1
-                    elif result['issue_status'] == TB_FAILURE:
-                        count_map['other'] += 1
-                    elif result['issue_status'] == UNREACHABLE:
-                        count_map['unreachable'] += 1
-                    elif result['issue_status'] == DIFFERENT_BEHAVIOR:
-                        count_map['different_behavior'] += 1
-                    elif result['issue_status'] == SUCCESS:
-                        continue
-                    else:
-                        count_map['other'] += 1000000
+                    elif 0 < result['issue_status'] <= 10:
+                        count_map['warning'] += 1
+                    elif result['issue_status'] < 0:
+                        count_map['failure'] += 1
 
     snapshot_info['id'] = snapshot_name
     snapshot_info['log_path'] = str(snapshot_path.relative_to(result_path.parent)) + ".log"
@@ -247,10 +239,10 @@ def create_app_info(app_path: pathlib.Path) -> Union[dict, None]:
     app_info['has_unprocessed'] = any(s['state'] == 'Unprocessed' for s in snapshots_info)
     app_info['actions'] = sum(
         [0] + [s['actions'] for s in snapshots_info if s['state'] == 'Processed'])
-    app_info['different_behavior'] = sum(
-        [0] + [s['different_behavior'] for s in snapshots_info if s['state'] == 'Processed'])
-    app_info['unreachable'] = sum(
-        [0] + [s['unreachable'] for s in snapshots_info if s['state'] == 'Processed'])
+    app_info['failure'] = sum(
+        [0] + [s['failure'] for s in snapshots_info if s['state'] == 'Processed'])
+    app_info['warning'] = sum(
+        [0] + [s['warning'] for s in snapshots_info if s['state'] == 'Processed'])
     app_info['other'] = sum(
         [0] + [s['other'] for s in snapshots_info if s['state'] == 'Processed'])
     app_info['last_update'] = max(s['last_update'] for s in snapshots_info)
@@ -342,7 +334,8 @@ def inject_user():
 
     return dict(all_result_paths=all_result_paths,
                 static_path_fixer=static_path_fixer,
-                mode_to_repr=mode_to_repr)
+                mode_to_repr=mode_to_repr,
+                zip=zip)
 
 
 @flask_app.route(f'/v2/static/<path:path>')
@@ -417,9 +410,14 @@ def search_v2(result_path_str: str):
     tb_result_field = request.args.get('tbResult', 'ALL')
     reg_result_field = request.args.get('regResult', 'ALL')
     areg_result_field = request.args.get('aregResult', 'ALL')
-    xml_search_field = request.args.get('xmlSearchQuery', None)
     xml_search_mode = request.args.get('xmlSearchMode', 'ALL')
-    xml_search_attr = request.args.get('xmlSearchAttr', 'ALL')
+    xml_search_attrs = request.args.getlist('xmlSearchAttr[]')
+    xml_search_fields = request.args.getlist('xmlSearchQuery[]')
+    if len(xml_search_fields) == 0 or len(xml_search_fields) != len(xml_search_attrs):
+        xml_search_fields = [None]
+        xml_search_attrs = ['ALL']
+    # xml_search_field = request.args.get('xmlSearchQuery', None)
+    # xml_search_attr = request.args.get('xmlSearchAttr', 'ALL')
     left_xml_fields = request.args.getlist('leftXML[]')
     op_xml_fields = request.args.getlist('opXML[]')
     right_xml_fields = request.args.getlist('rightXML[]')
@@ -458,8 +456,8 @@ def search_v2(result_path_str: str):
         search_query.executor_result('reg', reg_result_field)
     if areg_result_field:
         search_query.executor_result('areg', areg_result_field)
-    if xml_search_field:
-        search_query.xml_search(xml_search_mode, attr=xml_search_attr, query=xml_search_field)
+    if any(xml_search_fields):
+        search_query.xml_search(xml_search_mode, attrs=xml_search_attrs, queries=xml_search_fields)
 
     for (left_xml_field, op_xml_field, right_xml_field) in zip(left_xml_fields, op_xml_fields, right_xml_fields):
         if left_xml_field != 'None' and right_xml_field != 'None':
@@ -499,9 +497,9 @@ def search_v2(result_path_str: str):
                            include_tags_field=include_tags_field,
                            exclude_tags_field=exclude_tags_field,
                            xml_fields=zip(left_xml_fields, cycle(op_xml_fields), right_xml_fields),
-                           xml_search_field=xml_search_field,
+                           xml_search_fields=xml_search_fields,
                            xml_search_mode=xml_search_mode,
-                           xml_search_attr=xml_search_attr,
+                           xml_search_attrs=xml_search_attrs,
                            action_results=action_results,
                            app_name_field=app_name_field,
                            app_names=app_names)
@@ -537,13 +535,13 @@ def tag_action(result_path, app_name, snapshot_name, index, is_sighted, tag):
     snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)
     if not snapshot_path.is_dir():
         return jsonify(result=False)
-    if ',' in tag:
-        return jsonify(result=False)
+    tags = tag.split(',')
     address_book = AddressBook(snapshot_path)
     is_sighted = is_sighted == 'sighted'
     index = int(index)
     with open(address_book.tags_path, 'a', encoding="utf-8") as f:
-        f.write(json.dumps({'index': index, 'is_sighted': is_sighted, 'tag': tag}) + "\n")
+        for t in tags:
+            f.write(json.dumps({'index': index, 'is_sighted': is_sighted, 'tag': t.strip()}) + "\n")
     return jsonify(result=True)
 
 

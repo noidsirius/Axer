@@ -1,3 +1,5 @@
+import re
+import subprocess
 import os
 from collections import defaultdict, namedtuple
 from typing import Union
@@ -14,15 +16,21 @@ POST_ANALYSIS_PREFIX = 'post_analysis_result'
 
 LAST_VERSION = "V3"
 # V3
+##  > 20 Accessible
+##  <=20, > 10 Couldn't determine issue
+##  <=10, >0 Accessibility Warning
+## <=0, Accessiblity Failure
 ACCESSIBLE = 30
 OTHER = 20
 EXTERNAL_SERVICE = 19
 LOADING = 18
+TB_WEBVIEW_LOADING = 17
 INEFFECTIVE = 15
 CRASHED = 13
 API_SMELL = 2
 A11Y_WARNING = 1
-A11Y_FAILURE = 0
+API_A11Y_ISSUE = 0
+TB_A11Y_ISSUE = -1
 # V2
 SUCCESS = 30
 EXEC_FAILURE = 20
@@ -234,17 +242,112 @@ def post_analyzer_v3(action, address_book: AddressBook, is_sighted: bool) -> Pos
     :param is_sighted: Determines if the actions is performed during Sighted clicking
     :return: a dictionary of action index to its result with a message
     """
-    def is_loading(xml_similar, xml_content_map, action) -> bool:
+    modes = ['exp', 'tb', 'reg', 'areg']
+
+    def is_ineffective(xml_similar, xml_content_map, action, is_sighted) -> bool:
+        if all(xml_similar[f'exp_{mode}'] for mode in modes):
+            return True
+        if all(xml_similar[f'exp_{mode}'] for mode in ['tb', 'areg']):
+            if "FAILED" in action[f'tb_action_result'][0] or \
+                "COMPLETED_BY_HELP" in action[f'tb_action_result'][0]:
+                return True
+            if is_sighted and all(not xml_similar[f'reg_{mode}'] for mode in ['tb', 'areg']):
+                return True
+        return False
+
+    def is_crashed(xml_similar, xml_content_map, action, is_sighted) -> bool:
+        for mode in modes:
+            if 'package="android"' in xml_content_map[mode] and \
+                    ("keeps stopping" in xml_content_map[mode] or "isn't responding" in xml_content_map[mode]):
+                return True
+        return False
+
+    def is_api_reachable(xml_similar, xml_content_map, action, is_sighted) -> bool:
+        # if is_sighted and
+        return False
+
+    def is_tb_web_view_adaptive(xml_similar, xml_content_map, action, is_sighted) -> bool:
+        if xml_similar['tb_reg']:
+            return False
+        prefix = "s_" if is_sighted else ""
+        cmd = f"diff {address_book.get_layout_path(f'{prefix}tb',action['index'])} {address_book.get_layout_path(f'{prefix}reg', action['index'])}"
+        diff_string = subprocess.run(cmd.split(), stdout=subprocess.PIPE).stdout.decode('utf-8')
+        diffs = []
+        last_diff = []
+        state = 0
+        for line in diff_string.split("\n"):
+            if not line:
+                continue
+            if state == 0:
+                if line[0].isdecimal():
+                    last_diff.append(line)
+                    last_diff.append("")
+                    state = 1
+                    continue
+            elif state == 1:
+                if line[0] == '<':
+                    last_diff[1] += (line[1:]+"\n")
+                elif line[0] == '-':
+                    state = 2
+                    last_diff.append("")
+                elif line[0].isdecimal():
+                    last_diff.append("")
+                    diffs.append(tuple(last_diff))
+                    last_diff = [line, ""]
+                    state = 1
+                    continue
+                elif line[0] == '>':
+                    last_diff.append(line[1:]+"\n")
+                    state = 2
+                else:
+                    logger.error("Issue with format")
+                    last_diff.append("ERROR")
+                    diffs.append(tuple(last_diff))
+                    break
+            elif state == 2:
+                if line[0] == '>':
+                    last_diff[2] += line[1:]+"\n"
+                elif line[0].isdecimal():
+                    diffs.append(tuple(last_diff))
+                    last_diff = [line, ""]
+                    state = 1
+                    continue
+                else:
+                    logger.error("Issue with format")
+                    last_diff[-1] = "ERROR"
+                    diffs.append(tuple(last_diff))
+                    last_diff = []
+                    break
+        if len(last_diff) == 2:
+            last_diff.append("")
+        if len(last_diff) == 3:
+            diffs.append(tuple(last_diff))
+        else:
+            logger.error(diff_string)
+        if len(diffs) != 1:
+            if len(diffs) == 0:
+                logger.error(state)
+            return False
+        diff = diffs[0]
+        if diff[2] == "ERROR" or len(diff[2]) == 0:
+            return False
+        if 'class="android.webkit.WebView"' in diff[2] and 'NAF="true"' in diff[2]:
+            first_line = diff[1].split("\n")[0]
+            if 'class="android.webkit.WebView"' in first_line and 'importantForAccessibility="false"' in first_line:
+                return True
+        return False
+
+
+    def is_loading(xml_similar, xml_content_map, action, is_sighted) -> bool:
         return any("android.widget.ProgressBar" in xml_content_map[mode] for mode in ['tb', 'reg', 'areg']) and \
             "android.widget.ProgressBar" not  in xml_content_map['exp']
 
-    def login_with(xml_similar, xml_content_map, action) -> bool:
+    def login_with(xml_similar, xml_content_map, action, is_sighted) -> bool:
         action_texts = [action['element']['text'].lower(), action['element']['contentDescription'].lower()]
         return any(service in action_text for service in ['microsoft', 'google', 'facebook'] for action_text in action_texts)
 
     action_index = action['index']
     prefix = "s_" if is_sighted else ""
-    modes = ['exp', 'tb', 'reg', 'areg']
     xml_path_map = {}
     for mode in modes:
         if mode == 'exp' and is_sighted:
@@ -258,7 +361,14 @@ def post_analyzer_v3(action, address_book: AddressBook, is_sighted: bool) -> Pos
             xml_problem = True
         else:
             with open(xml_path_map[mode], "r") as f:
-                xml_content_map[mode] = f.read()
+                xml_content_map[mode] = ""
+                bounds_re_pattern = r'bounds="\[\d+,\d+\]\[\d+,\d+\]"\s'
+                drawing_re_pattern = f'drawingOrder="\d+"'
+                for line in f.readlines():
+                    line = re.sub(bounds_re_pattern, '', line)
+                    line = re.sub(drawing_re_pattern, '', line)
+                    xml_content_map[mode] += line +"\n"
+                    # xml_content_map[mode] += line + "\n"
 
     issue_status = ACCESSIBLE
     message_list = []
@@ -277,6 +387,7 @@ def post_analyzer_v3(action, address_book: AddressBook, is_sighted: bool) -> Pos
             issue_status = min(issue_status, CRASHED)
     xml_similar = {}
     for i, mode in enumerate(modes):
+        xml_similar[f"{mode}_{mode}"] = True
         for mode2 in modes[i+1:]:
             xml_similar[f"{mode}_{mode2}"] = (xml_content_map[mode] == xml_content_map[mode2])
             xml_similar[f"{mode2}_{mode}"] = xml_similar[f"{mode}_{mode2}"]
@@ -309,10 +420,13 @@ def post_analyzer_v3(action, address_book: AddressBook, is_sighted: bool) -> Pos
                         message_list.append("Directional Unreachable")
                         issue_status = A11Y_WARNING
                 else:
-                    if xml_similar['exp_reg']:
+                    if is_tb_web_view_adaptive(xml_similar, xml_content_map, action, is_sighted):
+                        message_list.append("Loading WebView for TalkBack")
+                        issue_status = TB_WEBVIEW_LOADING
+                    elif xml_similar['exp_reg']:
                         message_list.append("Overlapping")
                         issue_status = API_SMELL
-                    elif login_with(xml_similar, xml_content_map, action):
+                    elif login_with(xml_similar, xml_content_map, action, is_sighted):
                         message_list.append("External Service")
                         message_list.append("Directional Unreachable")
                         issue_status = A11Y_WARNING
@@ -320,20 +434,23 @@ def post_analyzer_v3(action, address_book: AddressBook, is_sighted: bool) -> Pos
                             and 'package="com.android.chrome"' in xml_content_map['reg']:
                         message_list.append("Directional Unreachable")
                         issue_status = A11Y_WARNING
-                    elif is_loading(xml_similar, xml_content_map, action):
+                    elif is_loading(xml_similar, xml_content_map, action, is_sighted):
                         message_list.append("Directional Unreachable")
                         message_list.append("Loading")
                         issue_status = A11Y_WARNING
                     else:
                         message_list.append("Different Behavior")
-                        issue_status = A11Y_FAILURE
+                        issue_status = TB_A11Y_ISSUE
             else:
                 if "FAILED" in action[f'areg_action_result'][0]:
                     if xml_similar['exp_tb']:
                         message_list.append("Ineffective")
                         issue_status = INEFFECTIVE
                 elif not xml_similar['tb_reg']:
-                    if xml_similar['exp_reg']:
+                    if is_tb_web_view_adaptive(xml_similar, xml_content_map, action, is_sighted):
+                        message_list.append("Loading WebView for TalkBack")
+                        issue_status = TB_WEBVIEW_LOADING
+                    elif xml_similar['exp_reg']:
                         if 'android.widget.NumberPicker' in action['element']['xpath']:
                             message_list.append("NumberPicker")
                             issue_status = OTHER
@@ -345,22 +462,22 @@ def post_analyzer_v3(action, address_book: AddressBook, is_sighted: bool) -> Pos
                         message_list.append("Accessible")
                         issue_status = ACCESSIBLE
                     else:
-                        if login_with(xml_similar, xml_content_map, action):
+                        if login_with(xml_similar, xml_content_map, action, is_sighted):
                             message_list.append("Login with Service")
                             issue_status = EXTERNAL_SERVICE
-                        elif is_loading(xml_similar, xml_content_map, action):
+                        elif is_loading(xml_similar, xml_content_map, action, is_sighted):
                             message_list.append("Loading")
                             issue_status = LOADING
                         else:
                             message_list.append("Different Behavior")
-                            issue_status = A11Y_FAILURE
+                            issue_status = TB_A11Y_ISSUE
                 elif not xml_similar['reg_areg']:
-                    if is_loading(xml_similar, xml_content_map, action):
+                    if is_loading(xml_similar, xml_content_map, action, is_sighted):
                         message_list.append("Loading")
                         issue_status = LOADING
                     else:
                         message_list.append("Different Behavior in areg!")
-                        issue_status = A11Y_FAILURE
+                        issue_status = API_A11Y_ISSUE
 
     if issue_status == ACCESSIBLE:
         message_list = ["Accessible"]

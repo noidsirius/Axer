@@ -82,23 +82,16 @@ class Snapshot:
                 f.write(json.dumps(issue) + "\n")
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.atf_issues_screenshot,
-                          atf_issues,
-                          outline=(255, 0, 255),
-                          width=10,
-                          scale=10)
+                          atf_issues)
         self.visible_elements = get_elements(self.init_layout)
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.all_element_screenshot,
-                          self.visible_elements,
-                          outline=(255, 0, 255),
-                          width=10,
-                          scale=10)
+                          self.visible_elements)
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.all_action_screenshot,
                           get_actions_from_layout(self.init_layout),
-                          outline=(255, 0, 255),
-                          width=10,
-                          scale=10)
+                          outline=(138, 43, 226),
+                          width=15)
         self.valid_resource_ids = set()
         self.valid_xpaths = {}
         already_visited_elements = []
@@ -113,16 +106,10 @@ class Snapshot:
                 self.valid_xpaths[element['xpath']] = element
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.redundant_action_screenshot,
-                          already_visited_elements,
-                          outline=(255, 0, 255),
-                          width=10,
-                          scale=10)
+                          already_visited_elements)
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.valid_action_screenshot,
-                          list(self.valid_xpaths.values()),
-                          outline=(255, 0, 255),
-                          width=10,
-                          scale=10)
+                          list(self.valid_xpaths.values()))
         logger.info(f"There are {len(self.valid_xpaths)} valid elements,"
                     f" and {len(already_visited_elements)} elements have been seen in other snapshots!")
         with open(self.address_book.valid_elements_path, "w") as f:
@@ -162,7 +149,7 @@ class Snapshot:
                                              f"{value}\n"
                                              f"----End {key}----\n"
                                              for (key, value) in log_message_map.items())
-            if next_command_str is None:
+            if not next_command_str or next_command_str == "Error":
                 logger.error("TalkBack cannot navigate to the next element")
                 return all_log_message, None
             if await is_android_activity_on_top():
@@ -223,7 +210,7 @@ class Snapshot:
             await save_snapshot(self.tmp_snapshot)
             click_command_str = await tb_focused_node()
 
-            if click_command_str is None or click_command_str == 'Error':
+            if not click_command_str or click_command_str == 'Error':
                 logger.error(f"The focused node is None, expected focused node: {next_focused_element}")
             else:
                 click_command = json.loads(click_command_str)
@@ -287,16 +274,10 @@ class Snapshot:
 
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.visited_action_screenshot,
-                          [json.loads(str_command) for str_command in self.tb_commands],
-                          outline=(255, 0, 255),
-                          width=10,
-                          scale=10)
+                          [json.loads(str_command) for str_command in self.tb_commands])
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.visited_elements_screenshot,
-                          [visited_element['detailed_element'] for visited_element in self.writer.visited_elements],
-                          outline=(255, 0, 255),
-                          width=10,
-                          scale=10)
+                          [visited_element['detailed_element'] for visited_element in self.writer.visited_elements])
         logger.info("Done Exploring!")
         return True
 
@@ -335,10 +316,7 @@ class Snapshot:
         initial_layout = await self.writer.capture_current_state(self.device, 's_exp', 'INITIAL')
         annotate_elements(self.address_book.get_screenshot_path('s_exp', 'INITIAL'),
                           self.address_book.s_action_screenshot,
-                          tb_undone_actions,
-                          outline=(255, 0, 255),
-                          width=10,
-                          scale=10)
+                          tb_undone_actions)
         is_in_app_activity = not await is_android_activity_on_top()
         padb_logger = ParallelADBLogger(self.device)
         if is_in_app_activity:

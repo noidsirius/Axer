@@ -18,8 +18,8 @@
                 <th>Name</th>
                 <th>#Snapshots</th>
                 <th>#Actions</th>
-                <th>#DifferentBehavior</th>
-                <th>#Unreachable</th>
+                <th>#Failures</th>
+                <th>#Warnings</th>
                 <th>#Other</th>
                 <th>Last update</th>
                 <th>...</th>
@@ -35,8 +35,8 @@
                     </td>
                     <td>{{ app.snapshots|length }}</td>
                     <td>{{ app.actions }}</td>
-                    <td>{{ app.different_behavior }}</td>
-                    <td>{{ app.unreachable }}</td>
+                    <td>{{ app.failure }}</td>
+                    <td>{{ app.warning }}</td>
                     <td>{{ app.other }}</td>
                     <td>{{ app.last_update }}</td>
                     <td>

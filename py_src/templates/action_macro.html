@@ -19,15 +19,15 @@
 {% endmacro %}
 {% macro result_info(action_result) %}
     <td style="max-width: 15em" class="
-        {% if action_result.status == 30 %}
+        {% if action_result.status > 20 %}
             table-success
-        {% elif action_result.status == 2 or action_result.status == 1 %}
+        {% elif action_result.status < 10 and action_result.status > 0 %}
             table-warning
-        {% elif action_result.status == 0 %}
+        {% elif action_result.status <= 0 %}
             table-danger
         {% elif action_result.status == 100 %}
             table-secondary
-        {% elif 3 <= action_result.status < 30  %}
+        {% elif 10 <= action_result.status <= 20  %}
             table-info
         {% else %}
             table-light
@@ -84,6 +84,23 @@
                     {% endfor %}
                 </div>
             </div>
+        {% if 'v' not in action_result.tags %}
+            <div class="row">
+                <div class="col-4">
+                    <button class="action_tag btn btn-outline-primary">
+                        Visited?
+                        <input type="hidden" class="snapshot-result-path" value="{{ action_result.snapshot_info.result_path }}">
+                        <input type="hidden" class="snapshot-app" value="{{ action_result.snapshot_info.app_name }}">
+                        <input type="hidden" class="snapshot-name" value="{{ action_result.snapshot_info.snapshot_name }}">
+                        <input type="hidden" class="snapshot-index" value="{{ action_result.index }}">
+                        <input type="hidden" class="snapshot-sighted" value="{{ 'sighted' if action_result.is_sighted else 'unsighted' }}">
+                    </button>
+                </div>
+                <div class="col-8">
+                    <input type="hidden" class="action-tag-value form-control" value="v">
+                </div>
+            </div>
+        {% endif %}
         </td>
 {% endmacro %}
 {% macro action_row(action_result, with_snapshot_info) %}
@@ -156,7 +173,7 @@
             let snapshot_name = $(this).find('.snapshot-name').attr('value');
             let index = $(this).find('.snapshot-index').attr('value');
             let sighted_str = $(this).find('.snapshot-sighted').attr('value');
-            let tag_input_element = $(this).parent().parent().parent().find('.action-tag-value');
+            let tag_input_element = $(this).parent().parent().find('.action-tag-value');
             let tag = tag_input_element.val();
             let tag_container_element = $(this).parent().parent().parent().find('.tag-container');
             if (tag) {
@@ -166,14 +183,16 @@
                 $.getJSON(path, {},
                     function(data) {
                         if (data.result) {
-                            new_tag = `<span class="btn btn-light rounded-pill m-1" style="display: inline-block;">
-                                            ${tag}
+                            for(var t of tag.split(',')) {
+                                new_tag = `<span class="btn btn-light rounded-pill m-1" style="display: inline-block;">
+                                            ${t}
                                         </span>`
-                            console.log("The tag container" )
-                            console.log(tag_container_element)
-                            console.log("The new element: " + new_tag)
-                            tag_container_element.append(new_tag)
-                            tag_input_element.val("");
+                                console.log("The tag container")
+                                console.log(tag_container_element)
+                                console.log("The new element: " + new_tag)
+                                tag_container_element.append(new_tag)
+                                tag_input_element.val("");
+                            }
                         }
                         else{
                             alert("There is a problem with tagging!")

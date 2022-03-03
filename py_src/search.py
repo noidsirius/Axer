@@ -1,12 +1,14 @@
 import json
-from collections import namedtuple
+import logging
+from collections import namedtuple, defaultdict
 from functools import lru_cache
 from pathlib import Path
 from typing import Union, List
 from results_utils import AddressBook
 from post_analysis import get_post_analysis, SUCCESS, EXEC_FAILURE, \
-    XML_PROBLEM, DIFFERENT_BEHAVIOR, UNREACHABLE, POST_ANALYSIS_PREFIX, A11Y_FAILURE, A11Y_WARNING, OTHER, INEFFECTIVE, \
-    CRASHED, API_SMELL, EXTERNAL_SERVICE, LOADING
+    XML_PROBLEM, DIFFERENT_BEHAVIOR, UNREACHABLE, POST_ANALYSIS_PREFIX, A11Y_WARNING, OTHER, INEFFECTIVE, \
+    CRASHED, API_SMELL, EXTERNAL_SERVICE, LOADING, TB_WEBVIEW_LOADING, API_A11Y_ISSUE, TB_A11Y_ISSUE
+from utils import convert_bounds
 
 SearchResult = namedtuple('SearchResult', ['action', 'post_analysis', 'address_book', 'is_sighted'])
 
@@ -92,7 +94,8 @@ class SearchQuery:
         self.filters.append(tag_satisfies)
         return self
 
-    def xml_search(self, select_mode: str, attr: str, query: str):
+    def xml_search(self, select_mode: str, attrs: List[str], queries: List[str]):
+        logging.getLogger("F").error(f"---> {select_mode}, {attrs}, {queries}")
         def xml_search_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
             modes = ['exp', 'tb', 'reg', 'areg']
             if select_mode in modes:
@@ -105,18 +108,53 @@ class SearchQuery:
                     layout_path = address_book.get_layout_path(mode=f"{prefix}{mode}",  index=action['index'], should_exists=True)
                 if layout_path:
                     with open(layout_path, encoding="utf-8") as f:
-                        if attr == 'ALL':
-                            if query.lower() in f.read().lower():
+                        for line in f.readlines():
+                            line = line.lower()
+                            flag = True
+                            for (attr, query) in zip(attrs, queries):
+                                if not query or len(query) == 0:
+                                    continue
+                                if attr == 'ALL':
+                                    if query.lower() not in line:
+                                        flag = False
+                                        break
+                                else:
+                                    new_attr = attr.lower()
+                                    if attr in ['width', 'height', 'area']:
+                                        new_attr = 'bounds'
+                                    if f'{new_attr}="' not in line:
+                                        flag = False
+                                        break
+                                    value = line[line.index(new_attr):].split('"')[1]
+                                    if new_attr in "bounds":
+                                        bounds = convert_bounds(value)
+                                        target = 0
+                                        if attr == 'area':
+                                            target = (bounds[2]-bounds[0]) * (bounds[3]-bounds[1])
+                                        elif attr == 'width':
+                                            target = (bounds[2]-bounds[0])
+                                        elif attr == 'height':
+                                            target = (bounds[3]-bounds[1])
+                                        if query.startswith('<'):
+                                            if target >= int(query[1:]):
+                                                flag = False
+                                                break
+                                        elif query.startswith('>'):
+                                            if target <= int(query[1:]):
+                                                flag = False
+                                                break
+                                        else:
+                                            if target != int(query):
+                                                flag = False
+                                                break
+                                    elif query.lower() not in value:
+                                        flag = False
+                                        break
+                            if flag:
                                 return True
-                        else:
-                            for line in f.readlines():
-                                if attr in line:
-                                    value = line[line.index(attr):].split('"')[1]
-                                    if query in value:
-                                        return True
             return False
-
-        self.filters.append(xml_search_satisfies)
+        if len(attrs) == len(queries) and any(queries):
+            self.filters.append(xml_search_satisfies)
         return self
 
     def talkback_mode(self, tb_type: str):
@@ -136,8 +174,10 @@ class SearchQuery:
             issue_status = [result['issue_status'] for result in post_analysis_results.values()]
             if post_analysis_result == 'ACCESSIBLE':
                 return SUCCESS in issue_status
-            elif post_analysis_result == 'A11Y_FAILURE':
-                return A11Y_FAILURE in issue_status
+            elif post_analysis_result == 'TB_A11Y_ISSUE':
+                return TB_A11Y_ISSUE in issue_status
+            elif post_analysis_result == 'API_A11Y_ISSUE':
+                return API_A11Y_ISSUE in issue_status
             elif post_analysis_result == 'A11Y_WARNING':
                 return A11Y_WARNING in issue_status
             elif post_analysis_result == 'API_SMELL':
@@ -148,6 +188,8 @@ class SearchQuery:
                 return LOADING in issue_status
             elif post_analysis_result == 'INEFFECTIVE':
                 return INEFFECTIVE in issue_status
+            elif post_analysis_result == 'TB_WEBVIEW_LOADING':
+                return TB_WEBVIEW_LOADING in issue_status
             elif post_analysis_result == 'CRASHED':
                 return CRASHED in issue_status
             elif post_analysis_result == 'OTHER':
