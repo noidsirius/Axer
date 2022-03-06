@@ -1,5 +1,6 @@
 import json
 import logging
+import subprocess
 from collections import namedtuple, defaultdict
 from functools import lru_cache
 from pathlib import Path
@@ -229,6 +230,23 @@ class SearchQuery:
             return True
 
         self.filters.append(has_same_xml_satisfies)
+        return self
+
+    def compare_screen(self, first_mode: str, second_mode: str, should_be_same: bool):
+        def has_same_screen_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
+            modes = ['exp', 'tb', 'reg', 'areg']
+            if first_mode not in modes or second_mode not in modes:
+                return True
+            prefix = 's_' if is_sighted else ''
+            left_screen_path = address_book.get_screenshot_path(f"{prefix}{first_mode}", action['index'], should_exists=True)
+            right_screen_path = address_book.get_screenshot_path(f"{prefix}{second_mode}", action['index'], should_exists=True)
+            if left_screen_path is None or right_screen_path is None:
+                return False
+            cmd = f"diff --unified {left_screen_path} {right_screen_path}"
+            diff_string = subprocess.run(cmd.split(), stdout=subprocess.PIPE).stdout.decode('utf-8')
+            return (len(diff_string) == 0) == should_be_same
+
+        self.filters.append(has_same_screen_satisfies)
         return self
 
 

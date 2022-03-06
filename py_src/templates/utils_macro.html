@@ -1,8 +1,8 @@
-{% macro compare_xml_form(left_xml_field, op_xml_field, right_xml_field) %}
+{% macro compare_layout_form(left_xml_field, op_xml_field, right_xml_field, layout_type) %}
     <div class="mb-3 row">
-        <label class="form-label">Compare XML</label>
+        <label class="form-label">Compare {{ layout_type | capitalize }}</label>
         <div class="col-4 ">
-            <select class="form-select" name="leftXML[]" aria-label="Left XML Mode">
+            <select class="form-select" name="left{{ layout_type }}[]" aria-label="Left {{ layout_type }} Mode">
                 {% for item in [('None', 'None'),
                                             ('exp','Initial'),
                                             ('tb','TalkBack'),
@@ -18,7 +18,7 @@
             </select>
         </div>
         <div class="col-4">
-            <select class="form-select" name="opXML[]" aria-label="Comparison Operator">
+            <select class="form-select" name="op{{ layout_type }}[]" aria-label="Comparison Operator">
                 {% for op in ['=', '≠'] %}
                     <option value="{{ op }}" class="text-center"
                             {% if op_xml_field == op %}
@@ -30,7 +30,7 @@
             </select>
         </div>
         <div class="col-4">
-            <select class="form-select" name="rightXML[]" aria-label="Right XML Mode">
+            <select class="form-select" name="right{{ layout_type }}[]" aria-label="Right {{ layout_type }} Mode">
                 {% for item in [('None', 'None'),
                                             ('exp','Initial'),
                                             ('tb','TalkBack'),

@@ -363,10 +363,14 @@ def post_analyzer_v3(action, address_book: AddressBook, is_sighted: bool) -> Pos
             with open(xml_path_map[mode], "r") as f:
                 xml_content_map[mode] = ""
                 bounds_re_pattern = r'bounds="\[\d+,\d+\]\[\d+,\d+\]"\s'
-                drawing_re_pattern = f'drawingOrder="\d+"'
+                drawing_re_pattern = f'drawingOrder="\d+"\s'
+                focused_re_pattern = f'focused="[a-z]+"\s'
+                index_re_pattern = f'index="\d+"\s'
                 for line in f.readlines():
                     line = re.sub(bounds_re_pattern, '', line)
                     line = re.sub(drawing_re_pattern, '', line)
+                    line = re.sub(focused_re_pattern, '', line)
+                    line = re.sub(index_re_pattern, '', line)
                     xml_content_map[mode] += line +"\n"
                     # xml_content_map[mode] += line + "\n"
 

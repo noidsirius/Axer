@@ -1,5 +1,5 @@
 {% from "action_macro.html" import action_row, action_tag_script with context %}
-{% from "utils_macro.html" import compare_xml_form with context %}
+{% from "utils_macro.html" import compare_layout_form with context %}
 {% extends "layout.html" %}
 {% block title %}
     Search
@@ -219,7 +219,10 @@
                                 {% endfor %}
 
                             {% for item in xml_fields %}
-                                {{ compare_xml_form(item[0], item[1], item[2]) }}
+                                {{ compare_layout_form(item[0], item[1], item[2], 'XML') }}
+                            {% endfor %}
+                            {% for item in screen_fields %}
+                                {{ compare_layout_form(item[0], item[1], item[2], 'SCREEN') }}
                             {% endfor %}
                         </div>
                     </div>

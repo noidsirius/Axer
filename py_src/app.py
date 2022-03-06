@@ -425,6 +425,13 @@ def search_v2(result_path_str: str):
         left_xml_fields = ['None'] * 2
         op_xml_fields = ['=', '≠']
         right_xml_fields = ['None'] * 2
+    left_screen_fields = request.args.getlist('leftSCREEN[]')
+    op_screen_fields = request.args.getlist('opSCREEN[]')
+    right_screen_fields = request.args.getlist('rightSCREEN[]')
+    if len(left_screen_fields) == 0:
+        left_screen_fields = ['None'] * 1
+        op_screen_fields = ['=']
+        right_screen_fields = ['None'] * 1
     count_field = request.args.get('count', '10')
     if not count_field.isdecimal():
         count_field = 10
@@ -463,6 +470,10 @@ def search_v2(result_path_str: str):
         if left_xml_field != 'None' and right_xml_field != 'None':
             search_query.compare_xml(left_xml_field, right_xml_field, should_be_same=op_xml_field == '=')
 
+    for (left_screen_field, op_screen_field, right_screen_field) in zip(left_screen_fields, op_screen_fields, right_screen_fields):
+        if left_screen_field != 'None' and right_screen_field != 'None':
+            search_query.compare_screen(left_screen_field, right_screen_field, should_be_same=op_screen_field == '=')
+
     search_results = get_search_manager(result_path).search(search_query=search_query,
                                                             # limit=count_field,
                                                             limit_per_snapshot= limit_per_snapshot)
@@ -497,6 +508,7 @@ def search_v2(result_path_str: str):
                            include_tags_field=include_tags_field,
                            exclude_tags_field=exclude_tags_field,
                            xml_fields=zip(left_xml_fields, cycle(op_xml_fields), right_xml_fields),
+                           screen_fields=zip(left_screen_fields, cycle(op_screen_fields), right_screen_fields),
                            xml_search_fields=xml_search_fields,
                            xml_search_mode=xml_search_mode,
                            xml_search_attrs=xml_search_attrs,

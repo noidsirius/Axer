@@ -63,6 +63,8 @@ class AddressBook:
 
     def get_screenshot_path(self, mode: str, index: Union[int, str], extension: str = None, should_exists: bool = False):
         file_name = f"{index}_{extension}.png" if extension else f"{index}.png"
+        if not extension and mode == 's_exp':
+            file_name = "INITIAL.png"
         return self._get_path(mode, file_name, should_exists)
 
     def get_layout_path(self, mode: str, index: int, should_exists: bool = False):
