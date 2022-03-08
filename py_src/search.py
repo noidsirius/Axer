@@ -127,7 +127,7 @@ class SearchQuery:
                                         flag = False
                                         break
                                     value = line[line.index(new_attr):].split('"')[1]
-                                    if new_attr in "bounds":
+                                    if new_attr == "bounds":
                                         bounds = convert_bounds(value)
                                         target = 0
                                         if attr == 'area':
@@ -148,6 +148,12 @@ class SearchQuery:
                                             if target != int(query):
                                                 flag = False
                                                 break
+                                    elif new_attr == 'z-a11y-actions':
+                                        actions = set(value.split('-'))
+                                        query_set = set(query.split('-'))
+                                        if not query_set.issubset(actions):
+                                            flag = False
+                                            break
                                     elif query.lower() not in value:
                                         flag = False
                                         break

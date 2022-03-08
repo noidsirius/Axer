@@ -366,11 +366,13 @@ def post_analyzer_v3(action, address_book: AddressBook, is_sighted: bool) -> Pos
                 drawing_re_pattern = f'drawingOrder="\d+"\s'
                 focused_re_pattern = f'focused="[a-z]+"\s'
                 index_re_pattern = f'index="\d+"\s'
+                a11y_actions_re_pattern = f'z-a11y-actions=".*"'
                 for line in f.readlines():
                     line = re.sub(bounds_re_pattern, '', line)
                     line = re.sub(drawing_re_pattern, '', line)
                     line = re.sub(focused_re_pattern, '', line)
                     line = re.sub(index_re_pattern, '', line)
+                    line = re.sub(a11y_actions_re_pattern, '', line)
                     xml_content_map[mode] += line +"\n"
                     # xml_content_map[mode] += line + "\n"
 

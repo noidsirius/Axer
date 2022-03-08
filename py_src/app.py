@@ -414,8 +414,8 @@ def search_v2(result_path_str: str):
     xml_search_attrs = request.args.getlist('xmlSearchAttr[]')
     xml_search_fields = request.args.getlist('xmlSearchQuery[]')
     if len(xml_search_fields) == 0 or len(xml_search_fields) != len(xml_search_attrs):
-        xml_search_fields = [None]
-        xml_search_attrs = ['ALL']
+        xml_search_fields = [None]*2
+        xml_search_attrs = ['ALL']*2
     # xml_search_field = request.args.get('xmlSearchQuery', None)
     # xml_search_attr = request.args.get('xmlSearchAttr', 'ALL')
     left_xml_fields = request.args.getlist('leftXML[]')

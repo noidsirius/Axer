@@ -1,8 +1,8 @@
 #!/bin/bash
-FLAG=0
-RESULT_PATH=$(realpath ../selected3_results)
+FLAG=1
+RESULT_PATH=$(realpath ../100_results)
 LAST_APK_FILE="dictionary"
-for APK_FILE in ../BM_APKs/selected_apks/*.apk; do
+for APK_FILE in ../BM_APKs/100_apks/*.apk; do
 	if [ "$(basename "$APK_FILE")" = "$LAST_APK_FILE.apk" ]; then
 		FLAG=1
 	fi
