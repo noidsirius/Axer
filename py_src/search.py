@@ -150,8 +150,12 @@ class SearchQuery:
                                                 break
                                     elif new_attr == 'z-a11y-actions':
                                         actions = set(value.split('-'))
+                                        is_include = True
+                                        if query.startswith("!"):
+                                            is_include = False
+                                            query = query[1:]
                                         query_set = set(query.split('-'))
-                                        if not query_set.issubset(actions):
+                                        if is_include != query_set.issubset(actions):
                                             flag = False
                                             break
                                     elif query.lower() not in value:

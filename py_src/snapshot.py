@@ -2,19 +2,20 @@ import logging
 import asyncio
 import json
 from collections import defaultdict
-from typing import Callable, List, Tuple, Union
+from typing import List, Tuple, Union
 from ppadb.client_async import ClientAsync as AdbClient
 
-from GUI_utils import get_elements, are_equal_elements, get_actions_from_layout, is_clickable_element_or_none,\
+from GUI_utils import get_elements, are_equal_elements, get_actions_from_layout, is_clickable_element_or_none, \
     get_element_from_xpath
 from a11y_service import A11yServiceManager
 from adb_utils import load_snapshot, save_snapshot, is_android_activity_on_top, get_current_activity_name
-from latte_executor_utils import tb_navigate_next, tb_perform_select, tb_focused_node, execute_command,\
+from latte_executor_utils import tb_navigate_next, tb_perform_select, tb_focused_node, execute_command, \
     get_missing_actions, latte_capture_layout as capture_layout, report_atf_issues
 from padb_utils import ParallelADBLogger
 from results_utils import AddressBook, ResultWriter
 from utils import annotate_elements
-from consts import EXPLORE_VISIT_LIMIT, DEVICE_NAME, ADB_HOST, ADB_PORT, BLIND_MONKEY_TAG, BLIND_MONKEY_INSTRUMENTED_TAG
+from consts import EXPLORE_VISIT_LIMIT, DEVICE_NAME, ADB_HOST, ADB_PORT, BLIND_MONKEY_TAG, \
+    BLIND_MONKEY_INSTRUMENTED_TAG, BLIND_MONKEY_EVENTS_TAG
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ class Snapshot:
         """
         Loads the snapshot into emulator, configures the required services, and sets up Latte.
         Then saves the configured snapshot into Temp Snapshot.
-        Finally it analyzes all elements in the screen and exclude the already seen (in other snapshots)
+        Finally, it analyzes all elements in the screen and exclude the already seen (in other snapshots)
         :return: Whether the setup is succeeded or not
         """
         if not await load_snapshot(self.initial_snapshot, device_name=self.device.serial):
@@ -74,7 +75,8 @@ class Snapshot:
         # ------------- TODO: think about it later ----------
         # dom = await capture_layout()
 
-        self.init_layout = await self.writer.capture_current_state(self.device, mode="exp", index="INITIAL", has_layout=True)
+        self.init_layout = await self.writer.capture_current_state(self.device, mode="exp", index="INITIAL",
+                                                                   has_layout=True)
         atf_issues = await report_atf_issues()
         logger.info(f"There are {len(atf_issues)} ATF issues in this screen!")
         with open(self.address_book.atf_issues_path, "w") as f:
@@ -123,10 +125,11 @@ class Snapshot:
 
     async def navigate_next(self, padb_logger: ParallelADBLogger) -> Tuple[str, Union[str, None]]:
         """
-        Loads the Temp Sanpshot (latest snapshot in navigation), navigate to next element by TalkBack until it either
+        Loads the tmp Snapshot (the latest snapshot in navigation), navigate to next element by TalkBack until it either
         reaches a new important element or finishes the navigation. An important element should belong to the initial
         snapshot, should not have been visited before in this or other snapshots.
-        :param padb_logger: To capture the logs of Latte during TalkBack navigation
+
+        :param: padb_logger: To capture the logs of Latte during TalkBack navigation
         :return: A tuple of
                 'Log Message' (the logs during the navigation) and
                 'Next Command' (the newly focused element). If Next Command is None, the navigation is finished.
@@ -143,12 +146,12 @@ class Snapshot:
         while True:
             log_message_map, next_command_str = await padb_logger.execute_async_with_log(tb_navigate_next(), tags=tags)
             if len(tags) == 1:
-                all_log_message += log_message_map
+                all_log_message += list(log_message_map.values())[0]
             else:
                 all_log_message += "".join(f"---Start {key}-----\n"
-                                             f"{value}\n"
-                                             f"----End {key}----\n"
-                                             for (key, value) in log_message_map.items())
+                                           f"{value}\n"
+                                           f"----End {key}----\n"
+                                           for (key, value) in log_message_map.items())
             if not next_command_str or next_command_str == "Error":
                 logger.error("TalkBack cannot navigate to the next element")
                 return all_log_message, None
@@ -202,7 +205,7 @@ class Snapshot:
         padb_logger = ParallelADBLogger(self.device)
         await self.writer.capture_current_state(self.device, mode="exp",
                                                 index=self.writer.get_action_index(),
-                                                log_message="First State",
+                                                log_message_map={BLIND_MONKEY_TAG: "First State"},
                                                 has_layout=True)
         next_focused_element = None
         while True:
@@ -225,11 +228,9 @@ class Snapshot:
                     result_map = {}
                     for mode in modes:
                         logger.info(f"Executing select in Mode: {mode}")
-                        tags = [BLIND_MONKEY_TAG]
+                        tags = [BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG]
                         if self.instrumented_log:
                             tags.append(BLIND_MONKEY_INSTRUMENTED_TAG)
-                        log_message = None
-                        instrumented_log_message = None
                         if mode != 'tb':
                             if not await load_snapshot(self.initial_snapshot):
                                 logger.error("Error in loading snapshot")
@@ -241,15 +242,9 @@ class Snapshot:
                             log_message_map, result_map[mode] = await padb_logger.execute_async_with_log(
                                 tb_perform_select(),
                                 tags=tags)
-                        if len(tags) == 1:
-                            log_message = log_message_map
-                        else:
-                            log_message = log_message_map[BLIND_MONKEY_TAG]
-                            instrumented_log_message = log_message_map[BLIND_MONKEY_INSTRUMENTED_TAG]
                         layout = await self.writer.capture_current_state(self.device, mode,
                                                                          self.writer.get_action_index(),
-                                                                         log_message=log_message,
-                                                                         instrumented_log_message=instrumented_log_message)
+                                                                         log_message_map=log_message_map)
                     # ------------------- Add action to results ---------------
                     self.writer.add_action(element=click_command,
                                            tb_action_result=result_map['tb'],
@@ -267,10 +262,10 @@ class Snapshot:
             logger.debug("Next focused element is " + next_focused_element)
             await self.writer.capture_current_state(self.device, mode="exp",
                                                     index=self.writer.get_action_index(),
-                                                    log_message=tb_navigate_log,
+                                                    log_message_map={BLIND_MONKEY_TAG: tb_navigate_log},
                                                     has_layout=True)
             # ------------------- End Navigate Next -------------------
-            logger.info("Groundhug Day!")
+            logger.info("Groundhog Day!")
 
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.visited_action_screenshot,
@@ -327,7 +322,7 @@ class Snapshot:
                     continue
                 result_map = {}
                 modes = ['reg', 'areg', 'tb']
-                tags = [BLIND_MONKEY_TAG]
+                tags = [BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG]
                 if self.instrumented_log:
                     tags.append(BLIND_MONKEY_INSTRUMENTED_TAG)
                 for mode in modes:
@@ -337,21 +332,9 @@ class Snapshot:
                     executor = mode if mode != 'tb' else 'stb'
                     log_message_map, result_map[mode] = await padb_logger.execute_async_with_log(
                         execute_command(json.dumps(action), executor_name=executor))
-                    if len(tags) == 1:
-                        log_message = log_message_map
-                        instrumented_log_message = None
-                    else:
-                        log_message = log_message_map[BLIND_MONKEY_TAG]
-                        instrumented_log_message = log_message_map[BLIND_MONKEY_INSTRUMENTED_TAG]
                     layout = await self.writer.capture_current_state(self.device, f"s_{mode}",
                                                                      self.writer.get_action_index(),
-                                                                     log_message=log_message,
-                                                                     instrumented_log_message=instrumented_log_message)
-                # if reg_layout == initial_layout or reg_result.state != 'COMPLETED':  # the action is not meaningful
-                #     logger.info(f"Writing action {self.writer.get_action_index()}")
-                #     self.writer.add_action(action, get_unsuccessful_execution_result("UNKNOWN"), reg_result,
-                #                            is_sighted=True)
-                #     continue
+                                                                     log_message_map=log_message_map)
 
                 logger.info(f"Writing action {self.writer.get_action_index()}")
                 self.writer.add_action(element=action,

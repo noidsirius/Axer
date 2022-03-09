@@ -3,12 +3,18 @@ package dev.navids.latte;
 import android.accessibilityservice.AccessibilityService;
 import android.content.IntentFilter;
 import android.util.Log;
+import android.view.WindowId;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
 
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import dev.navids.latte.UseCase.RegularStepExecutor;
@@ -36,6 +42,7 @@ public class LatteService extends AccessibilityService {
 
     private boolean connected = false;
     public static String TAG = "LATTE_SERVICE";
+    private String A11Y_EVENT_TAG = "LATTE_A11Y_EVENT_TAG";
 
     public static LatteService getInstance() {
         return instance;
@@ -84,11 +91,47 @@ public class LatteService extends AccessibilityService {
             Log.i(TAG, "Incomming event is null!");
             return;
         }
+        Log.i(A11Y_EVENT_TAG, "Event: " + AccessibilityEvent.eventTypeToString(event.getEventType()));
         if(event.getEventType() == AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED) {
             accessibilityFocusedNode = event.getSource();
         }
         else if(event.getEventType() == AccessibilityEvent.TYPE_VIEW_FOCUSED) {
             focusedNode = event.getSource();
+        }
+        else if(event.getEventType() == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            AccessibilityNodeInfo nodeInfo = event.getSource();
+            ActualWidgetInfo widgetInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo, false);
+            JSONObject jsonEelement = null;
+            if (widgetInfo != null)
+                jsonEelement = widgetInfo.getJSONCommand("", false, "");
+            AccessibilityWindowInfo changedWindow = null;
+            for(AccessibilityWindowInfo windowInfo : getWindows())
+                if(windowInfo.getId() == event.getWindowId()){
+                    changedWindow = windowInfo;
+                    break;
+                }
+            AccessibilityWindowInfo activeWindow = null;
+            if(getRootInActiveWindow() != null)
+                activeWindow = getRootInActiveWindow().getWindow();
+            JSONObject jsonWindowContentChange = null;
+            int activeWindowId = activeWindow != null ? activeWindow.getId() : -1;
+            String activeWindowTitle = activeWindow != null && activeWindow.getTitle() != null ? activeWindow.getTitle().toString() : "null";
+            String changedWindowTitle = changedWindow != null && changedWindow.getTitle() != null ? changedWindow.getTitle().toString() : "null";
+            try {
+                jsonWindowContentChange = new JSONObject()
+                        .put("changedWindowId", event.getWindowId())
+                        .put("changedWindowTitle", changedWindowTitle)
+                        .put("activeWindowId", activeWindowId)
+                        .put("activeWindowTitle", activeWindowTitle)
+                        .put("Element", jsonEelement);
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            if (jsonWindowContentChange != null)
+                Log.i(A11Y_EVENT_TAG, "WindowContentChange: " + jsonWindowContentChange.toString());
+            else
+                Log.i(A11Y_EVENT_TAG, "WindowContentChange: null");
         }
 //        Log.i(TAG, "   Type : " +AccessibilityEvent.eventTypeToString(event.getEventType()));
     }

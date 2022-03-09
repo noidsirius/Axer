@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 from typing import Optional, Union, List
 from adb_utils import get_current_activity_name
+from consts import BLIND_MONKEY_TAG
 from latte_executor_utils import ExecutionResult, latte_capture_layout as capture_layout
 from padb_utils import ParallelADBLogger, save_screenshot
 from utils import annotate_rectangle
@@ -72,8 +73,8 @@ class AddressBook:
             index = 'INITIAL'
         return self._get_path(mode, f"{index}.xml", should_exists)
 
-    def get_log_path(self, mode: str, index: int, is_layout: bool = False, should_exists: bool = False):
-        file_name = f"{index}_layout.log" if is_layout else f"{index}.log"
+    def get_log_path(self, mode: str, index: int, extension: str = None, should_exists: bool = False):
+        file_name = f"{index}_{extension}.log" if (extension is not None and extension != BLIND_MONKEY_TAG) else f"{index}.log"
         return self._get_path(mode, file_name, should_exists)
 
     def get_instrumented_log_path(self, mode: str, index: int, should_exists: bool = False):
@@ -187,8 +188,7 @@ class ResultWriter:
                                     mode: str,
                                     index: Union[int, str],
                                     has_layout=True,
-                                    log_message: Optional[str] = None,
-                                    instrumented_log_message: Optional[str] = None) -> str:
+                                    log_message_map: Optional[dict] = None) -> str:
         await asyncio.sleep(3)
         await save_screenshot(device, self.address_book.get_screenshot_path(mode, index))
         activity_name = await get_current_activity_name()
@@ -198,19 +198,17 @@ class ResultWriter:
         layout = ""
         if has_layout:
             padb_logger = ParallelADBLogger(device)
-            log, layout = await padb_logger.execute_async_with_log(capture_layout())
-            with open(self.address_book.get_log_path(mode, index, is_layout=True), mode='w') as f:
-                f.write(log)
+            log_map, layout = await padb_logger.execute_async_with_log(capture_layout())
+            with open(self.address_book.get_log_path(mode, index, extension="layout"), mode='w') as f:
+                f.write(log_map[BLIND_MONKEY_TAG])
             with open(self.address_book.get_layout_path(mode, index), mode='w') as f:
                 f.write(layout)
 
-        if log_message:
-            with open(self.address_book.get_log_path(mode, index), mode='w') as f:
-                f.write(log_message)
+        if log_message_map:
+            for tag, log_message in log_message_map.items():
+                with open(self.address_book.get_log_path(mode, index, extension=tag), mode='w') as f:
+                    f.write(log_message)
 
-        if instrumented_log_message:
-            with open(self.address_book.get_instrumented_log_path(mode, index), mode='w') as f:
-                f.write(instrumented_log_message)
         return layout  # TODO: Remove it
 
     def write_last_navigate_log(self, log_message: str):
