@@ -70,7 +70,7 @@ public class TalkBackNavigator {
                 new Handler().postDelayed(() -> {
                     pendingActions.remove(thisActionId);
                     if(doneCallback != null)
-                        doneCallback.onCompleted(LatteService.getInstance().getFocusedNode());
+                        doneCallback.onCompleted(LatteService.getInstance().getAccessibilityFocusedNode());
                 }, Config.v().FOCUS_CHANGE_TIME);
             }
 
@@ -89,7 +89,7 @@ public class TalkBackNavigator {
 
     public boolean selectFocus(Navigator.DoneCallback doneCallback) {
         Utils.deleteFile(Config.v().FINISH_ACTION_FILE_PATH);
-        AccessibilityNodeInfo focusedNode = LatteService.getInstance().getFocusedNode();
+        AccessibilityNodeInfo focusedNode = LatteService.getInstance().getAccessibilityFocusedNode();
         boolean result = performSelect(new Navigator.DoneCallback() {
             @Override
             public void onCompleted(AccessibilityNodeInfo nodeInfo) {
@@ -119,15 +119,22 @@ public class TalkBackNavigator {
 
     public boolean nextFocus(Navigator.DoneCallback callback) {
         Utils.deleteFile(Config.v().FINISH_ACTION_FILE_PATH);
-        WidgetInfo widgetInfo = ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getFocusedNode());
+        WidgetInfo widgetInfo = ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getAccessibilityFocusedNode());
         Log.i(LatteService.TAG, String.format("Widget %s is visited XPATH: %s.", widgetInfo, widgetInfo != null ? widgetInfo.getAttr("xpath") : "NONE"));
         boolean result = performNext(new Navigator.DoneCallback() {
             @Override
             public void onCompleted(AccessibilityNodeInfo nodeInfo) {
                 WidgetInfo newWidgetNodeInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo, true);
-                Log.i(LatteService.TAG, "The next focused node is: " + newWidgetNodeInfo + " Xpath: " + newWidgetNodeInfo.getXpath());
-                JSONObject jsonCommand = newWidgetNodeInfo.getJSONCommand("xpath", false, "click");
-                String jsonCommandStr = jsonCommand != null ? jsonCommand.toString() : "Error";
+                String jsonCommandStr = "";
+                if (newWidgetNodeInfo == null) {
+                    Log.i(LatteService.TAG, "The next focused node is null");
+                    jsonCommandStr = "Error";
+                }
+                else {
+                    Log.i(LatteService.TAG, "The next focused node is: " + newWidgetNodeInfo + " Xpath: " + newWidgetNodeInfo.getXpath());
+                    JSONObject jsonCommand = newWidgetNodeInfo.getJSONCommand("xpath", false, "click");
+                    jsonCommandStr = jsonCommand != null ? jsonCommand.toString() : "Error";
+                }
                 Utils.createFile(Config.v().FINISH_ACTION_FILE_PATH, jsonCommandStr);
                 if(callback != null)
                     callback.onCompleted(nodeInfo);
@@ -145,7 +152,7 @@ public class TalkBackNavigator {
 
     public void currentFocus() {
         Utils.deleteFile(Config.v().FINISH_ACTION_FILE_PATH);
-        WidgetInfo widgetInfo = ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getFocusedNode());
+        WidgetInfo widgetInfo = ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getAccessibilityFocusedNode());
         if (widgetInfo != null) {
             Log.i(LatteService.TAG, "The focused node is: " + widgetInfo + (widgetInfo != null ? " Xpath: " + widgetInfo.getXpath() : ""));
             JSONObject jsonCommand = widgetInfo.getJSONCommand("xpath", false, "click");

@@ -171,9 +171,12 @@ public class Utils {
         serializer.startTag("", "node");
         if (!nafExcludedClass(node) && !nafCheck(node))
             serializer.attribute("", "NAF", Boolean.toString(true));
+        List<String> actions = node.getActionList().stream().map((s) -> Integer.toString(s.getId())).collect(Collectors.toList());
+//        List<String> actions = node.getActionList().stream().map((s) -> s.toString()).collect(Collectors.toList());
         // Extra Attributes
         serializer.attribute("", "importantForAccessibility", Boolean.toString(node.isImportantForAccessibility()));
         serializer.attribute("", "supportsWebAction", Boolean.toString(supportsWebAction));
+        serializer.attribute("", "z-a11y-actions", String.join("-", actions));
         serializer.attribute("", "clickableSpan", Boolean.toString(hasClickableSpan));
         serializer.attribute("", "drawingOrder", Integer.toString(node.getDrawingOrder()));
 //        serializer.attribute("", "visible", Boolean.toString(node.isVisibleToUser()));

@@ -209,7 +209,7 @@ async def tb_navigate_next() -> Union[str, None]:
             logger.warning("Error in sending Nav command to Latte")
             continue
         next_command_json = await read_local_android_file(FINAL_ACITON_FILE, wait_time=TB_NAVIGATE_TIMEOUT)
-        if next_command_json is None:
+        if next_command_json is None or next_command_json == "Error":
             logger.warning("Timeout for performing next using TalkBack")
         else:
             return next_command_json

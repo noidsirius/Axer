@@ -168,8 +168,18 @@ def report(name):
 
 # ---------------------------- End Legacy Results ---------------------
 
+mode_to_repr = defaultdict(lambda: 'UNKNOWN',
+                           {
+                               'exp': 'Initial',
+                               'tb': 'TalkBack',
+                               'areg': 'A11y API',
+                               'reg': 'Touch'
+                           })
+
+
 def fix_path(path: str) -> str:
     return f"../{path}"
+
 
 def create_snapshot_info(snapshot_path: pathlib.Path) -> Union[dict, None]:
     if not snapshot_path.is_dir():
@@ -180,8 +190,8 @@ def create_snapshot_info(snapshot_path: pathlib.Path) -> Union[dict, None]:
     snapshot_info = {}
     count_map = {
         'actions': 0,
-        'different_behavior': 0,
-        'unreachable': 0,
+        'failure': 0,
+        'warning': 0,
         'other': 0,
     }
     analysis_count = 0
@@ -192,20 +202,12 @@ def create_snapshot_info(snapshot_path: pathlib.Path) -> Union[dict, None]:
                 for line in f.readlines():
                     count_map['actions'] += 1
                     result = json.loads(line)
-                    if result['issue_status'] == XML_PROBLEM:
+                    if 10 < result['issue_status'] <= 20:
                         count_map['other'] += 1
-                    elif result['issue_status'] == REG_FAILURE:
-                        count_map['other'] += 1
-                    elif result['issue_status'] == TB_FAILURE:
-                        count_map['other'] += 1
-                    elif result['issue_status'] == UNREACHABLE:
-                        count_map['unreachable'] += 1
-                    elif result['issue_status'] == DIFFERENT_BEHAVIOR:
-                        count_map['different_behavior'] += 1
-                    elif result['issue_status'] == SUCCESS:
-                        continue
-                    else:
-                        count_map['other'] += 1000000
+                    elif 0 < result['issue_status'] <= 10:
+                        count_map['warning'] += 1
+                    elif result['issue_status'] < 0:
+                        count_map['failure'] += 1
 
     snapshot_info['id'] = snapshot_name
     snapshot_info['log_path'] = str(snapshot_path.relative_to(result_path.parent)) + ".log"
@@ -237,10 +239,10 @@ def create_app_info(app_path: pathlib.Path) -> Union[dict, None]:
     app_info['has_unprocessed'] = any(s['state'] == 'Unprocessed' for s in snapshots_info)
     app_info['actions'] = sum(
         [0] + [s['actions'] for s in snapshots_info if s['state'] == 'Processed'])
-    app_info['different_behavior'] = sum(
-        [0] + [s['different_behavior'] for s in snapshots_info if s['state'] == 'Processed'])
-    app_info['unreachable'] = sum(
-        [0] + [s['unreachable'] for s in snapshots_info if s['state'] == 'Processed'])
+    app_info['failure'] = sum(
+        [0] + [s['failure'] for s in snapshots_info if s['state'] == 'Processed'])
+    app_info['warning'] = sum(
+        [0] + [s['warning'] for s in snapshots_info if s['state'] == 'Processed'])
     app_info['other'] = sum(
         [0] + [s['other'] for s in snapshots_info if s['state'] == 'Processed'])
     app_info['last_update'] = max(s['last_update'] for s in snapshots_info)
@@ -267,8 +269,16 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
                 if tag_info['index'] == action['index'] and tag_info['is_sighted'] == is_sighted:
                     step['tags'].append(tag_info['tag'])
     step['mode_info'] = {}
+
     modes = ['exp', 'tb', 'reg', 'areg']
+    step['xml_similar'] = defaultdict(dict)
     for mode in modes:
+        for right_mode in modes:
+            if right_mode != mode:
+                step['xml_similar'][mode][right_mode] = all(action_post_analysis_results[ana_name]['xml_similar_map'][f"{mode}_{right_mode}"] for ana_name in
+                                                        action_post_analysis_results)
+            else:
+                step['xml_similar'][mode][right_mode] = True
         if mode == 'exp':
             step['mode_info'][f'{mode}_img'] = address_book.get_screenshot_path(f'{prefix}{mode}', action['index'],
                                                                                 extension='edited').relative_to(
@@ -299,11 +309,13 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
     step['status'] = min(
         [100] + [action_post_analysis_results[ana_name]['issue_status'] for ana_name in
                  action_post_analysis_results])
-    step['status_messages'] = [
-        f"{ana_name}: {action_post_analysis_results[ana_name]['message']}" for ana_name in
-        action_post_analysis_results]
+    step['status_messages'] = []
+    for ana_name in action_post_analysis_results:
+        message = f"{ana_name}: {action_post_analysis_results[ana_name]['message']}"
+        for mode, repr in mode_to_repr.items():
+            message = message.replace(mode, f"{repr}")
+        step['status_messages'].append(message)
     return step
-
 
 @flask_app.context_processor
 def inject_user():
@@ -314,7 +326,16 @@ def inject_user():
             continue
         if result_path.name.endswith("_results"):
             all_result_paths.append(result_path.name)
-    return dict(all_result_paths=all_result_paths)
+
+    def static_path_fixer(path: Union[str, pathlib.Path], result_path: str) -> str:
+        if isinstance(path, pathlib.Path):
+            path = str(path)
+        return path[path.find(result_path):]
+
+    return dict(all_result_paths=all_result_paths,
+                static_path_fixer=static_path_fixer,
+                mode_to_repr=mode_to_repr,
+                zip=zip)
 
 
 @flask_app.route(f'/v2/static/<path:path>')
@@ -389,9 +410,14 @@ def search_v2(result_path_str: str):
     tb_result_field = request.args.get('tbResult', 'ALL')
     reg_result_field = request.args.get('regResult', 'ALL')
     areg_result_field = request.args.get('aregResult', 'ALL')
-    xml_search_field = request.args.get('xmlSearchQuery', None)
     xml_search_mode = request.args.get('xmlSearchMode', 'ALL')
-    xml_search_attr = request.args.get('xmlSearchAttr', 'ALL')
+    xml_search_attrs = request.args.getlist('xmlSearchAttr[]')
+    xml_search_fields = request.args.getlist('xmlSearchQuery[]')
+    if len(xml_search_fields) == 0 or len(xml_search_fields) != len(xml_search_attrs):
+        xml_search_fields = [None]*2
+        xml_search_attrs = ['ALL']*2
+    # xml_search_field = request.args.get('xmlSearchQuery', None)
+    # xml_search_attr = request.args.get('xmlSearchAttr', 'ALL')
     left_xml_fields = request.args.getlist('leftXML[]')
     op_xml_fields = request.args.getlist('opXML[]')
     right_xml_fields = request.args.getlist('rightXML[]')
@@ -399,6 +425,13 @@ def search_v2(result_path_str: str):
         left_xml_fields = ['None'] * 2
         op_xml_fields = ['=', '≠']
         right_xml_fields = ['None'] * 2
+    left_screen_fields = request.args.getlist('leftSCREEN[]')
+    op_screen_fields = request.args.getlist('opSCREEN[]')
+    right_screen_fields = request.args.getlist('rightSCREEN[]')
+    if len(left_screen_fields) == 0:
+        left_screen_fields = ['None'] * 1
+        op_screen_fields = ['=']
+        right_screen_fields = ['None'] * 1
     count_field = request.args.get('count', '10')
     if not count_field.isdecimal():
         count_field = 10
@@ -430,12 +463,16 @@ def search_v2(result_path_str: str):
         search_query.executor_result('reg', reg_result_field)
     if areg_result_field:
         search_query.executor_result('areg', areg_result_field)
-    if xml_search_field:
-        search_query.xml_search(xml_search_mode, attr=xml_search_attr, query=xml_search_field)
+    if any(xml_search_fields):
+        search_query.xml_search(xml_search_mode, attrs=xml_search_attrs, queries=xml_search_fields)
 
     for (left_xml_field, op_xml_field, right_xml_field) in zip(left_xml_fields, op_xml_fields, right_xml_fields):
         if left_xml_field != 'None' and right_xml_field != 'None':
             search_query.compare_xml(left_xml_field, right_xml_field, should_be_same=op_xml_field == '=')
+
+    for (left_screen_field, op_screen_field, right_screen_field) in zip(left_screen_fields, op_screen_fields, right_screen_fields):
+        if left_screen_field != 'None' and right_screen_field != 'None':
+            search_query.compare_screen(left_screen_field, right_screen_field, should_be_same=op_screen_field == '=')
 
     search_results = get_search_manager(result_path).search(search_query=search_query,
                                                             # limit=count_field,
@@ -471,9 +508,10 @@ def search_v2(result_path_str: str):
                            include_tags_field=include_tags_field,
                            exclude_tags_field=exclude_tags_field,
                            xml_fields=zip(left_xml_fields, cycle(op_xml_fields), right_xml_fields),
-                           xml_search_field=xml_search_field,
+                           screen_fields=zip(left_screen_fields, cycle(op_screen_fields), right_screen_fields),
+                           xml_search_fields=xml_search_fields,
                            xml_search_mode=xml_search_mode,
-                           xml_search_attr=xml_search_attr,
+                           xml_search_attrs=xml_search_attrs,
                            action_results=action_results,
                            app_name_field=app_name_field,
                            app_names=app_names)
@@ -509,14 +547,36 @@ def tag_action(result_path, app_name, snapshot_name, index, is_sighted, tag):
     snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)
     if not snapshot_path.is_dir():
         return jsonify(result=False)
-    if ',' in tag:
-        return jsonify(result=False)
+    tags = tag.split(',')
     address_book = AddressBook(snapshot_path)
     is_sighted = is_sighted == 'sighted'
     index = int(index)
     with open(address_book.tags_path, 'a', encoding="utf-8") as f:
-        f.write(json.dumps({'index': index, 'is_sighted': is_sighted, 'tag': tag}) + "\n")
+        for t in tags:
+            f.write(json.dumps({'index': index, 'is_sighted': is_sighted, 'tag': t.strip()}) + "\n")
     return jsonify(result=True)
+
+
+@flask_app.route("/v2/<result_path>/tags")
+def tags_list(result_path):
+    result_path_str = result_path
+    result_path = pathlib.Path(fix_path(result_path)).resolve()
+    if not result_path.is_dir():
+        return jsonify(result=False)
+    tags = set()
+    for app_path in result_path.iterdir():
+        if not app_path.is_dir():
+            continue
+        for snapshot_dir in app_path.iterdir():
+            if not snapshot_dir.is_dir():
+                continue
+            address_book = AddressBook(snapshot_dir)
+            if not address_book.tags_path.exists():
+                continue
+            with open(address_book.tags_path, 'r', encoding="utf-8") as f:
+                for line in f.readlines():
+                    tags.add(json.loads(line)['tag'])
+    return render_template('tags.html', result_path=result_path_str, tags=tags)
 
 
 @flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/report")
@@ -529,23 +589,11 @@ def report_v2(result_path, app_name, snapshot_name):
     address_book = AddressBook(snapshot_path)
     tb_steps = []
     errors = []
-    bm_log_path = str(snapshot_path.relative_to(result_path.parent)) + ".log"
     error_logs = ""
     with open(f"{str(snapshot_path)}.log", encoding="utf-8") as f:
         for line in f.readlines():
             if line.startswith("ERROR:"):
                 error_logs += line
-    initial_xml_path = str(address_book.get_layout_path('exp', 'INITIAL', ).relative_to(result_path.parent))
-    last_explore_log_path = str(address_book.last_explore_log_path.relative_to(result_path.parent))
-    all_elements_screenshot = str(address_book.all_element_screenshot.relative_to(result_path.parent))
-    atf_issues_screenshot = str(address_book.atf_issues_screenshot.relative_to(result_path.parent))
-    atf_issues_path = str(address_book.atf_issues_path.relative_to(result_path.parent))
-    all_actions_screenshot = str(address_book.all_action_screenshot.relative_to(result_path.parent))
-    visited_actions_in_other_screenshot = str(address_book.redundant_action_screenshot.relative_to(result_path.parent))
-    valid_actions_screenshot = str(address_book.valid_action_screenshot.relative_to(result_path.parent))
-    visited_actions_screenshot = str(address_book.visited_action_screenshot.relative_to(result_path.parent))
-    visited_elements_screenshot = str(address_book.visited_elements_screenshot.relative_to(result_path.parent))
-    s_actions_screenshot = str(address_book.s_action_screenshot.relative_to(result_path.parent))
     post_analysis_results = get_post_analysis(snapshot_path=snapshot_path)
     if len(post_analysis_results['unsighted']) == 0:
         errors.append("No post-analysis result is available!")
@@ -577,19 +625,8 @@ def report_v2(result_path, app_name, snapshot_name):
     return render_template('v2_report.html',
                            result_path=result_path_str,
                            app_name=app_name,
-                           bm_log_path=bm_log_path,
+                           address_book=address_book,
                            error_logs=error_logs,
-                           initial_xml_path=initial_xml_path,
-                           all_elements_screenshot=all_elements_screenshot,
-                           all_actions_screenshot=all_actions_screenshot,
-                           atf_issues_screenshot=atf_issues_screenshot,
-                           atf_issues_path=atf_issues_path,
-                           visited_actions_in_other_screenshot=visited_actions_in_other_screenshot,
-                           visited_elements_screenshot=visited_elements_screenshot,
-                           visited_actions_screenshot=visited_actions_screenshot,
-                           valid_actions_screenshot=valid_actions_screenshot,
-                           s_actions_screenshot=s_actions_screenshot,
-                           last_explore_log_path=last_explore_log_path,
                            all_steps=all_steps,
                            name=snapshot_name,
                            errors=errors)

@@ -49,7 +49,7 @@ public class ActionUtils {
             return false;
         AccessibilityNodeInfo targetNode = similarNodes.get(0); // TODO: This strategy works even we found multiple similar widgets
         AccessibilityNodeInfo firstReachableNode = targetNode;
-        boolean isSimilar = firstReachableNode != null && firstReachableNode.equals(LatteService.getInstance().getFocusedNode());
+        boolean isSimilar = firstReachableNode != null && firstReachableNode.equals(LatteService.getInstance().getAccessibilityFocusedNode());
         if(!isSimilar) {
             AccessibilityNodeInfo it = targetNode;
             while (it != null) {
@@ -60,7 +60,7 @@ public class ActionUtils {
                 it = it.getParent();
             }
             Log.i(LatteService.TAG, "-- FIRST REACHABLE NODE IS " + firstReachableNode);
-            isSimilar = firstReachableNode != null && firstReachableNode.equals(LatteService.getInstance().getFocusedNode());
+            isSimilar = firstReachableNode != null && firstReachableNode.equals(LatteService.getInstance().getAccessibilityFocusedNode());
         }
         return isSimilar;
     }
@@ -263,7 +263,7 @@ public class ActionUtils {
                 new Handler().postDelayed(() -> {
                     pendingActions.remove(thisActionId);
                     if(doneCallback != null)
-                        doneCallback.onCompleted(LatteService.getInstance().getFocusedNode());
+                        doneCallback.onCompleted(LatteService.getInstance().getAccessibilityFocusedNode());
                 }, Config.v().GESTURE_FINISH_WAIT_TIME);
 
             }

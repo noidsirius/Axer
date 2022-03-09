@@ -1,12 +1,10 @@
 package dev.navids.latte.UseCase;
 
-import android.graphics.Rect;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Pair;
 import android.view.accessibility.AccessibilityNodeInfo;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import dev.navids.latte.ActionUtils;
@@ -28,8 +26,16 @@ public class RegularStepExecutor implements StepExecutor {
             locatableStep.increaseLocatingAttempts();
             List<AccessibilityNodeInfo> similarNodes = Utils.findSimilarNodes(locatableStep.getTargetWidgetInfo());
             if(similarNodes.size() != 1){
-                if(similarNodes.size() == 0)
+                if(similarNodes.size() == 0) {
                     Log.i(LatteService.TAG, "The target widget could not be found in current screen.");
+                    Log.i(LatteService.TAG, "The target XPATH: " + locatableStep.getTargetWidgetInfo().getXpath());
+                    List<AccessibilityNodeInfo> allNodes = Utils.getAllA11yNodeInfo(false);
+                    for(AccessibilityNodeInfo nodeInfo : allNodes){
+                        ActualWidgetInfo actualWidgetInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo);
+                        if (actualWidgetInfo != null)
+                            Log.i(LatteService.TAG, "\t" + actualWidgetInfo.getXpath());
+                    }
+                }
                 else{
                     Log.i(LatteService.TAG, "There are more than one candidates for the target.");
                     for(AccessibilityNodeInfo node : similarNodes){
@@ -51,6 +57,8 @@ public class RegularStepExecutor implements StepExecutor {
                     return executeClick((ClickStep) locatableStep, node);
                 else if(locatableStep instanceof TypeStep)
                     return executeType((TypeStep) locatableStep, node);
+                else if(locatableStep instanceof FocusStep)
+                    return executeFocus((FocusStep) locatableStep, node);
                 else {
                     Log.e(LatteService.TAG, "This locatable step is unrecognizable " + locatableStep);
                     locatableStep.setState(StepState.FAILED);
@@ -100,6 +108,17 @@ public class RegularStepExecutor implements StepExecutor {
             clickStep.setState(result ? StepState.COMPLETED : StepState.FAILED);
             return result;
         }
+    }
+
+    private boolean executeFocus(FocusStep focusStep, AccessibilityNodeInfo node){
+        AccessibilityNodeInfo currentFocusedNode = LatteService.getInstance().getFocusedNode();
+        if (currentFocusedNode != null)
+            currentFocusedNode.performAction(AccessibilityNodeInfo.ACTION_CLEAR_FOCUS);
+        ActualWidgetInfo focusableWidget = ActualWidgetInfo.createFromA11yNode(node);
+        boolean result = node.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+        Log.i(LatteService.TAG, "Focusing on widget: " + focusableWidget.completeToString(true));
+        focusStep.setState(result ? StepState.COMPLETED : StepState.FAILED);
+        return result;
     }
 
     private boolean executeType(TypeStep typeStep, AccessibilityNodeInfo node){

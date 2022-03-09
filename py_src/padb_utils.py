@@ -35,7 +35,7 @@ class ParallelADBLogger:
 
     async def execute_async_with_log(self,
                                      coroutine_obj: asyncio.coroutine,
-                                     tags: List[str] = None) -> (Union[str, dict], Any):
+                                     tags: List[str] = None) -> (dict, Any):
         if self.lock is not None:
             raise Exception("Cannot execute more than one coroutine while logging!")
         self.lock = coroutine_obj
@@ -50,8 +50,5 @@ class ParallelADBLogger:
         logs = {}
         for tag in tags:
             logs[tag] = "\n".join(line for line in self.log_message.split("\n") if tag in line)
-        if len(tags) == 1:
-            self.log_message = logs[tags[0]]
-        else:
-            self.log_message = logs
+        self.log_message = logs
         return self.log_message, coroutine_result

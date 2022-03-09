@@ -85,17 +85,41 @@ def annotate_elements(source_img: Union[str, Path],
                       target_img: Union[str, Path],
                       elements: List,
                       outline: Tuple = None,
-                      width: int = 10,
+                      width: int = 5,
                       scale: int = 5):
     bounds = []
+    outlines = []
+    widths = []
+    scales = []
     for element in elements:
         if element is None or not element['bounds'] or element['bounds'] == 'null':
             logger.debug(f"The bounds of element {element} is empty!")
             continue
         bounds.append(convert_bounds(element['bounds']))
+        if outline is not None:
+            outlines.append(outline)  # sandybrown
+            widths.append(width)
+            scales.append(scale)
+        elif element['class'] == 'android.widget.ImageView':
+            outlines.append((244, 164, 96))  # sandybrown
+            widths.append(10)
+            scales.append(scale)
+        elif element['class'] == 'android.widget.TextView':
+            outlines.append((144, 238, 144))  # lightgreen
+            widths.append(10)
+            scales.append(scale)
+        elif element['class'].endswith('Button'):
+            outlines.append((220, 20, 60))  # Crimson
+            widths.append(10)
+            scales.append(scale)
+        else:
+            outlines.append((0, 139, 139))
+            widths.append(width)
+            scales.append(scale)
+
     annotate_rectangle(source_img,
                        target_img,
                        bounds,
-                       outline=outline,
-                       width=width,
-                       scale=scale)
+                       outline=outlines,
+                       width=widths,
+                       scale=scales)

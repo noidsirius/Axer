@@ -23,7 +23,7 @@ async def execute_latte_command(device, command: str, extra: str):
         logger.info(f"Windows Info: {json.dumps(windows_info, indent=4)}")
         logger.info(f"Latte Logs: {bm_logs}")
     if command == "capture_layout":
-        log, layout = await padb_logger.execute_async_with_log(latte_capture_layout())
+        _, layout = await padb_logger.execute_async_with_log(latte_capture_layout())
         logger.info(layout)
     if command == "is_live":
         logger.info(f"Is Latte live? {await is_latte_live()}")
@@ -34,10 +34,10 @@ async def execute_latte_command(device, command: str, extra: str):
             logger.info(f"\tType: {issue['ATFSeverity']} - {issue['ATFType']} - {issue['resourceId']} - {issue['bounds']}")
     if command == "get_actions":  # The extra is the output path
         await save_screenshot(device, extra)
-        log, layout = await padb_logger.execute_async_with_log(latte_capture_layout())
+        log_map, layout = await padb_logger.execute_async_with_log(latte_capture_layout())
         if "Problem with XML" in layout:
             logger.error(layout)
-            logger.error("Logs: " + log)
+            logger.error("Logs: " + log_map)
             return
         actions = get_actions_from_layout(layout)
         annotate_elements(extra, extra, actions, outline=(255, 0, 255), width=15, scale=5)

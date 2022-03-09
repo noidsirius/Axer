@@ -23,12 +23,21 @@ public class SightedTalkBackStepExecutor implements StepExecutor {
             locatableStep.increaseLocatingAttempts();
             if(locatableStep.reachedMaxLocatingAttempts()){
                 Log.i(LatteService.TAG, "Reached Stopping Criteria!");
-                return TalkBackStepExecutor.executeByRegularExecutor(step, locatableStep);
+                locatableStep.setState(StepState.FAILED);
+                return false;
             }
             List<AccessibilityNodeInfo> similarNodes = Utils.findSimilarNodes(locatableStep.getTargetWidgetInfo());
             if(similarNodes.size() != 1){
-                if(similarNodes.size() == 0)
+                if(similarNodes.size() == 0) {
                     Log.i(LatteService.TAG, "The target widget could not be found in current screen.");
+                    Log.i(LatteService.TAG, "The target XPATH: " + locatableStep.getTargetWidgetInfo().getXpath());
+                    List<AccessibilityNodeInfo> allNodes = Utils.getAllA11yNodeInfo(false);
+                    for(AccessibilityNodeInfo nodeInfo : allNodes){
+                        ActualWidgetInfo actualWidgetInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo);
+                        if (actualWidgetInfo != null)
+                            Log.i(LatteService.TAG, "\t" + actualWidgetInfo.getXpath());
+                    }
+                }
                 else{
                     Log.i(LatteService.TAG, "There are more than one candidates for the target.");
                     for(AccessibilityNodeInfo node : similarNodes){
@@ -48,13 +57,13 @@ public class SightedTalkBackStepExecutor implements StepExecutor {
                     return false;
                 }
                 locatableStep.increaseActingAttempts();
-                locatableStep.setActedWidget(ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getFocusedNode()));
+                locatableStep.setActedWidget(ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getAccessibilityFocusedNode()));
                 if(locatableStep instanceof ClickStep){
                     ActionUtils.performDoubleTap();
                     locatableStep.setState(StepState.COMPLETED);
                 }
                 else if(locatableStep instanceof TypeStep){
-                    ActionUtils.performType(LatteService.getInstance().getFocusedNode(), ((TypeStep) locatableStep).getText());
+                    ActionUtils.performType(LatteService.getInstance().getAccessibilityFocusedNode(), ((TypeStep) locatableStep).getText());
                     locatableStep.setState(StepState.COMPLETED);
                 }
                 else{

@@ -1,9 +1,5 @@
 package dev.navids.latte.UseCase;
 
-import android.accessibilityservice.AccessibilityService;
-import android.accessibilityservice.GestureDescription;
-import android.graphics.Path;
-import android.os.Handler;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 
@@ -11,7 +7,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 import dev.navids.latte.ActionUtils;
 import dev.navids.latte.ActualWidgetInfo;
@@ -39,7 +34,7 @@ public class TalkBackStepExecutor implements StepExecutor {
         }
         if(step instanceof LocatableStep) {
             LocatableStep locatableStep = (LocatableStep) step;
-            if (LatteService.getInstance().getFocusedNode() == null) {
+            if (LatteService.getInstance().getAccessibilityFocusedNode() == null) {
                 waitAttemptsForFocusChange++;
                 handleNullFocusNode(step);
                 return false;
@@ -68,13 +63,13 @@ public class TalkBackStepExecutor implements StepExecutor {
                 Log.i(LatteService.TAG, "The located widget is not correct, use regular executor");
                 return executeByRegularExecutor(step, locatableStep);
             }
-            locatableStep.setActedWidget(ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getFocusedNode()));
+            locatableStep.setActedWidget(ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getAccessibilityFocusedNode()));
             if(locatableStep instanceof ClickStep){
                 ActionUtils.performDoubleTap();
                 locatableStep.setState(StepState.COMPLETED);
             }
             else if(locatableStep instanceof TypeStep){
-                ActionUtils.performType(LatteService.getInstance().getFocusedNode(), ((TypeStep) locatableStep).getText());
+                ActionUtils.performType(LatteService.getInstance().getAccessibilityFocusedNode(), ((TypeStep) locatableStep).getText());
                 locatableStep.setState(StepState.COMPLETED);
             }
             else{
@@ -110,7 +105,7 @@ public class TalkBackStepExecutor implements StepExecutor {
     private boolean checkStoppingCriteria(StepCommand step, LocatableStep locatableStep) {
         if(!a11yNodeInfoTracker.containsKey(step))
             a11yNodeInfoTracker.put(step, new HashMap<>());
-        WidgetInfo focusedNodeWI = ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getFocusedNode());
+        WidgetInfo focusedNodeWI = ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getAccessibilityFocusedNode());
         a11yNodeInfoTracker.get(step).put(focusedNodeWI,a11yNodeInfoTracker.get(step).getOrDefault(focusedNodeWI, 0)+1);
         locatableStep.increaseActingAttempts();
         Log.i(LatteService.TAG, String.format("Widget %s is visited %d times", focusedNodeWI, a11yNodeInfoTracker.get(step).get(focusedNodeWI)));

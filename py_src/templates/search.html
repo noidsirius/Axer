@@ -1,5 +1,5 @@
 {% from "action_macro.html" import action_row, action_tag_script with context %}
-{% from "utils_macro.html" import compare_xml_form with context %}
+{% from "utils_macro.html" import compare_layout_form with context %}
 {% extends "layout.html" %}
 {% block title %}
     Search
@@ -114,9 +114,15 @@
                                     {% for item in [('ANY', 'Any'),
                                                     ('PROCESSED', 'Processed'),
                                                     ('ACCESSIBLE', 'Accessible'),
-                                                    ('FAILURE', 'Failure'),
-                                                    ('UNREACHABLE', 'Unreachable'),
-                                                    ('DIFFERENTBEHAVIOR', 'Different Behavior'),
+                                                    ('TB_A11Y_ISSUE', 'TB A11y Failure'),
+                                                    ('API_A11Y_ISSUE', 'API A11y Failure'),
+                                                    ('A11Y_WARNING', 'A11y Warning'),
+                                                    ('API_SMELL', 'API Smell'),
+                                                    ('EXTERNAL_SERVICE', 'External Service'),
+                                                    ('LOADING', 'Loading Screen'),
+                                                    ('TB_WEBVIEW_LOADING', 'WebView Loading in TalkBack'),
+                                                    ('INEFFECTIVE', 'Ineffective Action'),
+                                                    ('CRASHED', 'Crashed'),
                                                     ('OTHER', 'Other')] %}
                                         <option value="{{ item[0] }}"
                                                 {% if post_analysis_result==item[0] %}
@@ -138,14 +144,16 @@
                         </div>
                         <div class="card-body">
                             <div class="row mb-3">
-                                <label for="xmlSearchField" class="form-label">Search in XML</label>
+                                <div class="col-3">
+                                    <label for="xmlSearchField" class="form-label">Search in XML</label>
+                                </div>
                                 <div class="col-3">
                                     <select class="form-select" name="xmlSearchMode" aria-label="XML Search Mode">
                                         {% for item in [('ALL', 'All'),
-                                            ('exp','Initial'),
-                                            ('tb','TalkBack'),
-                                            ('reg','Touch'),
-                                            ('areg','A11yTouch')] %}
+                                                ('exp','Initial'),
+                                                ('tb','TalkBack'),
+                                                ('reg','Touch'),
+                                                ('areg','A11yTouch')] %}
                                             <option value="{{ item[0] }}" class="text-start"
                                                     {% if xml_search_mode == item[0] %}
                                                     selected
@@ -155,33 +163,67 @@
                                         {% endfor %}
                                     </select>
                                 </div>
-                                <div class="col-3">
-                                    <select class="form-select" name="xmlSearchAttr" aria-label="XML Search Attribute">
-                                        {% for item in [('ALL', 'All'),
-                                            ('text','Text'),
-                                            ('content-desc','ContentDescription'),
-                                            ('class','ClassName'),
-                                            ('resource-id','ResourceId'),
-                                            ('supportsWebAction','SupportsWebAction')] %}
-                                            <option value="{{ item[0] }}" class="text-start"
-                                                    {% if xml_search_attr == item[0] %}
-                                                    selected
-                                                    {% endif %}>
-                                                {{item[1]}}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col-6">
-                                    <input type="text" class="form-control" name="xmlSearchQuery" id="xmlSearchField"
-                                            {% if xml_search_field %}
-                                           value="{{ xml_search_field }}"
-                                            {% endif %}
-                                    >
-                                </div>
                             </div>
+
+{#                                <label for="xmlSearchField" class="form-label">Search in XML</label>#}
+{#                                <div class="col-3">#}
+{#                                    <select class="form-select" name="xmlSearchMode" aria-label="XML Search Mode">#}
+{#                                        {% for item in [('ALL', 'All'),#}
+{#                                            ('exp','Initial'),#}
+{#                                            ('tb','TalkBack'),#}
+{#                                            ('reg','Touch'),#}
+{#                                            ('areg','A11yTouch')] %}#}
+{#                                            <option value="{{ item[0] }}" class="text-start"#}
+{#                                                    {% if xml_search_mode == item[0] %}#}
+{#                                                    selected#}
+{#                                                    {% endif %}>#}
+{#                                                {{item[1]}}#}
+{#                                            </option>#}
+{#                                        {% endfor %}#}
+{#                                    </select>#}
+{#                                </div>#}
+                                {% for (attr, field) in zip(xml_search_attrs, xml_search_fields) %}
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <select class="form-select" name="xmlSearchAttr[]" aria-label="XML Search Attribute">
+                                                {% for item in [('ALL', 'All'),
+                                                    ('text','Text'),
+                                                    ('content-desc','ContentDescription'),
+                                                    ('class','ClassName'),
+                                                    ('clickable','Clickable'),
+                                                    ('enabled','Enabled'),
+                                                    ('clickableSpan','ClickableSpan'),
+                                                    ('resource-id','ResourceId'),
+                                                    ('z-a11y-actions','A11y Action'),
+                                                    ('importantForAccessibility','ImportantForAccessibility'),
+                                                    ('area','Area'),
+                                                    ('width','Width'),
+                                                    ('height','Height'),
+                                                    ('supportsWebAction','SupportsWebAction')] %}
+                                                    <option value="{{ item[0] }}" class="text-start"
+                                                            {% if attr == item[0] %}
+                                                            selected
+                                                            {% endif %}>
+                                                        {{item[1]}}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="text" class="form-control" name="xmlSearchQuery[]" id="xmlSearchField"
+                                                    {% if field %}
+                                                   value="{{ field }}"
+                                                    {% endif %}
+                                            >
+                                        </div>
+                                    </div>
+                                {% endfor %}
+
                             {% for item in xml_fields %}
-                                {{ compare_xml_form(item[0], item[1], item[2]) }}
+                                {{ compare_layout_form(item[0], item[1], item[2], 'XML') }}
+                            {% endfor %}
+                            {% for item in screen_fields %}
+                                {{ compare_layout_form(item[0], item[1], item[2], 'SCREEN') }}
                             {% endfor %}
                         </div>
                     </div>
@@ -269,10 +311,10 @@
             <tr>
                 <th scope="col">#</th>
                 <th scope="col">Action</th>
-                <th scope="col">Inital</th>
-                <th scope="col">Talkback</th>
-                <th scope="col">Regular</th>
-                <th scope="col">A11y Regular</th>
+                <th scope="col">{{ mode_to_repr['exp'] }}</th>
+                <th scope="col">{{ mode_to_repr['tb'] }}</th>
+                <th scope="col">{{ mode_to_repr['reg'] }}</th>
+                <th scope="col">{{ mode_to_repr['areg'] }}</th>
                 <th scope="col">Result</th>
             </tr>
             </thead>

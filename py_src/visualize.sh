@@ -1,2 +1,6 @@
 #!/bin/bash
-export FLASK_ENV=development && python -m flask run
+DEV=${1-"nodev"}
+if [[ $DEV == "dev" ]]; then
+  export FLASK_ENV=development
+fi
+python -m flask run
