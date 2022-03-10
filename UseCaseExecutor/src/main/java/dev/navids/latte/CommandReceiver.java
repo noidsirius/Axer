@@ -55,6 +55,7 @@ public class CommandReceiver extends BroadcastReceiver {
         // ----------- General ----------------
         commandEventMap.put("is_live", (extra) -> Utils.createFile(String.format(Config.v().IS_LIVE_FILE_PATH_PATTERN, extra), "I'm alive " + extra));
         commandEventMap.put("log", (extra) -> Utils.getAllA11yNodeInfo(true));
+        commandEventMap.put("invisible_nodes", (extra) -> LatteService.considerInvisibleNodes = (extra.equals("true")));
         commandEventMap.put("report_a11y_issues", (extra) -> {
             Context context2 = LatteService.getInstance().getApplicationContext();
             Set<AccessibilityHierarchyCheck> contrastChecks = new HashSet<>(Arrays.asList(

@@ -1,11 +1,12 @@
 #!/bin/bash
-SNAPSHOT_TIMEOUT=900
+SNAPSHOT_TIMEOUT=200
 APK_PATH=$1
 APK_PATH=$(realpath "$APK_PATH")
 RESULT_PATH=${2:-$(realpath ../dev_results)}
 RESULT_PATH=$(realpath "$RESULT_PATH")
-MAX_SNAPSHOT=5
-MAX_EVENT=50
+MAX_SNAPSHOT=10
+MAX_EVENT=300
+ACTION_LIMIT="--action-limit 1"
 STOAT_PATH=$(realpath ~/Workspaces/python/Stoat/)
 APK_NAME=$(basename "$APK_PATH")
 APK_NAME="${APK_NAME%.*}"
@@ -22,7 +23,7 @@ for SNAPSHOT in $(../scripts/list_snapshots.sh); do
     continue
   fi
   echo "Snapshot $SNAPSHOT in App $APP_NAME"
-    gtimeout $SNAPSHOT_TIMEOUT python main.py --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --debug
+    gtimeout $SNAPSHOT_TIMEOUT python main.py --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --debug "$ACTION_LIMIT"
   #		python post_analysis.py --snapshot-path $RESULT_PATH/$APP_NAME/$SNAPSHOT --name V1
     TMP_SNAPSHOT=$SNAPSHOT"_TMP"
     adb emu avd snapshot delete "$TMP_SNAPSHOT"

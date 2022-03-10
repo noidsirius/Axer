@@ -1,0 +1,2 @@
+export LATTE_PATH="/Users/navid/StudioProjects/Latte/"
+source $LATTE_PATH/.env/bin/activate

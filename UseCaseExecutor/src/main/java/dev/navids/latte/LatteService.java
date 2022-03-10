@@ -43,6 +43,7 @@ public class LatteService extends AccessibilityService {
     private boolean connected = false;
     public static String TAG = "LATTE_SERVICE";
     private String A11Y_EVENT_TAG = "LATTE_A11Y_EVENT_TAG";
+    public static boolean considerInvisibleNodes = true;
 
     public static LatteService getInstance() {
         return instance;

@@ -70,7 +70,7 @@ public class ActualWidgetInfo extends WidgetInfo {
                 if (child == null)
                     continue;
                 String childClsName = String.valueOf(child.getClassName());
-                if (!child.isVisibleToUser())
+                if (!LatteService.considerInvisibleNodes && !child.isVisibleToUser())
                     continue;
                 if (itClsName.equals(childClsName))
                     length++;

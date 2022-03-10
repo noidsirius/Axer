@@ -123,10 +123,14 @@ class SearchQuery:
                                     new_attr = attr.lower()
                                     if attr in ['width', 'height', 'area']:
                                         new_attr = 'bounds'
-                                    if f'{new_attr}="' not in line:
+                                    # TODO: Should be removed eventually
+                                    if attr == 'actionList' and 'z-a11y-actions' in line:
+                                        new_attr = 'z-a11y-actions'
+                                    if f'{new_attr}="' not in line \
+                                            or line[line.index(f'{new_attr}="')-1] not in [' ', '<']:
                                         flag = False
                                         break
-                                    value = line[line.index(new_attr):].split('"')[1]
+                                    value = line[line.index(f'{new_attr}="'):].split('"')[1]
                                     if new_attr == "bounds":
                                         bounds = convert_bounds(value)
                                         target = 0
@@ -148,7 +152,7 @@ class SearchQuery:
                                             if target != int(query):
                                                 flag = False
                                                 break
-                                    elif new_attr == 'z-a11y-actions':
+                                    elif attr == 'actionList':
                                         actions = set(value.split('-'))
                                         is_include = True
                                         if query.startswith("!"):
@@ -158,9 +162,19 @@ class SearchQuery:
                                         if is_include != query_set.issubset(actions):
                                             flag = False
                                             break
-                                    elif query.lower() not in value:
-                                        flag = False
-                                        break
+                                    else:
+                                        if query == "~":  # The value should be empty
+                                            if len(value) > 0:
+                                                flag = False
+                                                break
+                                        else:
+                                            is_include = True
+                                            if query.startswith("!"):
+                                                is_include = False
+                                                query = query[1:]
+                                            if is_include != (query.lower() in value):
+                                                flag = False
+                                                break
                             if flag:
                                 return True
             return False

@@ -155,7 +155,12 @@
                         </a>
                         -
                     {% endif %}
-
+                    {% if action_result.mode_info[mode+'_event_log'] %}
+                        <a href="{{ url_for('send_result_static_v2', path=action_result.mode_info[mode+'_event_log']) }}">
+                            EventLog
+                        </a>
+                        -
+                    {% endif %}
                     {% if action_result.mode_info[mode+'_layout'] %}
                         <a href="{{ url_for('send_result_static_v2', path=action_result.mode_info[mode+'_layout']) }}">Layout</a>
                     {% endif %}

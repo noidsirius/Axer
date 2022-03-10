@@ -1,8 +1,8 @@
 #!/bin/bash
 FLAG=0
-RESULT_PATH=$(realpath ../100_results)
-LAST_APK_FILE="com.cryptzone.appgate.xdp"
-for APK_FILE in ../BM_APKs/100_apks/*.apk; do
+RESULT_PATH=$(realpath ../bs_results)
+LAST_APK_FILE="com.abb.grinding"
+for APK_FILE in ../BM_APKs/bs_apks/*.apk; do
 	if [ "$(basename "$APK_FILE")" = "$LAST_APK_FILE.apk" ]; then
 		FLAG=1
 	fi

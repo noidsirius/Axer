@@ -11,7 +11,9 @@ import math
 import datetime
 from ansi2html import Ansi2HTMLConverter
 from json2html import json2html
-from flask import Flask, request, jsonify, send_from_directory, render_template
+from flask import Flask, request, jsonify, send_from_directory, render_template, make_response
+
+from consts import BLIND_MONKEY_EVENTS_TAG
 
 sys.path.append(str(pathlib.Path(__file__).parent.resolve()))
 from results_utils import AddressBook
@@ -296,6 +298,8 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
                 static_root_path)
             step['mode_info'][f'{mode}_log'] = address_book.get_log_path(f'{prefix}{mode}',
                                                                          action['index']).relative_to(static_root_path)
+            step['mode_info'][f'{mode}_event_log'] = address_book.get_log_path(f'{prefix}{mode}',
+                                                                         action['index'], extension=BLIND_MONKEY_EVENTS_TAG).relative_to(static_root_path)
             step['mode_info'][f'{mode}_layout'] = address_book.get_layout_path(f'{prefix}{mode}',
                                                                                action['index']).relative_to(
                 static_root_path)
@@ -355,12 +359,20 @@ def send_result_static_v2(path: str):
                     content += line
         html_log = Ansi2HTMLConverter().convert(content)
         return html_log
-    if path.name.endswith('.jsonl'):
+    elif path.name.endswith('.jsonl'):
         content_list = []
         with open(path) as f:
             for line in f.readlines():
                 content_list.append(json.loads(line))
         return json2html.convert(content_list)
+    elif path.name.endswith('.xml'):
+        with open(path) as f:
+            content = f.read()
+            content = content.replace("&", "&amp;")
+
+        response = make_response(content)
+        response.headers['Content-Type'] = 'application/xml'
+        return response
 
     return send_from_directory(path.parent.resolve(), path.name)
 

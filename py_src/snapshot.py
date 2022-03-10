@@ -26,9 +26,11 @@ class Snapshot:
                  address_book: AddressBook,
                  visited_elements_in_app: dict = None,
                  instrumented_log: bool = False,
+                 action_limit: int = 1000,
                  device=None):
         self.initial_snapshot = snapshot_name
         self.tmp_snapshot = self.initial_snapshot + "_TMP"
+        self.action_limit = action_limit
         self.address_book = address_book
         self.instrumented_log = instrumented_log
         self.writer = ResultWriter(address_book)
@@ -40,7 +42,7 @@ class Snapshot:
         self.valid_xpaths = {}
         self.visited_resource_ids = set()
         self.visited_xpath_count = defaultdict(int)
-        self.tb_commands = []
+        self.performed_actions = []
         # -------------
         if device is None:
             client = AdbClient(host=ADB_HOST, port=ADB_PORT)
@@ -119,7 +121,7 @@ class Snapshot:
                 f.write(f"{json.dumps(valid_element)}\n")
         self.visited_resource_ids = set()
         self.visited_xpath_count = defaultdict(int)
-        self.tb_commands = []
+        self.performed_actions = []
         # -------------
         return True
 
@@ -175,7 +177,7 @@ class Snapshot:
                 self.writer.visit_element(command_json, 'skipped', None)
                 logger.debug("Not a valid xpath!")
                 continue
-            if next_command_str in self.tb_commands:
+            if next_command_str in self.performed_actions:
                 self.writer.visit_element(command_json, 'repetitive', self.valid_xpaths[command_json['xpath']])
                 logger.debug("Has seen this command before!")
                 continue
@@ -209,6 +211,9 @@ class Snapshot:
                                                 has_layout=True)
         next_focused_element = None
         while True:
+            if len(self.performed_actions) >= self.action_limit:
+                logger.info(f"Reached action limit: {self.action_limit}")
+                break
             logger.info(f"Action Index: {self.writer.get_action_index()}")
             await save_snapshot(self.tmp_snapshot)
             click_command_str = await tb_focused_node()
@@ -223,7 +228,7 @@ class Snapshot:
                     if click_command_str != next_focused_element and next_focused_element is not None:
                         logger.error(f"The current focused element is different from the navigation's result."
                                      f"Current: {click_command_str}, NextFocusedElement: {next_focused_element}")
-                    self.tb_commands.append(click_command_str)
+                    self.performed_actions.append(click_command_str)
                     modes = ['tb', 'reg', 'areg']
                     result_map = {}
                     for mode in modes:
@@ -269,7 +274,7 @@ class Snapshot:
 
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.visited_action_screenshot,
-                          [json.loads(str_command) for str_command in self.tb_commands])
+                          [json.loads(str_command) for str_command in self.performed_actions])
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.visited_elements_screenshot,
                           [visited_element['detailed_element'] for visited_element in self.writer.visited_elements])
@@ -306,18 +311,21 @@ class Snapshot:
         self.writer.start_stb()
         important_actions = await self.get_important_actions()
         tb_done_actions = self.get_tb_done_actions()
-        tb_undone_actions = get_missing_actions(important_actions, tb_done_actions)
-        logger.info(f"There are {len(tb_undone_actions)} missing actions in explore!")
+        directional_unreachable_actions = get_missing_actions(important_actions, tb_done_actions)
+        logger.info(f"There are {len(directional_unreachable_actions)} missing actions in explore!")
         initial_layout = await self.writer.capture_current_state(self.device, 's_exp', 'INITIAL')
         annotate_elements(self.address_book.get_screenshot_path('s_exp', 'INITIAL'),
                           self.address_book.s_action_screenshot,
-                          tb_undone_actions)
+                          directional_unreachable_actions)
         is_in_app_activity = not await is_android_activity_on_top()
         padb_logger = ParallelADBLogger(self.device)
         if is_in_app_activity:
-            for index, action in enumerate(tb_undone_actions):
+            for index, action in enumerate(directional_unreachable_actions):
+                if len(self.performed_actions) + self.writer.get_action_index() >= self.action_limit:
+                    logger.info(f"Reached action limit: {self.action_limit}")
+                    break
                 logger.info(
-                    f"Missing action {self.writer.get_action_index()}, count: {index} / {len(tb_undone_actions)}")
+                    f"Missing action {self.writer.get_action_index()}, count: {index} / {len(directional_unreachable_actions)}")
                 if get_element_from_xpath(initial_layout, action['xpath']) is None:
                     continue
                 result_map = {}
@@ -331,7 +339,7 @@ class Snapshot:
                         return []
                     executor = mode if mode != 'tb' else 'stb'
                     log_message_map, result_map[mode] = await padb_logger.execute_async_with_log(
-                        execute_command(json.dumps(action), executor_name=executor))
+                        execute_command(json.dumps(action), executor_name=executor), tags=tags)
                     layout = await self.writer.capture_current_state(self.device, f"s_{mode}",
                                                                      self.writer.get_action_index(),
                                                                      log_message_map=log_message_map)

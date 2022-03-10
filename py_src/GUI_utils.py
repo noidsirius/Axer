@@ -129,6 +129,8 @@ def get_elements(dom: str, filter_query: Callable[[etree.Element], bool] = None)
                 'enabled': x_attrs.get('enabled', ''),
                 'focusable': x_attrs.get('focusable', ''),
                 'focused': x_attrs.get('focused', ''),
+                'visible': x_attrs.get('visible', True),
+                'actionList': x_attrs.get('actionList', ''),
                 }
         for k in info:
             if type(info[k]) == str and len(info[k]) == 0:
