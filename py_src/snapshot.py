@@ -2,11 +2,11 @@ import logging
 import asyncio
 import json
 from collections import defaultdict
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Dict
 from ppadb.client_async import ClientAsync as AdbClient
 
-from GUI_utils import get_elements, are_equal_elements, get_actions_from_layout, is_clickable_element_or_none, \
-    get_element_from_xpath
+from GUI_utils import get_nodes, get_actions_from_layout, is_clickable_element_or_none, \
+    get_element_from_xpath, Node
 from a11y_service import A11yServiceManager
 from adb_utils import load_snapshot, save_snapshot, is_android_activity_on_top, get_current_activity_name
 from latte_executor_utils import tb_navigate_next, tb_perform_select, tb_focused_node, execute_command, \
@@ -24,7 +24,7 @@ class Snapshot:
     def __init__(self,
                  snapshot_name: str,
                  address_book: AddressBook,
-                 visited_elements_in_app: dict = None,
+                 visited_elements_in_app: Dict[str, Node] = None,
                  instrumented_log: bool = False,
                  action_limit: int = 1000,
                  device=None):
@@ -49,10 +49,10 @@ class Snapshot:
             device = asyncio.run(client.device(DEVICE_NAME))
         self.device = device
 
-    def has_element_in_other_snapshots(self, element: dict) -> bool:
-        for other_element in self.visited_elements_in_app.get(element['xpath'], []):
-            if are_equal_elements(element, other_element):
-                logger.debug(f"Exclude the visited element in the app {element}")
+    def has_element_in_other_snapshots(self, node: Node) -> bool:
+        for other_node in self.visited_elements_in_app.get(node.xpath, []):
+            if node.practically_equal(other_node):
+                logger.debug(f"Exclude the visited element in the app {node}")
                 return True
         return False
 
@@ -87,7 +87,7 @@ class Snapshot:
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.atf_issues_screenshot,
                           atf_issues)
-        self.visible_elements = get_elements(self.init_layout)
+        self.visible_elements = get_nodes(self.init_layout)
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.all_element_screenshot,
                           self.visible_elements)
@@ -99,15 +99,15 @@ class Snapshot:
         self.valid_resource_ids = set()
         self.valid_xpaths = {}
         already_visited_elements = []
-        for element in self.visible_elements:
-            if self.has_element_in_other_snapshots(element):
-                logger.debug(f"Exclude the visited element in the app {element}")
-                already_visited_elements.append(element)
+        for node in self.visible_elements:
+            if self.has_element_in_other_snapshots(node):
+                logger.debug(f"Exclude the visited element in the app {node}")
+                already_visited_elements.append(node)
                 continue
-            if element['resourceId']:
-                self.valid_resource_ids.add(element['resourceId'])
-            if element['xpath']:
-                self.valid_xpaths[element['xpath']] = element
+            if node.resource_id:
+                self.valid_resource_ids.add(node.resource_id)
+            if node.xpath:
+                self.valid_xpaths[node.xpath] = node
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.redundant_action_screenshot,
                           already_visited_elements)
@@ -117,8 +117,8 @@ class Snapshot:
         logger.info(f"There are {len(self.valid_xpaths)} valid elements,"
                     f" and {len(already_visited_elements)} elements have been seen in other snapshots!")
         with open(self.address_book.valid_elements_path, "w") as f:
-            for valid_element in self.valid_xpaths.values():
-                f.write(f"{json.dumps(valid_element)}\n")
+            for valid_node in self.valid_xpaths.values():
+                f.write(f"{valid_node.toJSONStr()}\n")
         self.visited_resource_ids = set()
         self.visited_xpath_count = defaultdict(int)
         self.performed_actions = []
@@ -195,8 +195,8 @@ class Snapshot:
                 continue
             self.writer.visit_element(command_json, 'selected', self.valid_xpaths[command_json['xpath']])
             # TODO: make it a counter
-            if command_json['resourceId'] != 'null':
-                self.visited_resource_ids.add(command_json['resourceId'])
+            if command_json['resource_id'] != 'null':
+                self.visited_resource_ids.add(command_json['resource_id'])
             break
         return all_log_message, next_command_str
 
@@ -255,7 +255,7 @@ class Snapshot:
                                            tb_action_result=result_map['tb'],
                                            reg_action_result=result_map['reg'],
                                            areg_action_result=result_map.get('areg', None),
-                                           detailed_element=self.valid_xpaths.get(click_command['xpath'], None),
+                                           node=self.valid_xpaths.get(click_command['xpath'], None),
                                            is_sighted=False)
 
             # ------------------- Navigate Next -------------------
@@ -277,11 +277,11 @@ class Snapshot:
                           [json.loads(str_command) for str_command in self.performed_actions])
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.visited_elements_screenshot,
-                          [visited_element['detailed_element'] for visited_element in self.writer.visited_elements])
+                          [visited_element['node'] for visited_element in self.writer.visited_elements])
         logger.info("Done Exploring!")
         return True
 
-    async def get_important_actions(self) -> List:
+    async def get_important_actions(self) -> List[Node]:
         if not await load_snapshot(self.initial_snapshot):
             logger.error("Error in loading snapshot")
             return []
@@ -289,14 +289,14 @@ class Snapshot:
         dom = await capture_layout()
         all_actions = get_actions_from_layout(dom)
         result = []
-        for element in all_actions:
-            if self.has_element_in_other_snapshots(element):
-                logger.debug(f"Sighted: Exclude the visited element in the app {element}")
+        for node in all_actions:
+            if self.has_element_in_other_snapshots(node):
+                logger.debug(f"Sighted: Exclude the visited element in the app {node}")
                 continue
-            result.append(element)
+            result.append(node)
         return result
 
-    def get_tb_done_actions(self):
+    def get_tb_done_elements(self) -> List[dict]:
         result = []
         explore_result = []
         with open(self.address_book.action_path) as f:
@@ -310,7 +310,7 @@ class Snapshot:
         logger.info("Validating remaining actions.")
         self.writer.start_stb()
         important_actions = await self.get_important_actions()
-        tb_done_actions = self.get_tb_done_actions()
+        tb_done_actions = self.get_tb_done_elements()
         directional_unreachable_actions = get_missing_actions(important_actions, tb_done_actions)
         logger.info(f"There are {len(directional_unreachable_actions)} missing actions in explore!")
         initial_layout = await self.writer.capture_current_state(self.device, 's_exp', 'INITIAL')
@@ -326,7 +326,7 @@ class Snapshot:
                     break
                 logger.info(
                     f"Missing action {self.writer.get_action_index()}, count: {index} / {len(directional_unreachable_actions)}")
-                if get_element_from_xpath(initial_layout, action['xpath']) is None:
+                if get_element_from_xpath(initial_layout, action.xpath) is None:
                     continue
                 result_map = {}
                 modes = ['reg', 'areg', 'tb']
@@ -339,16 +339,16 @@ class Snapshot:
                         return []
                     executor = mode if mode != 'tb' else 'stb'
                     log_message_map, result_map[mode] = await padb_logger.execute_async_with_log(
-                        execute_command(json.dumps(action), executor_name=executor), tags=tags)
+                        execute_command(action.toJSONStr(), executor_name=executor), tags=tags)
                     layout = await self.writer.capture_current_state(self.device, f"s_{mode}",
                                                                      self.writer.get_action_index(),
                                                                      log_message_map=log_message_map)
 
                 logger.info(f"Writing action {self.writer.get_action_index()}")
-                self.writer.add_action(element=action,
+                self.writer.add_action(element=json.loads(action.toJSONStr()),
                                        tb_action_result=result_map['tb'],
                                        reg_action_result=result_map['reg'],
                                        areg_action_result=result_map.get('areg', None),
-                                       detailed_element=self.valid_xpaths.get(action['xpath'], None),
+                                       node=action,
                                        is_sighted=True)
         logger.info("Done validating remaining actions.")

@@ -5,6 +5,8 @@ from typing import Union, Tuple, List
 import logging
 import xmlformatter
 from collections import namedtuple
+
+from GUI_utils import Node
 from adb_utils import read_local_android_file
 from a11y_service import A11yServiceManager
 from consts import TB_NAVIGATE_RETRY_COUNT, ACTION_EXECUTION_RETRY_COUNT, TB_SELECT_TIMEOUT, TB_NAVIGATE_TIMEOUT, \
@@ -235,7 +237,8 @@ def analyze_execution_result(result: str, command: str = None) -> ExecutionResul
         error_message = result if result else "FAILED"
         if command:
             command_json = json.loads(command)
-            bounds = convert_bounds(command_json['bounds'])
+            node = Node.createNodeFromDict(command_json)
+            bounds = node.bounds
         return get_unsuccessful_execution_result(state=error_message, bounds=bounds)
     parts = result.split('$')
     state = parts[1].split(':')[1].strip()
@@ -289,16 +292,16 @@ async def stb_execute_command(command: str) -> ExecutionResult:
     return await execute_command(command, 'stb')
 
 
-def get_missing_actions(a_actions, b_actions):
-    a_dict = {}
-    b_dict = {}
-    for x in a_actions:
-        a_dict[x['xpath']] = x
-    for x in b_actions:
-        b_dict[x['xpath']] = x
-    all_keys = set(a_dict.keys()).union(b_dict.keys())
+def get_missing_actions(important_nodes: List[Node], executed_elements: List[dict]) -> List[Node]:
+    xpath_to_important_nodes = {}
+    xpath_to_done_elements = {}
+    for x in important_nodes:
+        xpath_to_important_nodes[x.xpath] = x
+    for x in executed_elements:
+        xpath_to_done_elements[x['xpath']] = x
+    all_keys = set(xpath_to_important_nodes.keys()).union(xpath_to_done_elements.keys())
     missing_actions = []
     for k in all_keys:
-        if k not in b_dict.keys():
-            missing_actions.append(a_dict[k])
+        if k not in xpath_to_done_elements.keys():
+            missing_actions.append(xpath_to_important_nodes[k])
     return missing_actions

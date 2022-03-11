@@ -98,10 +98,10 @@ public abstract class WidgetInfo implements Serializable {
         JSONObject jsonCommand = null;
         try {
             jsonCommand = new JSONObject()
-                    .put("resourceId", this.getAttr("resourceId"))
-                    .put("contentDescription", this.getAttr("contentDescription"))
+                    .put("resource_id", this.getAttr("resourceId"))
+                    .put("content_desc", this.getAttr("contentDescription"))
                     .put("text", this.getAttr("text"))
-                    .put("class", this.getAttr("class"))
+                    .put("class_name", this.getAttr("class"))
                     .put("xpath", this.getAttr("xpath"))
                     .put("located_by", located_by)
                     .put("skip", skip)

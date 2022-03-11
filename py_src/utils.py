@@ -3,6 +3,8 @@ from typing import List, Union, Tuple
 from pathlib import Path
 from PIL import Image, ImageDraw
 
+from GUI_utils import Node
+
 logger = logging.getLogger(__name__)
 
 
@@ -83,32 +85,39 @@ def annotate_rectangle(source_img,
 
 def annotate_elements(source_img: Union[str, Path],
                       target_img: Union[str, Path],
-                      elements: List,
+                      elements: List[Union[Node, dict]],
                       outline: Tuple = None,
                       width: int = 5,
                       scale: int = 5):
-    bounds = []
+    bounds_list = []
     outlines = []
     widths = []
     scales = []
-    for element in elements:
-        if element is None or not element['bounds'] or element['bounds'] == 'null':
-            logger.debug(f"The bounds of element {element} is empty!")
+    for node in elements:
+        if node is None:
+            logger.debug(f"The bounds of element {node} is empty!")
             continue
-        bounds.append(convert_bounds(element['bounds']))
+        if isinstance(node, dict):
+            node = Node.createNodeFromDict(node)
+        bounds = node.bounds
+        class_name = node.class_name
+        # else:
+        #     bounds = convert_bounds(node['bounds'])
+        #     class_name = node['class_name']
+        bounds_list.append(bounds)
         if outline is not None:
             outlines.append(outline)  # sandybrown
             widths.append(width)
             scales.append(scale)
-        elif element['class'] == 'android.widget.ImageView':
+        elif class_name == 'android.widget.ImageView':
             outlines.append((244, 164, 96))  # sandybrown
             widths.append(10)
             scales.append(scale)
-        elif element['class'] == 'android.widget.TextView':
+        elif class_name == 'android.widget.TextView':
             outlines.append((144, 238, 144))  # lightgreen
             widths.append(10)
             scales.append(scale)
-        elif element['class'].endswith('Button'):
+        elif class_name.endswith('Button'):
             outlines.append((220, 20, 60))  # Crimson
             widths.append(10)
             scales.append(scale)
@@ -119,7 +128,7 @@ def annotate_elements(source_img: Union[str, Path],
 
     annotate_rectangle(source_img,
                        target_img,
-                       bounds,
+                       bounds_list,
                        outline=outlines,
                        width=widths,
                        scale=scales)

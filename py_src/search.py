@@ -6,8 +6,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Union, List
 from results_utils import AddressBook
-from post_analysis import get_post_analysis, SUCCESS, EXEC_FAILURE, \
-    XML_PROBLEM, DIFFERENT_BEHAVIOR, UNREACHABLE, POST_ANALYSIS_PREFIX, A11Y_WARNING, OTHER, INEFFECTIVE, \
+from post_analysis import get_post_analysis, SUCCESS, A11Y_WARNING, OTHER, INEFFECTIVE, \
     CRASHED, API_SMELL, EXTERNAL_SERVICE, LOADING, TB_WEBVIEW_LOADING, API_A11Y_ISSUE, TB_A11Y_ISSUE
 from utils import convert_bounds
 
@@ -48,12 +47,13 @@ class SearchQuery:
 
     def contains_action_xml_attr(self, attr_name: str, value: str):
         def action_xml_attr_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
+            # TODO:
             action_attr_values = [action['element'][attr] for attr in ['bounds', 'resourceId', 'class']]
             prefix = "s_" if is_sighted else ""
-            if 'detailed_element' in action and action['detailed_element']:
-                if attr_name not in action['detailed_element']:
+            if 'node' in action and action['node']:
+                if attr_name not in action['node']:
                     return False
-                return value in action['detailed_element'][attr_name]
+                return value in action['node'][attr_name]
             layout_path = address_book.get_layout_path(f'{prefix}exp', action['index'], should_exists=True)
             if layout_path is None:
                 return False

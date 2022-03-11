@@ -2,8 +2,11 @@ import logging
 import asyncio
 import json
 import shutil
+from enum import Enum
 from pathlib import Path
-from typing import Optional, Union, List
+from typing import Optional, Union, Dict
+
+from GUI_utils import Node
 from adb_utils import get_current_activity_name
 from consts import BLIND_MONKEY_TAG
 from latte_executor_utils import ExecutionResult, latte_capture_layout as capture_layout
@@ -12,6 +15,17 @@ from utils import annotate_rectangle
 
 
 logger = logging.getLogger(__name__)
+
+
+class OAC(Enum):  # Overly Accessible Condition
+    BELONGED = 1
+    OUT_OF_BOUNDS = 2
+    COVERED = 3
+    ZERO_AREA = 4
+    INVISIBLE = 5
+    CAMOUFLAGED = 6
+    CONDITIONAL_DISABLED = 7
+    INCONSISTENT_ABILITIES = 8
 
 
 class AddressBook:
@@ -99,28 +113,29 @@ class ResultWriter:
         self.visited_elements = []
         self.actions = []
 
-    def visit_element(self, visited_element: dict, state: str, detailed_element: Union[dict, None]) -> None:
+    def visit_element(self, visited_element: dict, state: str, node: Union[Node, None]) -> None:
         """
         Write the visited element into exploration result
         :param visited_element: The element that is visited by Latte
         :param state: The state of the visited element can be 'skipped', 'repetitive', 'selected'
-        :param detailed_element: The equivalent element with more information such as 'clickable' or 'focused'
+        :param node: The equivalent element with more information such as 'clickable' or 'focused'
         """
-        use_detailed = detailed_element is not None
-        if use_detailed:
-            for key in visited_element:
-                if key not in detailed_element or key == 'bounds':
-                    continue
-                if visited_element[key] != detailed_element[key]:
-                    use_detailed = False
-                    logger.warning(f"The detailed element doesn't match. Visited Element: {visited_element},"
-                                 f" Detailed Element: {detailed_element}")
-                    break
+        use_detailed = node is not None
+        # TODO: Fix this
+        # if use_detailed:
+        #     for key in visited_element:
+        #         if key not in node or key == 'bounds':
+        #             continue
+        #         if visited_element[key] != node[key]:
+        #             use_detailed = False
+        #             logger.warning(f"The detailed element doesn't match. Visited Element: {visited_element},"
+        #                          f" Node: {node}")
+        #             break
         visited_element = {
             'index': len(self.visited_elements),
             'state': state,
             'element': visited_element,
-            'detailed_element': detailed_element if use_detailed else None
+            'node': json.loads(node.toJSONStr()) if use_detailed else None
         }
         self.visited_elements.append(visited_element)
         with open(self.address_book.visited_elements_path, "a") as f:
@@ -134,7 +149,7 @@ class ResultWriter:
                    tb_action_result: Union[str, ExecutionResult],
                    reg_action_result: ExecutionResult,
                    areg_action_result: ExecutionResult = None,
-                   detailed_element: dict = None,
+                   node: Node = None,
                    is_sighted: bool = False):
         action_index = self.get_action_index()
         if not is_sighted:
@@ -168,7 +183,7 @@ class ResultWriter:
                       'tb_action_result': tb_action_result,
                       'reg_action_result': reg_action_result,
                       'areg_action_result': areg_action_result,
-                      'detailed_element': detailed_element,
+                      'node': json.loads(node.toJSONStr()),
                       'is_sighted': is_sighted
                       }
         self.actions.append(new_action)
@@ -216,9 +231,9 @@ class ResultWriter:
             f.write(log_message)
 
 
-def read_all_visited_elements_in_app(app_path: Union[str, Path]) -> dict:
+def read_all_visited_elements_in_app(app_path: Union[str, Path]) -> Dict[str, Node]:
     """
-    Given the result path of an app, returns visited elements dictionary, mapping xpath to the list of its elements
+    Given the result path of an app, returns visited nodes, mapping xpath to the list of its nodes
     """
     visited_elements = {}
     app_path = Path(app_path) if isinstance(app_path, str) else app_path
@@ -233,19 +248,13 @@ def read_all_visited_elements_in_app(app_path: Union[str, Path]) -> dict:
         with open(address_book.visited_elements_path) as f:
             for line in f.readlines():
                 element = json.loads(line)
-                if element['state'] != 'selected' or element['detailed_element'] is None:
+                if element['state'] != 'selected' or element['node'] is None:
                     continue
-                if element['element']['xpath'] not in visited_elements:
-                    # logger.warning(f"Repetitive element's xpath, New element {element},"
-                    #                f" Stored element: {visited_elements[element['element']['xpath']]}")
-                    visited_elements[element['element']['xpath']] = []
-                visited_elements[element['element']['xpath']].append(element['detailed_element'])
+                visited_elements.setdefault(element['element']['xpath'], [])
+                visited_elements[element['element']['xpath']].append(element['node'])
         with open(address_book.s_action_path) as f:
             for line in f.readlines():
                 action = json.loads(line)
-                if action['element']['xpath'] not in visited_elements:
-                    # logger.warning(f"Repetitive element's xpath, New element {element},"
-                    #                f" Stored element: {visited_elements[element['element']['xpath']]}")
-                    visited_elements[action['element']['xpath']] = []
-                visited_elements[action['element']['xpath']].append(action['element'])
+                visited_elements.setdefault(action['element']['xpath'], [])
+                visited_elements[action['element']['xpath']].append(action['node'])
     return visited_elements

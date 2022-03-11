@@ -1,7 +1,7 @@
 {% from "utils_macro.html" import xml_diff_button with context %}
 {% macro action_info(action) %}
     <table class="table">
-        {% for attr in ['class', 'resourceId', 'text', 'contentDescription', 'xpath', 'bounds', 'detailed_element'] %}
+        {% for attr in ['class', 'resourceId', 'text', 'contentDescription', 'xpath', 'bounds', 'node'] %}
             <tr>
                 <td class="text-end">{{ attr }}</td>
                 <td class="text-start text-truncate" style="max-width: 10em;">

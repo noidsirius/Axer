@@ -10,7 +10,7 @@ from padb_utils import ParallelADBLogger, save_screenshot
 from latte_utils import is_latte_live
 from latte_executor_utils import talkback_nav_command, talkback_tree_nodes, latte_capture_layout, \
     FINAL_ACITON_FILE, report_atf_issues, execute_command
-from GUI_utils import get_actions_from_layout, get_elements
+from GUI_utils import get_actions_from_layout, get_nodes
 from utils import annotate_elements
 from adb_utils import read_local_android_file
 from a11y_service import A11yServiceManager
@@ -65,10 +65,9 @@ async def execute_latte_command(device, command: str, extra: str):
             logger.error(layout)
             logger.error("Logs: " + log_map)
             return
-        ci_elements = get_elements(layout,
-                                          filter_query=lambda x: (x.attrib.get('clickable', 'false') == 'true'
-                                                                 or '16' in x.attrib.get('actionList', '').split('-'))
-                                                                 and x.attrib.get('visible', 'true') == 'false')
+        ci_elements = get_nodes(layout,
+                                filter_query=lambda x: (x.clickable or '16' in x.a11y_actions) and not x.visible)
+
         logger.info(f"#CI Elements: {len(ci_elements)}")
         for index, element in enumerate(ci_elements):
             logger.info(f"\tCI Elements {index}: {element}")
@@ -78,10 +77,8 @@ async def execute_latte_command(device, command: str, extra: str):
             logger.error(layout)
             logger.error("Logs: " + log_map)
             return
-        ci_elements = get_elements(layout,
-                                   filter_query=lambda x: (x.attrib.get('clickable', 'false') == 'true'
-                                                          or '16' in x.attrib.get('actionList', '').split('-'))
-                                                          and x.attrib.get('visible', 'true') == 'false')
+        ci_elements = get_nodes(layout,
+                                filter_query=lambda x: (x.clickable or '16' in x.a11y_actions) and not x.visible)
         index = int(extra)
         logger.info(f"Target CI Elements #{index}: {ci_elements[index]}")
         tags = [BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG]

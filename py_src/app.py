@@ -262,7 +262,7 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
         'snapshot_name': address_book.snapshot_name()
     }
     step['action'] = action['element']
-    step['action']['detailed_element'] = action.get('detailed_element', 'null')
+    step['action']['node'] = action.get('node', 'null')
     step['tags'] = []
     if address_book.tags_path.exists():
         with open(address_book.tags_path, encoding="utf-8") as f:
