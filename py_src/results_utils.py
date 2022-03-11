@@ -72,11 +72,6 @@ class AddressBook:
     def get_bm_log_path(self) -> Path:
         return self.snapshot_result_path.parent.joinpath(self.snapshot_result_path.name + ".log")
 
-    def get_sb_result_path(self, oac: Union[OAC, str], extension: str) -> Path:
-        if isinstance(oac, OAC):
-            oac = oac.name
-        return self.sb_path.joinpath(f"{oac}.{extension}")
-
     def app_name(self) -> str:
         return self.snapshot_result_path.parent.name
 
@@ -112,6 +107,19 @@ class AddressBook:
         if should_exists and not path.exists():
             return None
         return path
+
+    # BlindSimmer
+    def get_sb_result_path(self, oac: Union[OAC, str], extension: str) -> Path:
+        if isinstance(oac, OAC):
+                oac = oac.name
+        return self.sb_path.joinpath(f"{oac}.{extension}")
+
+    def get_issue_count(self, oac: Union[OAC, str]):
+        path = self.get_sb_result_path(oac, 'jsonl')
+        if not path.exists():
+            return 0
+        with open(path) as f:
+            return len(f.readlines())
 
 
 class ResultWriter:

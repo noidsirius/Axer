@@ -111,3 +111,42 @@
         </div>
     </div>
 {% endmacro %}
+
+{% macro snapshot_bs_summary(address_book) %}
+    <div class="row">
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                {% for oac_name in oac_names %}
+                    <th scope="col">{{ oac_name }}</th>
+                {% endfor %}
+                <th scope="col">...</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                {% for oac_name in oac_names %}
+                    <td>
+                        <a href="#" class="enlarge">
+                            <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_sb_result_path(oac_name, extension='png'), result_path)) }}" class="rounded d-block mx-auto"
+                                 style="width: 10rem;">
+                        </a>
+                        <hr>
+                        Count: {{ address_book.get_issue_count(oac_name) }}
+                        <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_sb_result_path(oac_name, extension='jsonl'), result_path)) }}">
+                            Details
+                        </a>
+                    </td>
+                {% endfor %}
+                <th scope="row">
+                    <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_bm_log_path(), result_path)) }}">BlindMonkey Log</a>
+                    <hr>
+                    <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_layout_path('exp', 'INITIAL'), result_path)) }}">Layout </a>
+                    <hr>
+                    <a class="btn btn-success" href="{{ url_for('report_v2', result_path=result_path, app_name=address_book.app_name(), snapshot_name=address_book.snapshot_name()) }}">(Snapshot)</a>
+                </th>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+{% endmacro %}

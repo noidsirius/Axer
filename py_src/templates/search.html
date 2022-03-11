@@ -1,6 +1,6 @@
 {% from "action_macro.html" import action_row, action_tag_script with context %}
 {% from "utils_macro.html" import compare_layout_form with context %}
-{% from "snapshot_macro.html" import snapshot_summary with context %}
+{% from "snapshot_macro.html" import snapshot_summary, snapshot_bs_summary with context %}
 {% extends "layout.html" %}
 {% block title %}
     Search
@@ -313,6 +313,9 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="snapshots-tab" data-bs-toggle="tab" data-bs-target="#snapshots-container" type="button" role="tab" aria-controls="#snapshots-container" aria-selected="false">Snapshots</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="blindsimmer-tab" data-bs-toggle="tab" data-bs-target="#blindsimmer-container" type="button" role="tab" aria-controls="#blindsimmer-container" aria-selected="false">BlindSimmer</button>
+            </li>
         </ul>
         <div class="tab-content" id="myTabContent">
             <div class="tab-pane fade show active" id="actions-container" role="tabpanel" aria-labelledby="home-tab">
@@ -342,6 +345,11 @@
             <div class="tab-pane fade" id="snapshots-container" role="tabpanel" aria-labelledby="profile-tab">
                 {% for search_snapshot_result in results %}
                     {{ snapshot_summary(search_snapshot_result.address_book, '') }}
+                {% endfor %}
+            </div>
+            <div class="tab-pane fade" id="blindsimmer-container" role="tabpanel" aria-labelledby="profile-tab">
+                {% for search_snapshot_result in results %}
+                    {{ snapshot_bs_summary(search_snapshot_result.address_book) }}
                 {% endfor %}
             </div>
         </div>
