@@ -16,7 +16,7 @@ from flask import Flask, request, jsonify, send_from_directory, render_template,
 from consts import BLIND_MONKEY_EVENTS_TAG
 
 sys.path.append(str(pathlib.Path(__file__).parent.resolve()))
-from results_utils import AddressBook
+from results_utils import AddressBook, OAC
 from post_analysis import do_post_analysis, get_post_analysis, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, \
     XML_PROBLEM \
     , DIFFERENT_BEHAVIOR, UNREACHABLE, POST_ANALYSIS_PREFIX
@@ -339,7 +339,8 @@ def inject_user():
     return dict(all_result_paths=all_result_paths,
                 static_path_fixer=static_path_fixer,
                 mode_to_repr=mode_to_repr,
-                zip=zip)
+                zip=zip,
+                oac_names=[oac.name for oac in OAC])
 
 
 @flask_app.route(f'/v2/static/<path:path>')
@@ -642,3 +643,19 @@ def report_v2(result_path, app_name, snapshot_name):
                            all_steps=all_steps,
                            name=snapshot_name,
                            errors=errors)
+
+
+@flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/report_sb")
+def report_sb_v2(result_path, app_name, snapshot_name):
+    result_path_str = result_path
+    result_path = pathlib.Path(fix_path(result_path))
+    if not (result_path.is_dir() and result_path.exists()):
+        return "The result path is incorrect!"
+    snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)
+    address_book = AddressBook(snapshot_path)
+    tb_steps = []
+    return render_template('v2_sb_report.html',
+                           result_path=result_path_str,
+                           app_name=app_name,
+                           address_book=address_book,
+                           name=snapshot_name)

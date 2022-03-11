@@ -436,7 +436,7 @@ def get_nodes(dom: str, filter_query: Callable[[Node], bool] = None) -> List[Nod
 
 def get_actions_from_layout(layout: str) -> List[Node]:
     important_nodes = get_nodes(layout,
-                                filter_query=lambda node: node.clickable or node.naf)
+                                filter_query=lambda node: node.visible and (node.clickable or node.naf))
     visited_resource_ids = set()
     refined_list = []
     for node in important_nodes:

@@ -37,6 +37,7 @@ class AddressBook:
         self.mode_path_map = {}
         for mode in navigate_modes:
             self.mode_path_map[mode] = self.snapshot_result_path.joinpath(mode.upper())
+        self.sb_path = self.snapshot_result_path.joinpath("SB")
         self.atf_issues_path = self.mode_path_map['exp'].joinpath("atf_issues.jsonl")
         self.action_path = self.snapshot_result_path.joinpath("action.jsonl")
         self.all_element_screenshot = self.mode_path_map['exp'].joinpath("all_elements.png")
@@ -58,6 +59,7 @@ class AddressBook:
         if self.snapshot_result_path.exists():
             shutil.rmtree(self.snapshot_result_path.absolute())
         self.snapshot_result_path.mkdir()
+        self.sb_path.mkdir()
         for path in self.mode_path_map.values():
             path.mkdir()
         self.action_path.touch()
@@ -69,6 +71,11 @@ class AddressBook:
 
     def get_bm_log_path(self) -> Path:
         return self.snapshot_result_path.parent.joinpath(self.snapshot_result_path.name + ".log")
+
+    def get_sb_result_path(self, oac: Union[OAC, str], extension: str) -> Path:
+        if isinstance(oac, OAC):
+            oac = oac.name
+        return self.sb_path.joinpath(f"{oac}.{extension}")
 
     def app_name(self) -> str:
         return self.snapshot_result_path.parent.name
@@ -251,10 +258,10 @@ def read_all_visited_elements_in_app(app_path: Union[str, Path]) -> Dict[str, No
                 if element['state'] != 'selected' or element['node'] is None:
                     continue
                 visited_elements.setdefault(element['element']['xpath'], [])
-                visited_elements[element['element']['xpath']].append(element['node'])
+                visited_elements[element['element']['xpath']].append(Node.createNodeFromDict(element['node']))
         with open(address_book.s_action_path) as f:
             for line in f.readlines():
                 action = json.loads(line)
                 visited_elements.setdefault(action['element']['xpath'], [])
-                visited_elements[action['element']['xpath']].append(action['node'])
+                visited_elements[action['element']['xpath']].append(Node.createNodeFromDict(action['node']))
     return visited_elements

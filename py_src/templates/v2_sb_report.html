@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{% block title %}
+    SeeBeyond Result of {{ name }} from app {{ app_name }}
+{% endblock %}
+{% block content %}
+    {% if errors %}
+
+        {% for error_message in errors %}
+            <div class="row">
+                <div class="col-1"></div>
+                <div class="col-10">
+                    <div class="alert alert-danger" role="alert">
+                        {{ error_message }}
+                    </div>
+                </div>
+                <div class="col-1"></div>
+            </div>
+        {% endfor %}
+
+    {% endif %}
+    <div class="row">
+        {% for oac_name in oac_names %}
+            <div class="col-3">
+                <div class="card">
+                    <div class="card-header">
+                        {{ oac_name }}
+                    </div>
+                    <div class="card-body">
+                        <a href="#" class="enlarge">
+                            <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_sb_result_path(oac_name, extension='png'), result_path)) }}" class="rounded d-block mx-auto"
+                                 style="width: 10rem;">
+                        </a>
+{#                        <hr>#}
+
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_sb_result_path(oac_name, extension='jsonl'), result_path)) }}">Details</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+
+{% endblock %}

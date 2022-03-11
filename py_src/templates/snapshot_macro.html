@@ -92,6 +92,7 @@
                     <hr>
                     <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_layout_path('exp', 'INITIAL'), result_path)) }}">Layout </a>
                     <hr>
+                    <a class="btn btn-success" href="{{ url_for('report_sb_v2', result_path=result_path, app_name=address_book.app_name(), snapshot_name=address_book.snapshot_name()) }}">(SB)</a>
 {#                    <div class="form-check form-switch">#}
 {#                        <input class="form-check-input" type="checkbox" id="tb_steps_switch" checked>#}
 {#                        <label class="form-check-label" for="flexSwitchCheckDefault">Hide passed actions</label>#}
