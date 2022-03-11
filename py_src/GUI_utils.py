@@ -106,7 +106,7 @@ class Node:
             important_for_accessibility = important_for_accessibility == 'true'
         if isinstance(bounds, str):
             bounds = bounds.strip()
-            if not re.search(r"\[\d+,\d+]\[\d+,\d+]", bounds):
+            if not re.search(r"\[-?\d+,-?\d+]\[-?\d+,-?\d+]", bounds):
                 raise Exception(f"Problem with bounds! {bounds}")
             bounds = tuple([int(x) for x in bounds.replace("][", ",")[1:-1].split(",")])
         if isinstance(drawing_order, str):
