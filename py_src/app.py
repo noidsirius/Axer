@@ -445,10 +445,14 @@ def search_v2(result_path_str: str):
         left_screen_fields = ['None'] * 1
         op_screen_fields = ['=']
         right_screen_fields = ['None'] * 1
-    count_field = request.args.get('count', '10')
-    if not count_field.isdecimal():
-        count_field = 10
-    count_field = int(count_field)
+    action_limit_field = request.args.get('action_limit_field', '10')
+    if not action_limit_field.isdecimal():
+        action_limit_field = 10
+    action_limit_field = int(action_limit_field)
+    snapshot_limit_field = request.args.get('snapshot_limit_field', '1000')
+    if not snapshot_limit_field.isdecimal():
+        snapshot_limit_field = 1000
+    snapshot_limit_field = int(snapshot_limit_field)
     limit_per_snapshot = 1 if one_result_per_snapshot == 'on' else 10000
     include_tags = include_tags_field.split(",")
     exclude_tags = exclude_tags_field.split(",")
@@ -489,16 +493,27 @@ def search_v2(result_path_str: str):
 
     search_results = get_search_manager(result_path).search(search_query=search_query,
                                                             # limit=count_field,
-                                                            limit_per_snapshot= limit_per_snapshot)
-    result_count = len(search_results)
-    action_results = []
-    for search_result in search_results[:count_field]:
-        action_result = create_step(search_result.address_book,
-                                    result_path.parent,
-                                    search_result.action,
-                                    search_result.post_analysis,
-                                    is_sighted=search_result.is_sighted)
-        action_results.append(action_result)
+                                                            action_per_snapshot_limit= limit_per_snapshot)
+    result_count = sum(len(x.action_results) for x in search_results)
+    action_result_count = 0
+    results = []
+    for address_book, search_action_results in search_results:
+        if action_result_count >= action_limit_field:
+            break
+        if len(results) >= snapshot_limit_field:
+            break
+        snapshot_result = {'address_book': address_book, 'action_results': []}
+        for search_action_result in search_action_results:
+            action_result = create_step(address_book,
+                                        result_path.parent,
+                                        search_action_result.action,
+                                        search_action_result.post_analysis,
+                                        is_sighted=search_action_result.action['is_sighted'])
+            snapshot_result['action_results'].append(action_result)
+            action_result_count += 1
+            if action_result_count >= action_limit_field:
+                break
+        results.append(snapshot_result)
 
     app_names = ['All']
     for app_path in result_path.iterdir():
@@ -508,6 +523,7 @@ def search_v2(result_path_str: str):
 
     return render_template('search.html',
                            result_path=result_path_str,
+                           results=results,
                            result_count=result_count,
                            action_attrs=zip(action_attr_names, action_attr_fields),
                            action_xml_attrs=zip(action_xml_attr_names, action_xml_attr_fields),
@@ -517,7 +533,8 @@ def search_v2(result_path_str: str):
                            areg_result_field=areg_result_field,
                            post_analysis_result=post_analysis_result,
                            one_result_per_snapshot=one_result_per_snapshot,
-                           count_field=count_field,
+                           action_limit_field=action_limit_field,
+                           snapshot_limit_field=snapshot_limit_field,
                            include_tags_field=include_tags_field,
                            exclude_tags_field=exclude_tags_field,
                            xml_fields=zip(left_xml_fields, cycle(op_xml_fields), right_xml_fields),
@@ -525,7 +542,6 @@ def search_v2(result_path_str: str):
                            xml_search_fields=xml_search_fields,
                            xml_search_mode=xml_search_mode,
                            xml_search_attrs=xml_search_attrs,
-                           action_results=action_results,
                            app_name_field=app_name_field,
                            app_names=app_names)
 

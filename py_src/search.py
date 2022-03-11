@@ -10,7 +10,9 @@ from post_analysis import get_post_analysis, SUCCESS, A11Y_WARNING, OTHER, INEFF
     CRASHED, API_SMELL, EXTERNAL_SERVICE, LOADING, TB_WEBVIEW_LOADING, API_A11Y_ISSUE, TB_A11Y_ISSUE
 from utils import convert_bounds
 
-SearchResult = namedtuple('SearchResult', ['action', 'post_analysis', 'address_book', 'is_sighted'])
+
+SearchActionResult = namedtuple('SearchActionResult', ['action', 'post_analysis'])
+SearchSnapshotResult = namedtuple('SearchSnapshotResult', ['address_book', 'action_results'])
 
 
 class SearchQuery:
@@ -280,28 +282,33 @@ class SearchManager:
 
     def search(self,
                search_query: SearchQuery,
-               limit: int = 10000,
-               limit_per_snapshot: int = 1000,
-               ) -> List[SearchResult]:
-        search_results = []
+               snapshot_limit: int = 10000,
+               action_limit: int = 10000,
+               action_per_snapshot_limit: int = 1000,
+               ) -> List[SearchSnapshotResult]:
+        search_snapshot_result = []
+        action_count = 0
         for app_path in self.result_path.iterdir():
-            if len(search_results) >= limit:
+            if action_count >= action_limit:
                 break
             if not app_path.is_dir():
                 continue
             if not search_query.is_valid_app(app_path.name):
                 continue
+            search_action_result_list = []
             for snapshot_path in app_path.iterdir():
-                if len(search_results) >= limit:
+                if len(search_snapshot_result) >= snapshot_limit:
+                    break
+                if action_count >= action_limit:
                     break
                 if not snapshot_path.is_dir():
                     continue
-                snapshot_result_count = 0
+                action_in_snapshot_count = 0
                 address_book = AddressBook(snapshot_path)
                 post_analysis_results = get_post_analysis(snapshot_path=snapshot_path)
                 action_paths = [address_book.action_path, address_book.s_action_path]
                 for action_path in action_paths:
-                    if len(search_results) >= limit or snapshot_result_count >= limit_per_snapshot:
+                    if action_count >= action_limit or action_in_snapshot_count >= action_per_snapshot_limit:
                         break
                     is_sighted = "s_action" in action_path.name
                     if not action_path.exists():
@@ -312,15 +319,15 @@ class SearchManager:
                             action_post_analysis = post_analysis_results['sighted' if is_sighted else 'unsighted'].get(action['index'], {})
                             if not search_query.satisfies(action, action_post_analysis, address_book, is_sighted):
                                 continue
-                            search_result = SearchResult(action=action,
-                                                         post_analysis=action_post_analysis,
-                                                         address_book=address_book,
-                                                         is_sighted=is_sighted)
-                            search_results.append(search_result)
-                            snapshot_result_count += 1
-                            if len(search_results) >= limit or snapshot_result_count >= limit_per_snapshot:
+                            search_action_result = SearchActionResult(action=action,
+                                                               post_analysis=action_post_analysis)
+                            search_action_result_list.append(search_action_result)
+                            action_in_snapshot_count += 1
+                            action_count += 1
+                            if action_count >= action_limit or action_in_snapshot_count >= action_per_snapshot_limit:
                                 break
-        return search_results
+                search_snapshot_result.append(SearchSnapshotResult(address_book, search_action_result_list))
+        return search_snapshot_result
 
 
 @lru_cache(maxsize=None)

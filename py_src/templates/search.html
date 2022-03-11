@@ -1,5 +1,6 @@
 {% from "action_macro.html" import action_row, action_tag_script with context %}
 {% from "utils_macro.html" import compare_layout_form with context %}
+{% from "snapshot_macro.html" import snapshot_summary with context %}
 {% extends "layout.html" %}
 {% block title %}
     Search
@@ -165,23 +166,6 @@
                                 </div>
                             </div>
 
-{#                                <label for="xmlSearchField" class="form-label">Search in XML</label>#}
-{#                                <div class="col-3">#}
-{#                                    <select class="form-select" name="xmlSearchMode" aria-label="XML Search Mode">#}
-{#                                        {% for item in [('ALL', 'All'),#}
-{#                                            ('exp','Initial'),#}
-{#                                            ('tb','TalkBack'),#}
-{#                                            ('reg','Touch'),#}
-{#                                            ('areg','A11yTouch')] %}#}
-{#                                            <option value="{{ item[0] }}" class="text-start"#}
-{#                                                    {% if xml_search_mode == item[0] %}#}
-{#                                                    selected#}
-{#                                                    {% endif %}>#}
-{#                                                {{item[1]}}#}
-{#                                            </option>#}
-{#                                        {% endfor %}#}
-{#                                    </select>#}
-{#                                </div>#}
                                 {% for (attr, field) in zip(xml_search_attrs, xml_search_fields) %}
                                     <div class="row mb-3">
                                         <div class="col-6">
@@ -266,11 +250,24 @@
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
-                                    <label for="countSearchField" class="form-label">Number of Results</label>
-                                    <select class="form-select" name="count" id="countSearchField" aria-label="Number of Results">
+                                    <label for="countSearchActionField" class="form-label">Number of Action Results</label>
+                                    <select class="form-select" name="action_limit_field" id="countSearchActionField" aria-label="Number of Action Results">
                                         {% for i in [10, 50, 100] %}
                                             <option value="{{ i }}"
-                                                    {% if count_field==i %}
+                                                    {% if action_limit_field==i %}
+                                                    selected
+                                                    {% endif %}>
+                                                {{i}}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="countSearchSnapshotField" class="form-label">Number of Snapshots Results</label>
+                                    <select class="form-select" name="snapshot_limit_field" id="countSearchSnapshotField" aria-label="Number of Snapshot Results">
+                                        {% for i in [1, 5, 10, 20, 50, 100, 500, 1000, 2000] %}
+                                            <option value="{{ i }}"
+                                                    {% if snapshot_limit_field==i %}
                                                     selected
                                                     {% endif %}>
                                                 {{i}}
@@ -309,25 +306,47 @@
     </div>
     <hr>
     <div class="row">
-        <table class="table table-bordered">
-            <thead>
-            <tr>
-                <th scope="col">#</th>
-                <th scope="col">Action</th>
-                <th scope="col">{{ mode_to_repr['exp'] }}</th>
-                <th scope="col">{{ mode_to_repr['tb'] }}</th>
-                <th scope="col">{{ mode_to_repr['reg'] }}</th>
-                <th scope="col">{{ mode_to_repr['areg'] }}</th>
-                <th scope="col">Result</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for step in action_results %}
-                {{ action_row(step, true) }}
-            {% endfor %}
-            </tbody>
-        </table>
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="actions-tab" data-bs-toggle="tab" data-bs-target="#actions-container" type="button" role="tab" aria-controls="#actions-container" aria-selected="true">Actions</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="snapshots-tab" data-bs-toggle="tab" data-bs-target="#snapshots-container" type="button" role="tab" aria-controls="#snapshots-container" aria-selected="false">Snapshots</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="myTabContent">
+            <div class="tab-pane fade show active" id="actions-container" role="tabpanel" aria-labelledby="home-tab">
+                <div class="row">
+                    <table class="table table-bordered">
+                        <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Action</th>
+                            <th scope="col">{{ mode_to_repr['exp'] }}</th>
+                            <th scope="col">{{ mode_to_repr['tb'] }}</th>
+                            <th scope="col">{{ mode_to_repr['reg'] }}</th>
+                            <th scope="col">{{ mode_to_repr['areg'] }}</th>
+                            <th scope="col">Result</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for search_snapshot_result in results %}
+                            {% for step in search_snapshot_result.action_results %}
+                                {{ action_row(step, true) }}
+                            {% endfor %}
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="snapshots-container" role="tabpanel" aria-labelledby="profile-tab">
+                {% for search_snapshot_result in results %}
+                    {{ snapshot_summary(search_snapshot_result.address_book, '') }}
+                {% endfor %}
+            </div>
+        </div>
     </div>
+    <hr>
 {% endblock %}
 {% block script_content %}
     <script>
