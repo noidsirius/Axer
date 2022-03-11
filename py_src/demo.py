@@ -66,7 +66,8 @@ async def execute_latte_command(device, command: str, extra: str):
             logger.error("Logs: " + log_map)
             return
         ci_elements = get_elements(layout,
-                                          filter_query=lambda x: x.attrib.get('clickable', 'false') == 'true'
+                                          filter_query=lambda x: (x.attrib.get('clickable', 'false') == 'true'
+                                                                 or '16' in x.attrib.get('actionList', '').split('-'))
                                                                  and x.attrib.get('visible', 'true') == 'false')
         logger.info(f"#CI Elements: {len(ci_elements)}")
         for index, element in enumerate(ci_elements):
@@ -78,7 +79,8 @@ async def execute_latte_command(device, command: str, extra: str):
             logger.error("Logs: " + log_map)
             return
         ci_elements = get_elements(layout,
-                                   filter_query=lambda x: x.attrib.get('clickable', 'false') == 'true'
+                                   filter_query=lambda x: (x.attrib.get('clickable', 'false') == 'true'
+                                                          or '16' in x.attrib.get('actionList', '').split('-'))
                                                           and x.attrib.get('visible', 'true') == 'false')
         index = int(extra)
         logger.info(f"Target CI Elements #{index}: {ci_elements[index]}")

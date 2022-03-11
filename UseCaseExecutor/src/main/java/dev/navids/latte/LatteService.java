@@ -112,8 +112,9 @@ public class LatteService extends AccessibilityService {
                     break;
                 }
             AccessibilityWindowInfo activeWindow = null;
-            if(getRootInActiveWindow() != null)
-                activeWindow = getRootInActiveWindow().getWindow();
+            AccessibilityNodeInfo rootInActiveWindow = getRootInActiveWindow();
+            if(rootInActiveWindow != null)
+                activeWindow = rootInActiveWindow.getWindow();
             JSONObject jsonWindowContentChange = null;
             int activeWindowId = activeWindow != null ? activeWindow.getId() : -1;
             String activeWindowTitle = activeWindow != null && activeWindow.getTitle() != null ? activeWindow.getTitle().toString() : "null";
