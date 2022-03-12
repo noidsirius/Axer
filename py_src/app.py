@@ -400,7 +400,10 @@ def report_app_v2(result_path: str, app_name: str):
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is incorrect!"
     app_result_dir = result_path.joinpath(app_name)
-    app = create_app_info(app_result_dir)
+    app = {'name': app_result_dir.name,
+           'address_books': [AddressBook(snapshot_path)
+                             for snapshot_path in app_result_dir.iterdir()
+                             if snapshot_path.is_dir()]}
     return render_template('v2_app.html', app=app, result_path=result_path_str)
 
 
@@ -494,7 +497,8 @@ def search_v2(result_path_str: str):
     search_results = get_search_manager(result_path).search(search_query=search_query,
                                                             # limit=count_field,
                                                             action_per_snapshot_limit= limit_per_snapshot)
-    result_count = sum(len(x.action_results) for x in search_results)
+    all_action_result_count = sum(len(x.action_results) for x in search_results)
+    all_snapshots_result_count = len(search_results)
     action_result_count = 0
     results = []
     for address_book, search_action_results in search_results:
@@ -524,7 +528,8 @@ def search_v2(result_path_str: str):
     return render_template('search.html',
                            result_path=result_path_str,
                            results=results,
-                           result_count=result_count,
+                           all_action_result_count=all_action_result_count,
+                           all_snapshots_result_count=all_snapshots_result_count,
                            action_attrs=zip(action_attr_names, action_attr_fields),
                            action_xml_attrs=zip(action_xml_attr_names, action_xml_attr_fields),
                            tb_type=tb_type,

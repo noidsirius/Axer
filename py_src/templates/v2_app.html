@@ -1,65 +1,14 @@
-{% from "app_macro.html" import app_snapshots, app_post_analysis_script with context %}
+{% from "snapshot_macro.html" import snapshot_summary, snapshot_bs_summary with context %}
 {% extends "layout.html" %}
-{% block head_content %}
-    <style>
-        .table tr.app-row {
-            cursor: pointer;
-        }
-    </style>
-{% endblock %}
 {% block title %}
     App {{ app.name }}
 {% endblock %}
 {% block content %}
-    <div class="row">
-        <table class="table  table-bordered" style="border-collapse:collapse;">
-            <thead>
-            <tr class="table-primary">
-                <th>Name</th>
-                <th>#Snapshots</th>
-                <th>#Actions</th>
-                <th>#DifferentBehavior</th>
-                <th>#Unreachable</th>
-                <th>#Other</th>
-                <th>Last update</th>
-                <th>...</th>
-            </tr>
-            </thead>
-            <tbody>
-                <tr class="app-row table-active" >
-                    <td class="table-secondary">
-                        {{ app.name }}
-                    </td>
-                    <td>{{ app.snapshots|length }}</td>
-                    <td>{{ app.actions }}</td>
-                    <td>{{ app.different_behavior }}</td>
-                    <td>{{ app.unreachable }}</td>
-                    <td>{{ app.other }}</td>
-                    <td>{{ app.last_update }}</td>
-                    <td>
-                        {% if app.has_unprocessed %}
-                            <a href="#" class="post_analysis btn btn-secondary">
-                                Post Process
-                                <input type="hidden" class="result_path" value="{{ result_path }}">
-                                <input type="hidden" class="app_name" value="{{ app.name }}">
-                            </a>
-                        {% endif %}
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="8">
-                        <div>
-                            <div class="row">
-                                {{ app_snapshots(result_path, app) }}
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-{% endblock %}
 
-{% block script_content %}
-    {{ app_post_analysis_script() }}
+    {% for address_book in app.address_books %}
+        <h3>{{ loop.index}}: {{ address_book.snapshot_name() }}</h3>
+        {{ snapshot_summary(address_book, '') }}
+        {{ snapshot_bs_summary(address_book) }}
+        <hr><hr>
+    {% endfor %}
 {% endblock %}

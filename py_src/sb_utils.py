@@ -1,12 +1,16 @@
+import argparse
 import json
+import logging
 from collections import defaultdict
 from itertools import cycle
 from pathlib import Path
 from typing import Union
 
 from GUI_utils import NodesFactory
-from results_utils import OAC, AddressBook
+from results_utils import OAC, AddressBook, get_snapshot_paths
 from utils import annotate_elements
+
+logger = logging.getLogger(__name__)
 
 
 def statice_analyze(layout_path: Union[str, Path],
@@ -69,3 +73,36 @@ def statice_analyze(layout_path: Union[str, Path],
             f.write(f"{json.dumps(entry)}\n")
 
     return oac_count
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--snapshot-path', type=str, help="Path of the snapshot's result")
+    parser.add_argument('--app-path', type=str, help="Path of the app's result")
+    parser.add_argument('--result-path', type=str, help="Path of the result's path")
+    parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--force', action='store_true')
+    parser.add_argument('--override', action='store_true')
+    parser.add_argument('--remove', action='store_true')
+    parser.add_argument('--log-path', type=str, help="Path where logs are written")
+    args = parser.parse_args()
+
+    if args.debug:
+        level = logging.DEBUG
+    else:
+        level = logging.INFO
+
+    if args.log_path:
+        logging.basicConfig(level=level,
+                            handlers=[
+                                logging.FileHandler(args.log_path, mode='w'),
+                                logging.StreamHandler()])
+    else:
+        logging.basicConfig(level=level)
+
+    for snapshot_path in get_snapshot_paths(args.result_path, args.app_path, args.snapshot_path):
+        address_book = AddressBook(snapshot_path)
+        layout_path = address_book.get_layout_path('exp', 'INITIAL', should_exists=True)
+        screenshot_path = address_book.get_screenshot_path('exp', 'INITIAL', should_exists=True)
+        if layout_path and screenshot_path:
+            statice_analyze(layout_path, screenshot_path, address_book)

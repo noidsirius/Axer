@@ -7,7 +7,7 @@ from pathlib import Path
 import json
 import argparse
 import logging
-from results_utils import AddressBook
+from results_utils import AddressBook, get_snapshot_paths
 from latte_executor_utils import ExecutionResult
 
 logger = logging.getLogger(__name__)
@@ -515,47 +515,7 @@ def do_post_analysis(name: str = None,
     post_analyzer = post_analyzers[name]
     logger.info(f"Post Analyzer: {name}")
 
-    available_paths = 0
-    if snapshot_path:
-        available_paths += 1
-    if app_path:
-        available_paths += 1
-    if result_path:
-        available_paths += 1
-
-    if available_paths != 1:
-        logger.error(f"Error. You must provide exactly one path to process!")
-        return 0
-
-    snapshot_paths = []
-
-    if result_path:
-        result_path = Path(result_path) if isinstance(result_path, str) else result_path
-        if not result_path.is_dir():
-            logger.error(f"The result path doesn't exist! {result_path}")
-            return 0
-        for app_path in result_path.iterdir():
-            if not app_path.is_dir():
-                continue
-            for snapshot_path in app_path.iterdir():
-                if not snapshot_path.is_dir():
-                    continue
-                snapshot_paths.append(snapshot_path)
-    elif app_path:
-        app_path = Path(app_path) if isinstance(app_path, str) else app_path
-        if not app_path.is_dir():
-            logger.error(f"The app path doesn't exist! {app_path}")
-            return 0
-        for snapshot_path in app_path.iterdir():
-            if not snapshot_path.is_dir():
-                continue
-            snapshot_paths.append(snapshot_path)
-    elif snapshot_path:
-        snapshot_path = Path(snapshot_path) if isinstance(snapshot_path, str) else snapshot_path
-        if not snapshot_path.is_dir():
-            logger.error(f"The snapshot doesn't exist! {snapshot_path}")
-            return 0
-        snapshot_paths.append(snapshot_path)
+    snapshot_paths = get_snapshot_paths(result_path, app_path, snapshot_path)
 
     output_name = f"{POST_ANALYSIS_PREFIX}_{name}.jsonl"
     analyzed = 0

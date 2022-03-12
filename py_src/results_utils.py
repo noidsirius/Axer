@@ -4,7 +4,7 @@ import json
 import shutil
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Union, Dict
+from typing import Optional, Union, Dict, List
 
 from GUI_utils import Node
 from adb_utils import get_current_activity_name
@@ -244,6 +244,54 @@ class ResultWriter:
     def write_last_navigate_log(self, log_message: str):
         with open(self.address_book.last_explore_log_path, mode='w') as f:
             f.write(log_message)
+
+
+def get_snapshot_paths(result_path: Union[str, Path] = None,
+                       app_path: Union[str, Path] = None,
+                       snapshot_path: Union[str, Path] = None) -> List[Path]:
+    available_paths = 0
+    if snapshot_path:
+        available_paths += 1
+    if app_path:
+        available_paths += 1
+    if result_path:
+        available_paths += 1
+
+    if available_paths != 1:
+        logger.error(f"Error. You must provide exactly one path to process!")
+        return []
+
+    snapshot_paths = []
+
+    if result_path:
+        result_path = Path(result_path) if isinstance(result_path, str) else result_path
+        if not result_path.is_dir():
+            logger.error(f"The result path doesn't exist! {result_path}")
+            return []
+        for app_path in result_path.iterdir():
+            if not app_path.is_dir():
+                continue
+            for snapshot_path in app_path.iterdir():
+                if not snapshot_path.is_dir():
+                    continue
+                snapshot_paths.append(snapshot_path)
+    elif app_path:
+        app_path = Path(app_path) if isinstance(app_path, str) else app_path
+        if not app_path.is_dir():
+            logger.error(f"The app path doesn't exist! {app_path}")
+            return []
+        for snapshot_path in app_path.iterdir():
+            if not snapshot_path.is_dir():
+                continue
+            snapshot_paths.append(snapshot_path)
+    elif snapshot_path:
+        snapshot_path = Path(snapshot_path) if isinstance(snapshot_path, str) else snapshot_path
+        if not snapshot_path.is_dir():
+            logger.error(f"The snapshot doesn't exist! {snapshot_path}")
+            return []
+        snapshot_paths.append(snapshot_path)
+
+    return snapshot_paths
 
 
 def read_all_visited_elements_in_app(app_path: Union[str, Path]) -> Dict[str, Node]:

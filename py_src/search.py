@@ -34,6 +34,7 @@ class SearchQuery:
         for i_filter in self.filters:
             if not i_filter(action, action_post_analysis, address_book, is_sighted):
                 return False
+        logging.getLogger("F").error(f"!!!!!!!!!!!! -> {address_book.snapshot_result_path}")
         return True
 
     def contains_action_attr(self, attr_name: str, value: str):
@@ -295,7 +296,6 @@ class SearchManager:
                 continue
             if not search_query.is_valid_app(app_path.name):
                 continue
-            search_action_result_list = []
             for snapshot_path in app_path.iterdir():
                 if len(search_snapshot_result) >= snapshot_limit:
                     break
@@ -303,6 +303,7 @@ class SearchManager:
                     break
                 if not snapshot_path.is_dir():
                     continue
+                search_action_result_list = []
                 action_in_snapshot_count = 0
                 address_book = AddressBook(snapshot_path)
                 post_analysis_results = get_post_analysis(snapshot_path=snapshot_path)

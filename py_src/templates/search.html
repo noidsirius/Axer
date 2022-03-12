@@ -175,6 +175,7 @@
                                                     ('content-desc','ContentDescription'),
                                                     ('class','ClassName'),
                                                     ('clickable','Clickable'),
+                                                    ('checkable','Checkable'),
                                                     ('visible','Visible'),
                                                     ('enabled','Enabled'),
                                                     ('clickableSpan','ClickableSpan'),
@@ -301,53 +302,59 @@
     </div>
     <div class="row" style="height:25px;"></div>
     <hr>
-    <div class="row" style="height:25px;">
-        Number of results: {{ result_count }}
+    <div class="row" style="height:40px;">
+        <h6>
+            Number of action results: {{ all_action_result_count }}
+        </h6>
+        <h6>
+            Number of snapshot results: {{ all_snapshots_result_count }}
+        </h6>
+
     </div>
     <hr>
     <div class="row">
         <ul class="nav nav-tabs" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="actions-tab" data-bs-toggle="tab" data-bs-target="#actions-container" type="button" role="tab" aria-controls="#actions-container" aria-selected="true">Actions</button>
+                <button class="nav-link" id="actions-tab" data-bs-toggle="tab" data-bs-target="#actions-container" type="button" role="tab" aria-controls="#actions-container" aria-selected="false">Actions</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="snapshots-tab" data-bs-toggle="tab" data-bs-target="#snapshots-container" type="button" role="tab" aria-controls="#snapshots-container" aria-selected="false">Snapshots</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="blindsimmer-tab" data-bs-toggle="tab" data-bs-target="#blindsimmer-container" type="button" role="tab" aria-controls="#blindsimmer-container" aria-selected="false">BlindSimmer</button>
+                <button class="nav-link active" id="blindsimmer-tab" data-bs-toggle="tab" data-bs-target="#blindsimmer-container" type="button" role="tab" aria-controls="#blindsimmer-container" aria-selected="true">BlindSimmer</button>
             </li>
         </ul>
         <div class="tab-content" id="myTabContent">
-            <div class="tab-pane fade show active" id="actions-container" role="tabpanel" aria-labelledby="home-tab">
-                <div class="row">
-                    <table class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">Action</th>
-                            <th scope="col">{{ mode_to_repr['exp'] }}</th>
-                            <th scope="col">{{ mode_to_repr['tb'] }}</th>
-                            <th scope="col">{{ mode_to_repr['reg'] }}</th>
-                            <th scope="col">{{ mode_to_repr['areg'] }}</th>
-                            <th scope="col">Result</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for search_snapshot_result in results %}
-                            {% for step in search_snapshot_result.action_results %}
-                                {{ action_row(step, true) }}
-                            {% endfor %}
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+            <div class="tab-pane fade" id="actions-container" role="tabpanel" aria-labelledby="home-tab">
+{#                <div class="row">#}
+{#                    <table class="table table-bordered">#}
+{#                        <thead>#}
+{#                        <tr>#}
+{#                            <th scope="col">#</th>#}
+{#                            <th scope="col">Action</th>#}
+{#                            <th scope="col">{{ mode_to_repr['exp'] }}</th>#}
+{#                            <th scope="col">{{ mode_to_repr['tb'] }}</th>#}
+{#                            <th scope="col">{{ mode_to_repr['reg'] }}</th>#}
+{#                            <th scope="col">{{ mode_to_repr['areg'] }}</th>#}
+{#                            <th scope="col">Result</th>#}
+{#                        </tr>#}
+{#                        </thead>#}
+{#                        <tbody>#}
+{#                        {% for search_snapshot_result in results %}#}
+{#                            {% for step in search_snapshot_result.action_results %}#}
+{#                                {{ action_row(step, true) }}#}
+{#                            {% endfor %}#}
+{#                        {% endfor %}#}
+{#                        </tbody>#}
+{#                    </table>#}
+{#                </div>#}
             </div>
             <div class="tab-pane fade" id="snapshots-container" role="tabpanel" aria-labelledby="profile-tab">
-                {% for search_snapshot_result in results %}
-                    {{ snapshot_summary(search_snapshot_result.address_book, '') }}
-                {% endfor %}
+{#                {% for search_snapshot_result in results %}#}
+{#                    {{ snapshot_summary(search_snapshot_result.address_book, '') }}#}
+{#                {% endfor %}#}
             </div>
-            <div class="tab-pane fade" id="blindsimmer-container" role="tabpanel" aria-labelledby="profile-tab">
+            <div class="tab-pane fade  show active" id="blindsimmer-container" role="tabpanel" aria-labelledby="profile-tab">
                 {% for search_snapshot_result in results %}
                     {{ snapshot_bs_summary(search_snapshot_result.address_book) }}
                 {% endfor %}
