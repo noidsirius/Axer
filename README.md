@@ -1,6 +1,14 @@
 # BlindMonkey
 ## Setup
+- For OS X
+  - Install coreutils "brew install coreutils"
+  - Use Java8, if there are multiple Java versions use [jenv](https://www.jenv.be/)
+  - Set `ANDROID_HOME` environment varilable (usually `export ANDROID_HOME=~/Library/Android/sdk`)
+  - Add platform tools to `PATH` (if it's not already added). `export PATH="$ANDROID_HOME/platform-tools:${PATH}"`
+- For other UNIX system: it's not tested
+
 - Optional: create a virtual environment in `.env`
+
 - run `source env`
 - Install python packages `pip install -r requirements.txt`
 - Initialize an Android Virtual Device (AVD) with SDK +28 and name it `testAVD_1`
