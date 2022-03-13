@@ -120,20 +120,21 @@
                 {% for oac_name in oac_names %}
                     <th scope="col">{{ oac_name }}</th>
                 {% endfor %}
+                <th scope="col">All </th>
                 <th scope="col">...</th>
             </tr>
             </thead>
             <tbody>
             <tr>
-                {% for oac_name in oac_names %}
+                {% for oac_name in oac_names + ['oacs'] %}
                     <td>
                         <a href="#" class="enlarge">
-                            <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_sb_result_path(oac_name, extension='png'), result_path)) }}" class="rounded d-block mx-auto"
+                            <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_os_result_path(oac_name, extension='png'), result_path)) }}" class="rounded d-block mx-auto"
                                  style="width: 10rem;">
                         </a>
                         <hr>
-                        Count: {{ address_book.get_issue_count(oac_name) }}
-                        <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_sb_result_path(oac_name, extension='jsonl'), result_path)) }}">
+                        Count: {{ address_book.get_oacs(oac_name) | length }}
+                        <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_os_result_path(oac_name, extension='jsonl'), result_path)) }}">
                             Details
                         </a>
                     </td>

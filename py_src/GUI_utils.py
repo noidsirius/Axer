@@ -63,6 +63,7 @@ class Node:
                  bounds: Union[Tuple[int, int, int, int], str] = (0, 0, 0, 0),
                  drawing_order: Union[int, str] = -1,
                  a11y_actions: Union[List[int], str] = None,
+                 xpath: str = "",
                  pkg_name: str = "",
                  **kwargs):
         class_name = kwargs.get('class', class_name)
@@ -137,13 +138,13 @@ class Node:
         self.drawing_order = drawing_order
         self.a11y_actions = a11y_actions
         self.pkg_name = pkg_name
+        self.xpath = xpath
         # --- Latte ----
         # TODO: Move it to another class
         self.located_by = 'xpath'
         self.skip = False
         self.action = 'click'
         # --- Extra ----
-        self.xpath = ""
         self.xml_element = None
         self.covered = False
 
@@ -434,9 +435,19 @@ def get_nodes(dom: str, filter_query: Callable[[Node], bool] = None) -> List[Nod
     # return commands
 
 
-def get_actions_from_layout(layout: str) -> List[Node]:
-    important_nodes = get_nodes(layout,
-                                filter_query=lambda node: node.visible and (node.clickable or node.naf))
+def get_actions_from_layout(layout: str,
+                            only_visible: bool = True,
+                            use_naf: bool = True) -> List[Node]:
+    action_queries = []
+    clickable_query = lambda node: node.clickable or \
+                                   "16" in node.a11y_actions or \
+                                   (node.naf if use_naf else True)
+    action_queries.append(clickable_query)
+    if only_visible:
+        visible_query = lambda node: node.visible
+        action_queries.append(visible_query)
+
+    important_nodes = get_nodes(layout, filter_query=lambda node: all(q(node) for q in action_queries))
     visited_resource_ids = set()
     refined_list = []
     for node in important_nodes:

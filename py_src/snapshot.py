@@ -26,14 +26,18 @@ class Snapshot:
                  snapshot_name: str,
                  address_book: AddressBook,
                  visited_elements_in_app: Dict[str, Node] = None,
+                 is_oversight: bool = False,
                  instrumented_log: bool = False,
-                 action_limit: int = 1000,
+                 directional_action_limit: int = 1000,
+                 point_action_limit: int = 1000,
                  device=None):
         self.initial_snapshot = snapshot_name
         self.tmp_snapshot = self.initial_snapshot + "_TMP"
-        self.action_limit = action_limit
+        self.directional_action_limit = directional_action_limit
+        self.point_action_limit = point_action_limit
         self.address_book = address_book
         self.instrumented_log = instrumented_log
+        self.is_oversight = is_oversight
         self.writer = ResultWriter(address_book)
         self.visited_elements_in_app = {} if visited_elements_in_app is None else visited_elements_in_app
         # -------------
@@ -67,8 +71,8 @@ class Snapshot:
         if not await load_snapshot(self.initial_snapshot, device_name=self.device.serial):
             logger.error("Error in loading snapshot")
             return False
-        if await is_android_activity_on_top(device_name=self.device.serial):
-            logger.error("The snapshot is broken!")
+        if not self.is_oversight and await is_android_activity_on_top(device_name=self.device.serial):
+            logger.error("The snapshot is broken! There is an Android Activity on Top")
             return False
         await A11yServiceManager.setup_latte_a11y_services(tb=True)
         logger.info("Enabled A11y Services:" + str(await A11yServiceManager.get_enabled_services()))
@@ -80,9 +84,12 @@ class Snapshot:
 
         self.init_layout = await self.writer.capture_current_state(self.device, mode="exp", index="INITIAL",
                                                                    has_layout=True)
-        statice_analyze(self.writer.address_book.get_layout_path("exp", "INITIAL"),
+        oac_nodes = statice_analyze(self.writer.address_book.get_layout_path("exp", "INITIAL"),
                         self.writer.address_book.get_screenshot_path("exp", "INITIAL"),
                         self.writer.address_book)
+        xpath_to_oac_node = {}
+        for node in oac_nodes:
+            xpath_to_oac_node[node.xpath] = node
         atf_issues = await report_atf_issues()
         logger.info(f"There are {len(atf_issues)} ATF issues in this screen!")
         with open(self.address_book.atf_issues_path, "w") as f:
@@ -108,10 +115,14 @@ class Snapshot:
                 logger.debug(f"Exclude the visited element in the app {node}")
                 already_visited_elements.append(node)
                 continue
+            if node.xpath:
+                if self.is_oversight:
+                    if node.xpath not in xpath_to_oac_node:
+                        continue
+                self.valid_xpaths[node.xpath] = node
             if node.resource_id:
                 self.valid_resource_ids.add(node.resource_id)
-            if node.xpath:
-                self.valid_xpaths[node.xpath] = node
+
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.redundant_action_screenshot,
                           already_visited_elements)
@@ -161,7 +172,7 @@ class Snapshot:
             if not next_command_str or next_command_str == "Error":
                 logger.error("TalkBack cannot navigate to the next element")
                 return all_log_message, None
-            if await is_android_activity_on_top():
+            if not self.is_oversight and await is_android_activity_on_top():
                 logger.info("We are not in the app under test!")
                 return f"The current activity is {await get_current_activity_name()}", None
             command_json = json.loads(next_command_str)
@@ -215,8 +226,8 @@ class Snapshot:
                                                 has_layout=True)
         next_focused_element = None
         while True:
-            if len(self.performed_actions) >= self.action_limit:
-                logger.info(f"Reached action limit: {self.action_limit}")
+            if len(self.performed_actions) >= self.directional_action_limit:
+                logger.info(f"Reached directional action limit: {self.directional_action_limit}")
                 break
             logger.info(f"Action Index: {self.writer.get_action_index()}")
             await save_snapshot(self.tmp_snapshot)
@@ -291,12 +302,25 @@ class Snapshot:
             return []
         await asyncio.sleep(2)
         dom = await capture_layout()
-        all_actions = get_actions_from_layout(dom)
+        if self.is_oversight:
+            all_actions = get_actions_from_layout(dom, only_visible=False, use_naf=False)
+        else:
+            all_actions = get_actions_from_layout(dom, only_visible=True, use_naf=True)
+        oacs = {}
+        with open(self.address_book.get_os_result_path()) as f:
+            for line in f.readlines():
+                res = json.loads(line)
+                res['node'] = Node.createNodeFromDict(res['node'])
+                oacs[res['node'].xpath] = res
         result = []
         for node in all_actions:
-            if self.has_element_in_other_snapshots(node):
-                logger.debug(f"Sighted: Exclude the visited element in the app {node}")
-                continue
+            if self.is_oversight:
+                if node.xpath not in oacs:
+                    continue
+            else:
+                if self.has_element_in_other_snapshots(node):
+                    logger.debug(f"Sighted: Exclude the visited element in the app {node}")
+                    continue
             result.append(node)
         return result
 
@@ -323,17 +347,17 @@ class Snapshot:
                           directional_unreachable_actions)
         is_in_app_activity = not await is_android_activity_on_top()
         padb_logger = ParallelADBLogger(self.device)
-        if is_in_app_activity:
+        if self.is_oversight or is_in_app_activity:
             for index, action in enumerate(directional_unreachable_actions):
-                if len(self.performed_actions) + self.writer.get_action_index() >= self.action_limit:
-                    logger.info(f"Reached action limit: {self.action_limit}")
+                if self.writer.get_action_index() >= self.point_action_limit:
+                    logger.info(f"Reached point action limit: {self.point_action_limit}")
                     break
                 logger.info(
                     f"Missing action {self.writer.get_action_index()}, count: {index} / {len(directional_unreachable_actions)}")
                 if get_element_from_xpath(initial_layout, action.xpath) is None:
                     continue
-                result_map = {}
-                modes = ['reg', 'areg', 'tb']
+                result_map = {mode: None for mode in ['reg', 'areg', 'tb']}
+                modes = ['reg', 'areg']
                 tags = [BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG]
                 if self.instrumented_log:
                     tags.append(BLIND_MONKEY_INSTRUMENTED_TAG)

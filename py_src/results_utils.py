@@ -37,7 +37,7 @@ class AddressBook:
         self.mode_path_map = {}
         for mode in navigate_modes:
             self.mode_path_map[mode] = self.snapshot_result_path.joinpath(mode.upper())
-        self.sb_path = self.snapshot_result_path.joinpath("SB")
+        self.ovsersight_path = self.snapshot_result_path.joinpath("OS")
         self.atf_issues_path = self.mode_path_map['exp'].joinpath("atf_issues.jsonl")
         self.action_path = self.snapshot_result_path.joinpath("action.jsonl")
         self.all_element_screenshot = self.mode_path_map['exp'].joinpath("all_elements.png")
@@ -59,7 +59,7 @@ class AddressBook:
         if self.snapshot_result_path.exists():
             shutil.rmtree(self.snapshot_result_path.absolute())
         self.snapshot_result_path.mkdir()
-        self.sb_path.mkdir()
+        self.ovsersight_path.mkdir()
         for path in self.mode_path_map.values():
             path.mkdir()
         self.action_path.touch()
@@ -109,17 +109,31 @@ class AddressBook:
         return path
 
     # BlindSimmer
-    def get_sb_result_path(self, oac: Union[OAC, str], extension: str) -> Path:
-        if isinstance(oac, OAC):
-                oac = oac.name
-        return self.sb_path.joinpath(f"{oac}.{extension}")
+    def get_os_result_path(self, oac: Union[OAC, str] = None, extension: str = "jsonl") -> Path:
+        if oac is None:
+            oac = "oacs"
+        elif isinstance(oac, OAC):
+            oac = oac.name
+        return self.ovsersight_path.joinpath(f"{oac}.{extension}")
 
-    def get_issue_count(self, oac: Union[OAC, str]):
-        path = self.get_sb_result_path(oac, 'jsonl')
+    def get_oacs(self, oac: Union[OAC, str]) -> List[Node]:
+        path = self.get_os_result_path(oac)
         if not path.exists():
-            return 0
+            return []
+        oacs = []
+        if oac is None:
+            oac = "oacs"
+        elif isinstance(oac, OAC):
+            oac = oac.name
         with open(path) as f:
-            return len(f.readlines())
+            for line in f.readlines():
+                res = json.loads(line)
+                if oac == "oacs":
+                    node = Node.createNodeFromDict(res['node'])
+                else:
+                    node = Node.createNodeFromDict(res)
+                oacs.append(node)
+        return oacs
 
 
 class ResultWriter:

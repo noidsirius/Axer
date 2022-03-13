@@ -12,15 +12,22 @@ from snapshot import Snapshot
 logger = logging.getLogger(__name__)
 
 
-def analyze_snapshot(device, snapshot_path: Path, action_limit: int, is_instrumented: bool):
+def analyze_snapshot(device,
+                     snapshot_path: Path,
+                     is_oversight: bool,
+                     directional_action_limit: int,
+                     point_action_limit: int,
+                     is_instrumented: bool):
 
     visited_elements_in_app = read_all_visited_elements_in_app(snapshot_path.parent)
     logger.info(f"There are {len(visited_elements_in_app)} already visited elements in this app!")
     address_book = AddressBook(snapshot_path)
     snapshot = Snapshot(snapshot_path.name, address_book,
                         visited_elements_in_app=visited_elements_in_app,
+                        is_oversight=is_oversight,
                         instrumented_log=is_instrumented,
-                        action_limit=action_limit,
+                        directional_action_limit=directional_action_limit,
+                        point_action_limit=point_action_limit,
                         device=device)
     success_explore = asyncio.run(snapshot.explore())
     if not success_explore:
@@ -35,7 +42,9 @@ if __name__ == "__main__":
     parser.add_argument('--snapshot', type=str, required=True, help='Name of the snapshot on the running AVD')
     parser.add_argument('--output-path', type=str, required=True, help='The path that outputs will be written')
     parser.add_argument('--app-name', type=str, required=True, help='Name of the app under test')
-    parser.add_argument('--action-limit', type=int, default=100, help='Max number of actions')
+    parser.add_argument('--oversight', action='store_true', help='Evaluating Oversight')
+    parser.add_argument('--dir-action-limit', type=int, default=100, help='Max number of directional reachable actions')
+    parser.add_argument('--point-action-limit', type=int, default=100, help='Max number of point actions')
     parser.add_argument('--device', type=str, default=DEVICE_NAME, help='The device name')
     parser.add_argument('--adb-host', type=str, default=ADB_HOST, help='The host address of ADB')
     parser.add_argument('--adb-port', type=int, default=ADB_PORT, help='The port number of ADB')
@@ -72,7 +81,12 @@ if __name__ == "__main__":
     try:
         client = AdbClient(host=args.adb_host, port=args.adb_port)
         device = asyncio.run(client.device(args.device))
-        analyze_snapshot(device, snapshot_result_path, args.action_limit, args.instrumented)
+        analyze_snapshot(device,
+                         snapshot_result_path,
+                         directional_action_limit=args.dir_action_limit,
+                         point_action_limit=args.point_action_limit,
+                         is_oversight=args.oversight,
+                         is_instrumented=args.instrumented)
     except Exception as e:
         logger.error("Exception happened in analyzing the snapshot", exc_info=e)
     logger.info(f"Done Analyzing Snapshot '{args.snapshot}' in app '{args.app_name}'")

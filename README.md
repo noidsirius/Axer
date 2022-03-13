@@ -4,7 +4,7 @@
   - Install coreutils "brew install coreutils"
   - Use Java8, if there are multiple Java versions use [jenv](https://www.jenv.be/)
   - Set `ANDROID_HOME` environment varilable (usually `export ANDROID_HOME=~/Library/Android/sdk`)
-  - Add platform tools to `PATH` (if it's not already added). `export PATH="$ANDROID_HOME/platform-tools:${PATH}"`
+  - Add emulator and platform tools to `PATH` (if it's not already added). `export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:${PATH}"`
 - For other UNIX system: it's not tested
 
 - Optional: create a virtual environment in `.env`

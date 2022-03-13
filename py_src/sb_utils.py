@@ -4,9 +4,9 @@ import logging
 from collections import defaultdict
 from itertools import cycle
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 
-from GUI_utils import NodesFactory
+from GUI_utils import NodesFactory, Node
 from results_utils import OAC, AddressBook, get_snapshot_paths
 from utils import annotate_elements
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def statice_analyze(layout_path: Union[str, Path],
                     screenshot_path: Union[str, Path],
-                    address_book: AddressBook) -> dict:
+                    address_book: AddressBook) -> List[Node]:
 
     if isinstance(layout_path, str):
         layout_path = Path(layout_path)
@@ -42,9 +42,8 @@ def statice_analyze(layout_path: Union[str, Path],
         OAC.INVISIBLE: lambda node: not node.visible,
         OAC.CONDITIONAL_DISABLED: lambda node: not node.enabled and
                                                (node.clickable or node.long_clickable or node.focusable),
-        OAC.INCONSISTENT_ABILITIES: lambda node: (not node.clickable and "16" in node.a11y_actions) or
-                                                 (not node.long_clickable and "32" in node.a11y_actions) or
-                                                 (not node.focusable and "64" in node.a11y_actions)
+        OAC.INCONSISTENT_ABILITIES: lambda node: (not node.clickable and "16" in node.a11y_actions)  # TODO
+                                                 # or (not node.long_clickable and "32" in node.a11y_actions)
     }
     oa_conditions[OAC.CAMOUFLAGED] = lambda node: node.text == node.content_desc == "" and \
                                                   node.class_name == "android.widget.TextView" and \
@@ -58,21 +57,25 @@ def statice_analyze(layout_path: Union[str, Path],
         oa_nodes = [node for node in nodes if node.potentially_data_or_function() and query(node)]
 
         annotate_elements(screenshot_path,
-                          address_book.get_sb_result_path(key, extension='png'),
+                          address_book.get_os_result_path(key, extension='png'),
                           oa_nodes)
         oac_count[key] = len(oa_nodes)
-        with open(address_book.get_sb_result_path(key, extension='jsonl'), "w") as f:
+        with open(address_book.get_os_result_path(key), "w") as f:
             for node in oa_nodes:
                 node_to_oac_map[node].append(key)
                 f.writelines(f"{node.toJSONStr()}\n")
 
-    result_path = address_book.sb_path.joinpath("oae.jsonl")
+    annotate_elements(screenshot_path,
+                      address_book.get_os_result_path(extension='png'),
+                      list(node_to_oac_map.keys()))
+
+    result_path = address_book.get_os_result_path()
     with open(result_path, "w") as f:
         for node, oacs in node_to_oac_map.items():
             entry = {'node': json.loads(node.toJSONStr()), 'OACs': [str(x) for x in oacs]}
             f.write(f"{json.dumps(entry)}\n")
 
-    return oac_count
+    return list(node_to_oac_map.keys())
 
 
 if __name__ == "__main__":
