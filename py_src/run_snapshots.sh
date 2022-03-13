@@ -3,7 +3,7 @@ SNAPSHOT_TIMEOUT=900
 APK_NAME=$1
 RESULT_PATH=${2:-$(realpath ../dev_results)}
 RESULT_PATH=$(realpath "$RESULT_PATH")
-DIRECTIONAL_ACTION_LIMIT="--dir-action-limit 0"
+DIRECTIONAL_ACTION_LIMIT="--dir-action-limit 5"
 POINT_ACTION_LIMIT="--point-action-limit 5"
 OVERSIGHT="--oversight"
 source ../.env/bin/activate

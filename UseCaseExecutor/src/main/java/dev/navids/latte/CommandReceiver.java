@@ -33,7 +33,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -113,7 +112,8 @@ public class CommandReceiver extends BroadcastReceiver {
             }
         });
         // ---------------------------- TalkBack Navigation -----------
-        commandEventMap.put("nav_next", (extra) -> TalkBackNavigator.v().nextFocus(null));
+        commandEventMap.put("nav_next", (extra) -> TalkBackNavigator.v().changeFocus(null, false));
+        commandEventMap.put("nav_prev", (extra) -> TalkBackNavigator.v().changeFocus(null, true));
         commandEventMap.put("nav_select", (extra) -> TalkBackNavigator.v().selectFocus(null));
         commandEventMap.put("nav_current_focus", (extra) -> TalkBackNavigator.v().currentFocus());
         commandEventMap.put("tb_a11y_tree", (extra) -> TalkBackNavigator.v().logTalkBackTreeNodeList(null));

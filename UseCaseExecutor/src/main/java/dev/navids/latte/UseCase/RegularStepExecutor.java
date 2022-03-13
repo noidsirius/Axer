@@ -111,11 +111,11 @@ public class RegularStepExecutor implements StepExecutor {
     }
 
     private boolean executeFocus(FocusStep focusStep, AccessibilityNodeInfo node){
-        AccessibilityNodeInfo currentFocusedNode = LatteService.getInstance().getFocusedNode();
+        AccessibilityNodeInfo currentFocusedNode = LatteService.getInstance().getAccessibilityFocusedNode();
         if (currentFocusedNode != null)
-            currentFocusedNode.performAction(AccessibilityNodeInfo.ACTION_CLEAR_FOCUS);
+            currentFocusedNode.performAction(AccessibilityNodeInfo.ACTION_CLEAR_ACCESSIBILITY_FOCUS);
         ActualWidgetInfo focusableWidget = ActualWidgetInfo.createFromA11yNode(node);
-        boolean result = node.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+        boolean result = node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS);
         Log.i(LatteService.TAG, "Focusing on widget: " + focusableWidget.completeToString(true));
         focusStep.setState(result ? StepState.COMPLETED : StepState.FAILED);
         return result;

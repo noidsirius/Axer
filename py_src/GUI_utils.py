@@ -337,34 +337,11 @@ def get_xpath_from_xml_element(xml_element):
     return path
 
 
-def get_element_from_xpath(tree: Union[str, etree.Element], xpath: str):
-    if tree is None:
+def get_element_from_xpath(layout: str, xpath: str) -> Union[etree.ElementTree, None]:
+    possible_nodes = get_nodes(layout, filter_query= lambda node: node.xpath == xpath)
+    if len(possible_nodes) != 1:
         return None
-    if isinstance(tree, str):
-        # tree is a layout string
-        dom_utf8 = tree.encode('utf-8')
-        parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
-        tree = etree.fromstring(dom_utf8, parser)
-
-    if tree.tag != 'hierarchy':
-        return None
-    class_names = xpath.split("/")
-    for class_name_item in class_names[1:]:
-        index = 1
-        class_name = class_name_item.split('[')[0]
-        if class_name_item.endswith(']'):
-            index = int(class_name_item.split('[')[1].split(']')[0])
-        count = 0
-        for child in tree.getchildren():
-            child_attribs = dict(child.attrib.items())
-            if class_name == child_attribs.get('class', "NONE"):
-                count += 1
-            if count == index:
-                tree = child
-                break
-        if count != index:
-            return None
-    return tree
+    return possible_nodes[0].xml_element
 
 
 def is_clickable_element_or_none(dom: str, xpath: str) -> bool:
@@ -441,7 +418,7 @@ def get_actions_from_layout(layout: str,
     action_queries = []
     clickable_query = lambda node: node.clickable or \
                                    "16" in node.a11y_actions or \
-                                   (node.naf if use_naf else True)
+                                   (node.naf if use_naf else False)
     action_queries.append(clickable_query)
     if only_visible:
         visible_query = lambda node: node.visible

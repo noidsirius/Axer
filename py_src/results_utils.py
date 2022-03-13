@@ -116,7 +116,7 @@ class AddressBook:
             oac = oac.name
         return self.ovsersight_path.joinpath(f"{oac}.{extension}")
 
-    def get_oacs(self, oac: Union[OAC, str]) -> List[Node]:
+    def get_oacs(self, oac: Union[OAC, str] = None) -> List[Node]:
         path = self.get_os_result_path(oac)
         if not path.exists():
             return []
@@ -212,7 +212,7 @@ class ResultWriter:
                       'tb_action_result': tb_action_result,
                       'reg_action_result': reg_action_result,
                       'areg_action_result': areg_action_result,
-                      'node': json.loads(node.toJSONStr()),
+                      'node': None if node is None else json.loads(node.toJSONStr()),
                       'is_sighted': is_sighted
                       }
         self.actions.append(new_action)

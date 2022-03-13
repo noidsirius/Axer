@@ -39,6 +39,7 @@ class Snapshot:
         self.instrumented_log = instrumented_log
         self.is_oversight = is_oversight
         self.writer = ResultWriter(address_book)
+        self.is_next_direction = False
         self.visited_elements_in_app = {} if visited_elements_in_app is None else visited_elements_in_app
         # -------------
         self.init_layout = None
@@ -104,7 +105,7 @@ class Snapshot:
                           self.visible_elements)
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.all_action_screenshot,
-                          get_actions_from_layout(self.init_layout),
+                          await self.get_important_actions(initialize=False, layout=self.init_layout),
                           outline=(138, 43, 226),
                           width=15)
         self.valid_resource_ids = set()
@@ -112,9 +113,10 @@ class Snapshot:
         already_visited_elements = []
         for node in self.visible_elements:
             if self.has_element_in_other_snapshots(node):
-                logger.debug(f"Exclude the visited element in the app {node}")
                 already_visited_elements.append(node)
-                continue
+                if not self.is_oversight:
+                    logger.debug(f"Exclude the visited element in the app {node}")
+                    continue
             if node.xpath:
                 if self.is_oversight:
                     if node.xpath not in xpath_to_oac_node:
@@ -140,7 +142,7 @@ class Snapshot:
         # -------------
         return True
 
-    async def navigate_next(self, padb_logger: ParallelADBLogger) -> Tuple[str, Union[str, None]]:
+    async def navigate_next(self, padb_logger: ParallelADBLogger, initialize: bool = True) -> Tuple[str, Union[str, None]]:
         """
         Loads the tmp Snapshot (the latest snapshot in navigation), navigate to next element by TalkBack until it either
         reaches a new important element or finishes the navigation. An important element should belong to the initial
@@ -152,16 +154,20 @@ class Snapshot:
                 'Next Command' (the newly focused element). If Next Command is None, the navigation is finished.
         """
         logger.info("Navigating to the next element")
-        if not await load_snapshot(self.tmp_snapshot):
-            logger.debug("Error in loading snapshot")
-            return "The snapshot could not be loaded!", None
+        if initialize:
+            if not await load_snapshot(self.tmp_snapshot):
+                logger.debug("Error in loading snapshot")
+                return "The snapshot could not be loaded!", None
         all_log_message = ""
         tags = [BLIND_MONKEY_TAG]
         if self.instrumented_log:
             tags.append(BLIND_MONKEY_INSTRUMENTED_TAG)
 
         while True:
-            log_message_map, next_command_str = await padb_logger.execute_async_with_log(tb_navigate_next(), tags=tags)
+            log_message_map, next_command_str = await padb_logger\
+                .execute_async_with_log(
+                    tb_navigate_next(not self.is_next_direction),
+                    tags=tags)
             if len(tags) == 1:
                 all_log_message += list(log_message_map.values())[0]
             else:
@@ -276,9 +282,19 @@ class Snapshot:
             # ------------------- Navigate Next -------------------
             tb_navigate_log, next_focused_element = await self.navigate_next(padb_logger)
             if not next_focused_element:
-                logger.info("Navigation is finished!")
-                self.writer.write_last_navigate_log(tb_navigate_log)
-                break
+                if not self.is_next_direction:
+                    logger.info("Change the direction!")
+                    self.is_next_direction = True
+                    for key, value in self.visited_xpath_count.items():
+                        self.visited_xpath_count[key] = value - 1
+                    if not await load_snapshot(self.initial_snapshot):
+                        logger.debug("Error in loading snapshot")
+                        return False
+                    tb_navigate_log, next_focused_element = await self.navigate_next(padb_logger)
+                if not next_focused_element:
+                    logger.info("Navigation is finished!")
+                    self.writer.write_last_navigate_log(tb_navigate_log)
+                    break
             logger.debug("Next focused element is " + next_focused_element)
             await self.writer.capture_current_state(self.device, mode="exp",
                                                     index=self.writer.get_action_index(),
@@ -287,31 +303,50 @@ class Snapshot:
             # ------------------- End Navigate Next -------------------
             logger.info("Groundhog Day!")
 
+        if next_focused_element is not None:
+            # TODO: Refactor this
+            #  The directional exploration is not done yet
+            while True:
+                tb_navigate_log, next_focused_element = await self.navigate_next(padb_logger, initialize=False)
+                if not next_focused_element:
+                    if not self.is_next_direction:
+                        logger.info("Change the direction!")
+                        self.is_next_direction = True
+                        if not await load_snapshot(self.initial_snapshot):
+                            logger.debug("Error in loading snapshot")
+                            return False
+                        tb_navigate_log, next_focused_element = await self.navigate_next(padb_logger)
+                    if not next_focused_element:
+                        logger.info("Navigation is finished!")
+                        self.writer.write_last_navigate_log(tb_navigate_log)
+                        break
+
+
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.visited_action_screenshot,
                           [json.loads(str_command) for str_command in self.performed_actions])
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.visited_elements_screenshot,
-                          [visited_element['node'] for visited_element in self.writer.visited_elements])
+                          [visited_element['element'] if visited_element['node'] is None
+                           else visited_element['node'] for visited_element in self.writer.visited_elements])
         logger.info("Done Exploring!")
         return True
 
-    async def get_important_actions(self) -> List[Node]:
-        if not await load_snapshot(self.initial_snapshot):
-            logger.error("Error in loading snapshot")
-            return []
+    async def get_important_actions(self, initialize: bool = True, layout: str = None) -> List[Node]:
+        if initialize:
+            if not await load_snapshot(self.initial_snapshot):
+                logger.error("Error in loading snapshot")
+                return []
         await asyncio.sleep(2)
-        dom = await capture_layout()
+        if layout is None:
+            layout = await capture_layout()
         if self.is_oversight:
-            all_actions = get_actions_from_layout(dom, only_visible=False, use_naf=False)
+            all_actions = get_actions_from_layout(layout, only_visible=False, use_naf=False)
         else:
-            all_actions = get_actions_from_layout(dom, only_visible=True, use_naf=True)
+            all_actions = get_actions_from_layout(layout, only_visible=True, use_naf=True)
         oacs = {}
-        with open(self.address_book.get_os_result_path()) as f:
-            for line in f.readlines():
-                res = json.loads(line)
-                res['node'] = Node.createNodeFromDict(res['node'])
-                oacs[res['node'].xpath] = res
+        for node in self.address_book.get_oacs():
+            oacs[node.xpath] = node
         result = []
         for node in all_actions:
             if self.is_oversight:

@@ -203,11 +203,11 @@ async def tb_focused_node() -> Union[str, None]:
     return None
 
 
-async def tb_navigate_next() -> Union[str, None]:
+async def tb_navigate_next(prev: bool = False) -> Union[str, None]:
     for i in range(TB_NAVIGATE_RETRY_COUNT):
-        logger.debug(f"Perform Next!, Try: {i}")
+        logger.debug(f"Perform {'Prev' if prev else 'Next'}!, Try: {i}")
         await A11yServiceManager.setup_latte_a11y_services(tb=True)
-        if not await talkback_nav_command("next"):
+        if not await talkback_nav_command("prev" if prev else "next"):
             logger.warning("Error in sending Nav command to Latte")
             continue
         next_command_json = await read_local_android_file(FINAL_ACITON_FILE, wait_time=TB_NAVIGATE_TIMEOUT)
