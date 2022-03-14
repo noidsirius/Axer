@@ -290,7 +290,7 @@ class Snapshot:
                     if not await load_snapshot(self.initial_snapshot):
                         logger.debug("Error in loading snapshot")
                         return False
-                    tb_navigate_log, next_focused_element = await self.navigate_next(padb_logger)
+                    tb_navigate_log, next_focused_element = await self.navigate_next(padb_logger, initialize=False)
                 if not next_focused_element:
                     logger.info("Navigation is finished!")
                     self.writer.write_last_navigate_log(tb_navigate_log)

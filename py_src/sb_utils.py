@@ -26,6 +26,7 @@ def statice_analyze(layout_path: Union[str, Path],
 
     nodes = NodesFactory() \
         .with_layout_path(layout_path) \
+        .with_ad_detection() \
         .with_xpath_pass() \
         .with_covered_pass() \
         .build()
@@ -42,8 +43,9 @@ def statice_analyze(layout_path: Union[str, Path],
         OAC.INVISIBLE: lambda node: not node.visible,
         OAC.CONDITIONAL_DISABLED: lambda node: not node.enabled and
                                                (node.clickable or node.long_clickable or node.focusable),
-        OAC.INCONSISTENT_ABILITIES: lambda node: (not node.clickable and "16" in node.a11y_actions)  # TODO
+        OAC.INCONSISTENT_ABILITIES: lambda node: (not node.clickable and "16" in node.a11y_actions),  # TODO
                                                  # or (not node.long_clickable and "32" in node.a11y_actions)
+        OAC.AD: lambda node: node.is_ad
     }
     oa_conditions[OAC.CAMOUFLAGED] = lambda node: node.text == node.content_desc == "" and \
                                                   node.class_name == "android.widget.TextView" and \
@@ -54,7 +56,10 @@ def statice_analyze(layout_path: Union[str, Path],
     node_to_oac_map = defaultdict(list)
     oac_count = {}
     for key, query in oa_conditions.items():
-        oa_nodes = [node for node in nodes if node.potentially_data_or_function() and query(node)]
+        if key != OAC.AD:
+            oa_nodes = [node for node in nodes if not node.is_ad and node.potentially_data_or_function() and query(node)]
+        else:
+            oa_nodes = [node for node in nodes if node.potentially_data_or_function() and query(node)]
 
         annotate_elements(screenshot_path,
                           address_book.get_os_result_path(key, extension='png'),
@@ -62,7 +67,8 @@ def statice_analyze(layout_path: Union[str, Path],
         oac_count[key] = len(oa_nodes)
         with open(address_book.get_os_result_path(key), "w") as f:
             for node in oa_nodes:
-                node_to_oac_map[node].append(key)
+                if key != OAC.AD:
+                    node_to_oac_map[node].append(key)
                 f.writelines(f"{node.toJSONStr()}\n")
 
     annotate_elements(screenshot_path,

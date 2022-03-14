@@ -26,6 +26,7 @@ class OAC(Enum):  # Overly Accessible Condition
     CAMOUFLAGED = 6
     CONDITIONAL_DISABLED = 7
     INCONSISTENT_ABILITIES = 8
+    AD = 9
 
 
 class AddressBook:

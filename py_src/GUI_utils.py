@@ -147,6 +147,7 @@ class Node:
         # --- Extra ----
         self.xml_element = None
         self.covered = False
+        self.is_ad = False
 
     def area(self):
         return (self.bounds[2]-self.bounds[0]) * (self.bounds[3] - self.bounds[1])
@@ -160,7 +161,8 @@ class Node:
         if self.covered or not self.visible or not self.is_valid_bounds():
             return True
         if self.xml_element is not None:
-            return "Layout" in self.class_name and len(self.xml_element.findall('node')) == 0
+            if "Layout" in self.class_name or "ViewGroup" in self.class_name:
+                return len(self.xml_element.findall('.//node[@visible="true"]')) == 0
         return False
 
     def potentially_data_or_function(self):
@@ -238,6 +240,28 @@ class NodesFactory:
                                                           child_node.class_name,
                                                           class_counter[child_node.class_name])
         self.passes.append(create_xpath)
+        return self
+
+    def with_ad_detection(self) -> 'NodesFactory':
+        """
+            Detecting Ad nodes
+        """
+        def detect_ad(node: Node,
+                         extra: Dict,
+                         children_nodes: List[Node],
+                         child_to_extras_map: Dict[Node, Dict]) -> None:
+            resource_id = node.resource_id
+            remaining = "" if len(resource_id.split("/")) < 1 else "/".join(resource_id.split("/")[1:])
+            if resource_id.endswith("_ad") \
+                or resource_id.endswith("_ads") \
+                or '_ad_' in resource_id \
+                or remaining.startswith('ads'):
+                node.is_ad = True
+            if node.is_ad:
+                for child_node in children_nodes:
+                    child_node.is_ad = True
+
+        self.passes.append(detect_ad)
         return self
 
     def with_covered_pass(self) -> 'NodesFactory':
@@ -369,7 +393,6 @@ def get_nodes(dom: str, filter_query: Callable[[Node], bool] = None) -> List[Nod
     nodes = NodesFactory() \
         .with_layout(dom) \
         .with_xpath_pass() \
-        .with_covered_pass() \
         .build()
     if filter_query is None:
         filter_query = lambda x: True

@@ -11,7 +11,7 @@ from padb_utils import ParallelADBLogger, save_screenshot
 from latte_utils import is_latte_live
 from latte_executor_utils import talkback_nav_command, talkback_tree_nodes, latte_capture_layout, \
     FINAL_ACITON_FILE, report_atf_issues, execute_command
-from GUI_utils import get_actions_from_layout, get_nodes
+from GUI_utils import get_actions_from_layout, get_nodes, NodesFactory
 from results_utils import OAC, AddressBook
 from utils import annotate_elements
 from adb_utils import read_local_android_file
@@ -68,7 +68,8 @@ async def execute_latte_command(device, command: str, extra: str):
             logger.error("Logs: " + log_map)
             return
         ci_elements = get_nodes(layout,
-                                filter_query=lambda x: (x.clickable or '16' in x.a11y_actions) and not x.visible)
+                                filter_query=lambda x: not x.visible)
+                                # (x.clickable or '16' in x.a11y_actions) and not x.visible)
 
         logger.info(f"#CI Elements: {len(ci_elements)}")
         for index, element in enumerate(ci_elements):
@@ -80,7 +81,8 @@ async def execute_latte_command(device, command: str, extra: str):
             logger.error("Logs: " + log_map)
             return
         ci_elements = get_nodes(layout,
-                                filter_query=lambda x: (x.clickable or '16' in x.a11y_actions) and not x.visible)
+                                filter_query=lambda x: not x.visible)
+                                # (x.clickable or '16' in x.a11y_actions) and not x.visible)
         index = int(extra)
         logger.info(f"Target CI Elements #{index}: {ci_elements[index]}")
         tags = [BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG]
@@ -96,15 +98,29 @@ async def execute_latte_command(device, command: str, extra: str):
         await talkback_nav_command(command[len("nav_"):])
         next_command_json = await read_local_android_file(FINAL_ACITON_FILE, wait_time=TB_NAVIGATE_TIMEOUT)
         logger.info(f"Nav Result: '{next_command_json}'")
+    if command.startswith("write_nodes"):
+        layout_path = extra
+        nodes = NodesFactory() \
+            .with_layout_path(layout_path) \
+            .with_xpath_pass() \
+            .with_ad_detection() \
+            .with_covered_pass() \
+            .build()
+        for node in nodes:
+            if node.covered:
+                logger.info(f"Covered Node: {node.covered}  {node.is_ad}")
+
 
     if command == "os_rq1":
         result_path = pathlib.Path(extra)
         if not result_path.is_dir():
             logger.error("The result path doesn't exist")
             return
-        oac_count = len(OAC)
+
+        oac_names = [oac.name for oac in OAC if oac != oac.AD]
+        oac_count = len(oac_names)
         header = "\multirow{2}{*}{App} & \multirow{2}{*}{Scenario} & \multirow{2}{*}{\#Nodes} " \
-                 + " ".join(f"& \multicolumn{{2}}{{c|}}{{\#{oac_name[:3]}}}" for oac_name in ['All'] + list([oac.name for oac in OAC])) \
+                 + " ".join(f"& \multicolumn{{2}}{{c|}}{{\#{oac_name[:3]}}}" for oac_name in ['All'] + oac_names) \
                  + "& \multicolumn{2}{c|}{Precision} \\\\" \
                  + "\n" \
                  + f"\cline{{4-{4+(oac_count+2)*2-1}}}" \
@@ -133,7 +149,7 @@ async def execute_latte_command(device, command: str, extra: str):
                 with open(address_book.get_layout_path("exp", "INITIAL")) as f:
                     number_of_nodes = f.read().count("</node>")
                 app_row += f"& {number_of_nodes} "  # Nodes
-                for oac in ['oacs'] + list(OAC):
+                for oac in ['oacs'] + oac_names:
                     number_of_oacs = len(address_book.get_oacs(oac))
                     app_row += f"& {number_of_oacs} & - "
                 app_row += "& - &"  # Snapshot Precision
@@ -201,6 +217,12 @@ async def execute_latte_command(device, command: str, extra: str):
 
 
 if __name__ == "__main__":
+    # run_local = False
+    # device = None
+    # if run_local:
+    #     command = "write_nodes"
+    #     extra = "/Users/navid/StudioProjects/Latte/dev_results/com.meditationmoments.meditationmoments/com.meditationmoments.meditationmoments.S_1/EXP/INITIAL.xml"
+    # else:
     parser = argparse.ArgumentParser()
     parser.add_argument('--command', type=str, help='The command sending to Latte')
     parser.add_argument('--extra', type=str, default="", help='The extra information sent to Latte')
@@ -208,15 +230,16 @@ if __name__ == "__main__":
     parser.add_argument('--adb-host', type=str, default=ADB_HOST, help='The host address of ADB')
     parser.add_argument('--adb-port', type=int, default=ADB_PORT, help='The port number of ADB')
     args = parser.parse_args()
-
+    command = args.command
+    extra = args.extra
     logging.basicConfig(level=logging.DEBUG)
     try:
         client = AdbClient(host=args.adb_host, port=args.adb_port)
         device = asyncio.run(client.device(args.device))
         logger.debug(f"Device {device.serial} is connected!")
     except Exception as e:
-        logger.error(f"The device is not connected")
+        logger.error(f"The device is not connected to {args.device}")
         device = None
 
-    if args.command:
-        asyncio.run(execute_latte_command(device, args.command, args.extra))
+    if command:
+        asyncio.run(execute_latte_command(device, command, extra))
