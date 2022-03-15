@@ -15,7 +15,9 @@
                 <th>List of OACs</th>
             </tr>
             {% for oac_name in ['oacs'] + oac_names %}
-                {{ oac_row(address_book, oac_name, False) }}
+                {%  if address_book.get_oacs(oac_name) | length > 0%}
+                    {{ oac_row(address_book, oac_name, False) }}
+                {% endif %}
             {% endfor %}
         </table>
     </div>

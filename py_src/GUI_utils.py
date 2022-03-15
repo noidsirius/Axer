@@ -165,11 +165,24 @@ class Node:
                 return len(self.xml_element.findall('.//node[@visible="true"]')) == 0
         return False
 
-    def potentially_data_or_function(self):
+    def is_belonged(self, pkg_name: str) -> bool:
+        return self.pkg_name != pkg_name
+
+    def is_out_of_bounds(self, screen_bounds: Tuple[int, int, int, int]) -> bool:
+        [min_x, min_y, max_x, max_y] = screen_bounds
+        return ((max_x < self.bounds[0] or self.bounds[0] < min_x) or
+                (max_x < self.bounds[2] or self.bounds[2] < min_x) or
+                (max_y < self.bounds[1] or self.bounds[1] < min_y) or
+                (max_y < self.bounds[3] or self.bounds[3] < min_y))
+
+    def potentially_data(self):
+        return self.text or \
+               self.content_desc
+
+
+    def potentially_function(self):
         return self.clickable or \
                self.long_clickable or \
-               self.text or \
-               self.content_desc or \
                set(self.a11y_actions).intersection({"16", "32"})
 
     def practically_equal(self, other: 'Node') -> bool:

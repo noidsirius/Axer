@@ -111,13 +111,104 @@ async def execute_latte_command(device, command: str, extra: str):
                 logger.info(f"Covered Node: {node.covered}  {node.is_ad}")
 
 
+    if command == "os_new_rq1":
+        result_path = pathlib.Path(extra)
+        if not result_path.is_dir():
+            logger.error("The result path doesn't exist")
+            return
+
+        p_oac_names = {oac.name: oac for oac in OAC if oac.name.startswith("P")}
+        a_oac_names = {oac.name: oac for oac in OAC if oac.name.startswith("A")}
+        header = "\multirow{2}{*}{App} & \multirow{2}{*}{\\rrot{Snap}} & \multirow{2}{*}{\\rrot{\#Node}} " \
+                 + " ".join(f"& \multicolumn{{2}}{{c|}}{{\#{oac_name[:2]}}}" for oac_name in p_oac_names) \
+                 + " ".join(f"& \multicolumn{{3}}{{c|}}{{\#{oac_name[:2]}}}" for oac_name in a_oac_names) \
+                 + "& \multicolumn{2}{c|}{$P_P$} & \multicolumn{2}{c|}{$P_P$} \\\\" \
+                 + "\n" \
+                 + f"\cline{{4-{4+len(p_oac_names)*2+len(a_oac_names)*3+2*2-1}}}" \
+                 + "\n" \
+                 + "& & " \
+                 + "& \\rrot{All\\,} & \\rrot{TB\\,} " * len(p_oac_names) \
+                 + "& \\rrot{All\\,} & \\rrot{TB\\,} & \\rrot{API\\,}" * len(a_oac_names) \
+                 + "& \\rrot{TB\\,} & \\rrot{API\\,} " * 2 \
+                 + "\\\\" \
+                 + "\n" \
+                 +"\hline" \
+                 + "\n"
+        print(header)
+        for app_path in result_path.iterdir():
+            if not app_path.is_dir():
+                continue
+
+            snapshot_paths = []
+            for s_index, snapshot_path in enumerate(app_path.iterdir()):
+                if not snapshot_path.is_dir():
+                    continue
+                snapshot_paths.append(snapshot_path)
+            snapshot_count = len(snapshot_paths)
+            app_row = "\multirow{" + str(snapshot_count) + "}{*}{" + app_path.name.split('.')[1][:3] + "} "
+            s_index = 0
+            for snapshot_path in sorted(snapshot_paths, key=lambda x: x.name):
+                s_index += 1
+                app_row += f"& {s_index} "  # Scenario
+                address_book = AddressBook(snapshot_path)
+                with open(address_book.get_layout_path("exp", "INITIAL")) as f:
+                    number_of_nodes = f.read().count("</node>")
+                app_row += f"& {number_of_nodes} "  # Nodes
+                tb_reachable_xpaths = set()
+                with open(address_book.visited_elements_path) as f:
+                    for res in f.readlines():
+                        element = json.loads(res)['element']
+                        tb_reachable_xpaths.add(element['xpath'])
+                tb_actions_xpaths = set()
+                api_actions_xpaths = set()
+                with open(address_book.action_path) as f:
+                    for res in f.readlines():
+                        res = json.loads(res)
+                        with open(address_book.get_log_path('tb', res['index'], extension=BLIND_MONKEY_EVENTS_TAG)) as f2:
+                            if "TYPE_VIEW_CLICKED" in f2.read():
+                                tb_actions_xpaths.add(res['element']['xpath'])
+                        with open(address_book.get_log_path('areg', res['index'], extension=BLIND_MONKEY_EVENTS_TAG)) as f2:
+                            if "TYPE_VIEW_CLICKED" in f2.read():
+                                api_actions_xpaths.add(res['element']['xpath'])
+                for oac in p_oac_names:
+                    oac_xpaths = set()
+                    for node in address_book.get_oacs(oac):
+                        oac_xpaths.add(node.xpath)
+                    number_of_oacs = len(address_book.get_oacs(oac))
+                    tbr = 0
+                    for tb_xpath in tb_reachable_xpaths:
+                        for oac_xpath in oac_xpaths:
+                            if oac_xpath.startswith(tb_xpath):
+                                tbr += 1
+                                break
+                    app_row += f"& {number_of_oacs} & {tbr} "
+                for oac in a_oac_names:
+                    oac_xpaths = set()
+                    for node in address_book.get_oacs(oac):
+                        oac_xpaths.add(node.xpath)
+                    number_of_oacs = len(address_book.get_oacs(oac))
+                    tba = 0
+                    for tb_xpath in tb_actions_xpaths:
+                        for oac_xpath in oac_xpaths:
+                            if oac_xpath.startswith(tb_xpath):
+                                tba += 1
+                                break
+                    apia = len(oac_xpaths.intersection(api_actions_xpaths))
+                    app_row += f"& {number_of_oacs} & {tba} & {apia} "
+                app_row += "& - & - " * 2  # Snapshot Precision
+                # if s_index == 1:
+                #     app_row += "\multirow{" + str(snapshot_count) + "}{*}{-} "
+                app_row += "\\\\ \n"
+            app_row += "\hline \n"
+            print(app_row)
+
     if command == "os_rq1":
         result_path = pathlib.Path(extra)
         if not result_path.is_dir():
             logger.error("The result path doesn't exist")
             return
 
-        oac_names = [oac.name for oac in OAC if oac != oac.AD]
+        oac_names = [oac.name for oac in OAC if oac != oac.O_AD]
         oac_count = len(oac_names)
         header = "\multirow{2}{*}{App} & \multirow{2}{*}{Scenario} & \multirow{2}{*}{\#Nodes} " \
                  + " ".join(f"& \multicolumn{{2}}{{c|}}{{\#{oac_name[:3]}}}" for oac_name in ['All'] + oac_names) \

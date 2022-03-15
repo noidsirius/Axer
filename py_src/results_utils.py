@@ -18,15 +18,16 @@ logger = logging.getLogger(__name__)
 
 
 class OAC(Enum):  # Overly Accessible Condition
-    BELONGED = 1
-    OUT_OF_BOUNDS = 2
-    COVERED = 3
-    ZERO_AREA = 4
-    INVISIBLE = 5
-    CAMOUFLAGED = 6
-    CONDITIONAL_DISABLED = 7
-    INCONSISTENT_ABILITIES = 8
-    AD = 9
+    P1_BELONGS = 1
+    P2_OUT_OF_BOUNDS = 2
+    P3_COVERED = 3
+    P4_ZERO_AREA = 4
+    P5_AINVISIBLE = 5
+    A1_PINVISIBLE = 101
+    A2_CONDITIONAL_DISABLED = 102
+    A3_INCONSISTENT_ABILITIES = 103
+    A4_CAMOUFLAGED = 104
+    O_AD = -1
 
 
 class AddressBook:
