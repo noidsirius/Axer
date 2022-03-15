@@ -55,17 +55,25 @@
                         <th scope="col">ContentD</th>
                         <th scope="col">Clickable</th>
                         <th scope="col">Enabled</th>
+                        <th scope="col">Visible</th>
+                        <th scope="col">TBR</th>
+                        <th scope="col">TBA</th>
+                        <th scope="col">APIA</th>
                         <th scope="col">...</th>
                     </tr>
                     </thead>
                     <tbody>
-                    {% for node in address_book.get_oacs(oac_name) %}
+                    {% for node, info in address_book.get_oacs_with_info(oac_name).items() %}
                         <tr>
                             <td>{{ loop.index }}</td>
-                            <td class="text-truncate" style="max-width: 20em">{{ node.text }}</td>
+                            <td class="text-truncate" style="max-width: 10em">{{ node.text }}</td>
                             <td>{{ node.content_desc }}</td>
                             <td>{{ node.clickable }}</td>
                             <td>{{ node.enabled }}</td>
+                            <td>{{ node.visible }}</td>
+                            <td>{{ info.tbr != None }}</td>
+                            <td>{{ info.tba != None }}</td>
+                            <td>{{ info.apia != None }}</td>
                             <td>...</td>
                         </tr>
                     {% endfor %}

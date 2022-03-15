@@ -8,7 +8,7 @@ from typing import Optional, Union, Dict, List
 
 from GUI_utils import Node
 from adb_utils import get_current_activity_name
-from consts import BLIND_MONKEY_TAG
+from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG
 from latte_executor_utils import ExecutionResult, latte_capture_layout as capture_layout
 from padb_utils import ParallelADBLogger, save_screenshot
 from utils import annotate_rectangle
@@ -137,6 +137,58 @@ class AddressBook:
                     node = Node.createNodeFromDict(res)
                 oacs.append(node)
         return oacs
+
+    def get_oacs_with_info(self, oac: Union[OAC, str] = None) -> Dict[Node, Dict]:
+        oac_nodes = self.get_oacs(oac)
+        oac_info_map = {}
+        tb_reachable_xpaths = {}
+        if self.visited_elements_path.exists():
+            with open(self.visited_elements_path) as f:
+                for res in f.readlines():
+                    element = json.loads(res)['element']
+                    tb_reachable_xpaths[element['xpath']] = element
+        tb_actions_xpaths = {}
+        if self.action_path.exists():
+            with open(self.action_path) as f:
+                for action in f.readlines():
+                    action = json.loads(action)
+                    with open(self.get_log_path('tb', action['index'], extension=BLIND_MONKEY_EVENTS_TAG)) as f2:
+                        if "TYPE_VIEW_CLICKED" in f2.read():
+                            tb_actions_xpaths[action['element']['xpath']] = action
+        api_actions_xpaths = {}
+        if self.s_action_path.exists():
+            with open(self.s_action_path) as f:
+                for action in f.readlines():
+                    action = json.loads(action)
+                    if action['tb_action_result'] is not None:
+                        with open(self.get_log_path('s_tb', action['index'], extension=BLIND_MONKEY_EVENTS_TAG)) as f2:
+                            if "TYPE_VIEW_CLICKED" in f2.read():
+                                tb_actions_xpaths[action['element']['xpath']] = action
+                    with open(self.get_log_path('s_areg', action['index'], extension=BLIND_MONKEY_EVENTS_TAG)) as f2:
+                        if "TYPE_VIEW_CLICKED" in f2.read():
+                            api_actions_xpaths[action['element']['xpath']] = action
+        for oac_node in oac_nodes:
+            info = {}
+            max_subseq_tb_element = None
+            for tb_xpath in tb_reachable_xpaths:
+                if oac_node.xpath.startswith(tb_xpath):
+                    if max_subseq_tb_element is None or len(max_subseq_tb_element['xpath']) < len(tb_xpath):
+                        max_subseq_tb_element = tb_reachable_xpaths[tb_xpath]
+            info['tbr'] = max_subseq_tb_element
+            min_subseq_tb_action = None
+            for tb_xpath in tb_actions_xpaths:
+                if tb_xpath.startswith(oac_node.xpath):
+                    if min_subseq_tb_action is None or len(min_subseq_tb_action['xpath']) < len(tb_xpath):
+                        min_subseq_tb_action = tb_actions_xpaths[tb_xpath]
+            info['tba'] = min_subseq_tb_action
+            min_subseq_api_action = None
+            for api_xpath in api_actions_xpaths:
+                if api_xpath.startswith(oac_node.xpath):
+                    if min_subseq_api_action is None or len(min_subseq_api_action['xpath']) < len(tb_xpath):
+                        min_subseq_api_action = api_actions_xpaths[api_xpath]
+            info['apia'] = min_subseq_api_action
+            oac_info_map[oac_node] = info
+        return oac_info_map
 
 
 class ResultWriter:
