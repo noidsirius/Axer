@@ -70,12 +70,18 @@
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.visited_action_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
+                    <hr>
+                    <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.action_path, result_path)) }}">Performed Actions</a>
                 </td>
                 <td>
                     <a href="#" class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.s_action_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
+                    <hr>
+                    <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.s_possible_action_path, result_path)) }}">Possible Actions</a>
+                    -
+                    <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.action_path, result_path)) }}">Performed Actions</a>
                 </td>
                 <th scope="row">
                     <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_bm_log_path(), result_path)) }}">BlindMonkey Log</a>

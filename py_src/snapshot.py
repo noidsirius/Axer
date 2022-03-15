@@ -39,7 +39,7 @@ class Snapshot:
         self.instrumented_log = instrumented_log
         self.is_oversight = is_oversight
         self.writer = ResultWriter(address_book)
-        self.is_next_direction = False
+        self.is_next_direction = True
         self.visited_elements_in_app = {} if visited_elements_in_app is None else visited_elements_in_app
         # -------------
         self.init_layout = None
@@ -221,7 +221,91 @@ class Snapshot:
             break
         return all_log_message, next_command_str
 
-    async def explore(self) -> bool:
+    async def directed_explore(self) -> bool:
+        if not await self.emulator_setup():
+            logger.error("Error in emulator setup!")
+            return False
+        padb_logger = ParallelADBLogger(self.device)
+        await self.writer.capture_current_state(self.device, mode="exp",
+                                                index=self.writer.get_action_index(),
+                                                log_message_map={BLIND_MONKEY_TAG: "First State"},
+                                                has_layout=True)
+        while True:
+            # ------------------- Navigate Next -------------------
+            tb_navigate_log, next_focused_element = await self.navigate_next(padb_logger, initialize=False)
+            if not next_focused_element:
+                if self.is_next_direction:
+                    logger.info("Change the direction!")
+                    self.is_next_direction = False
+                    for key, value in self.visited_xpath_count.items():
+                        self.visited_xpath_count[key] = value - 2
+                    if not await load_snapshot(self.initial_snapshot):
+                        logger.debug("Error in loading snapshot")
+                        return False
+                    tb_navigate_log, next_focused_element = await self.navigate_next(padb_logger, initialize=False)
+                if not next_focused_element:
+                    logger.info("Navigation is finished!")
+                    self.writer.write_last_navigate_log(tb_navigate_log)
+                    break
+            logger.debug("Next focused element is " + next_focused_element)
+
+        annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
+                          self.address_book.visited_elements_screenshot,
+                          [visited_element['element'] if visited_element['node'] is None
+                           else visited_element['node'] for visited_element in self.writer.visited_elements])
+        logger.info("Done Exploring!")
+        return True
+
+    async def point_action(self):
+        logger.info("Validating remaining actions.")
+        self.writer.start_stb()
+        important_actions = await self.get_important_actions()
+        logger.info(f"There are {len(important_actions)} actions in explore!")
+        initial_layout = await self.writer.capture_current_state(self.device, 's_exp', 'INITIAL')
+        with open(self.address_book.s_possible_action_path, "w") as f:
+            for node in important_actions:
+                f.write(f"{node.toJSONStr()}\n")
+        annotate_elements(self.address_book.get_screenshot_path('s_exp', 'INITIAL'),
+                          self.address_book.s_action_screenshot,
+                          important_actions)
+        is_in_app_activity = not await is_android_activity_on_top()
+        padb_logger = ParallelADBLogger(self.device)
+        if self.is_oversight or is_in_app_activity:
+            for index, action in enumerate(important_actions):
+                if self.writer.get_action_index() >= self.point_action_limit:
+                    logger.info(f"Reached point action limit: {self.point_action_limit}")
+                    break
+                logger.info(
+                    f"Point Action {self.writer.get_action_index()}, count: {index+1} / {len(important_actions)}")
+                if get_element_from_xpath(initial_layout, action.xpath) is None:
+                    logger.warning(f"Couldn't find this element on the screen")
+                    continue
+                result_map = {mode: None for mode in ['reg', 'areg', 'tb']}
+                modes = ['tb', 'reg', 'areg']
+                tags = [BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG]
+                if self.instrumented_log:
+                    tags.append(BLIND_MONKEY_INSTRUMENTED_TAG)
+                for mode in modes:
+                    if not await load_snapshot(self.initial_snapshot):
+                        logger.error("Error in loading snapshot")
+                        return []
+                    executor = mode if mode != 'tb' else 'stb'
+                    log_message_map, result_map[mode] = await padb_logger.execute_async_with_log(
+                        execute_command(action.toJSONStr(), executor_name=executor, api_focus=True), tags=tags)
+                    layout = await self.writer.capture_current_state(self.device, f"s_{mode}",
+                                                                     self.writer.get_action_index(),
+                                                                     log_message_map=log_message_map)
+
+                logger.info(f"Writing action {self.writer.get_action_index()}")
+                self.writer.add_action(element=json.loads(action.toJSONStr()),
+                                       tb_action_result=result_map['tb'],
+                                       reg_action_result=result_map['reg'],
+                                       areg_action_result=result_map.get('areg', None),
+                                       node=action,
+                                       is_sighted=True)
+        logger.info("Done validating remaining actions.")
+
+    async def directed_explore_action(self) -> bool:
         if not await self.emulator_setup():
             logger.error("Error in emulator setup!")
             return False
@@ -369,7 +453,7 @@ class Snapshot:
             result.append(action['element'])
         return result
 
-    async def validate_by_stb(self):
+    async def sighted_explore_action(self):
         logger.info("Validating remaining actions.")
         self.writer.start_stb()
         important_actions = await self.get_important_actions()
@@ -377,6 +461,9 @@ class Snapshot:
         directional_unreachable_actions = get_missing_actions(important_actions, tb_done_actions)
         logger.info(f"There are {len(directional_unreachable_actions)} missing actions in explore!")
         initial_layout = await self.writer.capture_current_state(self.device, 's_exp', 'INITIAL')
+        with open(self.address_book.s_possible_action_path, "w") as f:
+            for node in directional_unreachable_actions:
+                f.write(f"{node.toJSONStr()}\n")
         annotate_elements(self.address_book.get_screenshot_path('s_exp', 'INITIAL'),
                           self.address_book.s_action_screenshot,
                           directional_unreachable_actions)

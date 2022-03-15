@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Set;
 
 import dev.navids.latte.UseCase.RegularStepExecutor;
+import dev.navids.latte.UseCase.SightedTalkBackStepExecutor;
 import dev.navids.latte.UseCase.StepExecutor;
 import dev.navids.latte.UseCase.UseCaseExecutor;
 
@@ -44,6 +45,7 @@ public class CommandReceiver extends BroadcastReceiver {
     static final String ACTION_COMMAND_INTENT = "dev.navids.latte.COMMAND";
     static final String ACTION_COMMAND_CODE = "command";
     static final String ACTION_COMMAND_EXTRA = "extra";
+
     interface CommandEvent {
         void doAction(String extra);
     }
@@ -118,6 +120,7 @@ public class CommandReceiver extends BroadcastReceiver {
         commandEventMap.put("nav_current_focus", (extra) -> TalkBackNavigator.v().currentFocus());
         commandEventMap.put("tb_a11y_tree", (extra) -> TalkBackNavigator.v().logTalkBackTreeNodeList(null));
         commandEventMap.put("nav_clear_history", (extra) -> TalkBackNavigator.v().clearHistory());
+        commandEventMap.put("nav_api_focus", (extra) -> SightedTalkBackStepExecutor.apiFocus = (extra.equals("true")));
         commandEventMap.put("nav_interrupt", (extra) -> TalkBackNavigator.v().interrupt());
         // --------------------------- UseCase Executor ----------------
         commandEventMap.put("enable", (extra) -> UseCaseExecutor.v().enable());

@@ -162,11 +162,12 @@ async def setup_talkback_executor():
                                            "enable"])
 
 
-async def setup_sighted_talkback_executor():
+async def setup_sighted_talkback_executor(api_focus:bool = False):
     await A11yServiceManager.setup_latte_a11y_services(tb=True)
     await send_commands_sequence_to_latte([("set_step_executor", "sighted_tb"),
                                            ("set_delay", str(TB_EXECUTOR_INTERVAL)),
                                            ("set_physical_touch", "false"),
+                                           ("nav_api_focus", "true" if api_focus else "false"),
                                            "enable"])
 
 
@@ -252,7 +253,7 @@ def analyze_execution_result(result: str, command: str = None) -> ExecutionResul
     return ExecutionResult(state, events, time, resourceId, className, contentDescription, xpath, bounds)
 
 
-async def execute_command(command: str, executor_name: str = "reg") -> ExecutionResult:
+async def execute_command(command: str, executor_name: str = "reg", api_focus: bool = False) -> ExecutionResult:
     result = ""
     for i in range(ACTION_EXECUTION_RETRY_COUNT):
         if executor_name == 'reg':
@@ -262,7 +263,7 @@ async def execute_command(command: str, executor_name: str = "reg") -> Execution
         elif executor_name == 'tb':
             await setup_talkback_executor()
         elif executor_name == 'stb':
-            await setup_sighted_talkback_executor()
+            await setup_sighted_talkback_executor(api_focus=api_focus)
         logger.debug(f"Execute Step Command, Try: {i}")
         await do_step(command)
         result = await read_local_android_file(CUSTOM_STEP_RESULT, wait_time=REGULAR_EXECUTE_TIMEOUT_TIME)

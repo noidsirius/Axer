@@ -18,7 +18,7 @@ def analyze_snapshot(device,
                      directional_action_limit: int,
                      point_action_limit: int,
                      is_instrumented: bool):
-
+    mode = 1
     visited_elements_in_app = read_all_visited_elements_in_app(snapshot_path.parent)
     logger.info(f"There are {len(visited_elements_in_app)} already visited elements in this app!")
     address_book = AddressBook(snapshot_path)
@@ -29,11 +29,16 @@ def analyze_snapshot(device,
                         directional_action_limit=directional_action_limit,
                         point_action_limit=point_action_limit,
                         device=device)
-    success_explore = asyncio.run(snapshot.explore())
-    if not success_explore:
-        logger.error("Problem with explore!")
-        return
-    asyncio.run(snapshot.validate_by_stb())
+    if mode == 1:
+        success_explore = asyncio.run(snapshot.directed_explore_action())
+        if not success_explore:
+            logger.error("Problem with explore!")
+            return
+        asyncio.run(snapshot.sighted_explore_action())
+    elif mode == 2:
+        asyncio.run(snapshot.directed_explore())
+        asyncio.run(snapshot.point_action())
+
     open(address_book.finished_path, "w").close()
 
 
