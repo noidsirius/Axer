@@ -151,6 +151,21 @@
                     <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_layout_path('exp', 'INITIAL'), result_path)) }}">Layout </a>
                     <hr>
                     <a class="btn btn-success" href="{{ url_for('report_v2', result_path=result_path, app_name=address_book.app_name(), snapshot_name=address_book.snapshot_name()) }}">(Snapshot)</a>
+                    <hr>
+                    Snapshot: <a
+                        href="{{ url_for('report_v2',
+                                    result_path=address_book.result_path(),
+                                    app_name=address_book.app_name(),
+                                    snapshot_name=address_book.snapshot_name()) }}">
+                        {{ address_book.snapshot_name().split('.S_')[-1] }}
+                        </a>
+                    <hr>
+                    App: <a
+                        href="{{ url_for('report_app_v2',
+                                    result_path=address_book.result_path(),
+                                    app_name=address_book.app_name()) }}">
+                    {{ address_book.app_name() }}
+                    </a>
                 </th>
             </tr>
             </tbody>
