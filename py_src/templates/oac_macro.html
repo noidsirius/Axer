@@ -71,9 +71,27 @@
                             <td>{{ node.clickable }}</td>
                             <td>{{ node.enabled }}</td>
                             <td>{{ node.visible }}</td>
-                            <td>{{ info.tbr != None }}</td>
-                            <td>{{ info.tba != None }}</td>
-                            <td>{{ info.apia != None }}</td>
+                            <td>
+                                {% if node.potentially_data() or node.potentially_function() %}
+                                    {{ info.tbr != None }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if node.potentially_function() %}
+                                    {{ info.tba != None }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if node.potentially_function() %}
+                                    {{ info.apia != None }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
                             <td>...</td>
                         </tr>
                     {% endfor %}
