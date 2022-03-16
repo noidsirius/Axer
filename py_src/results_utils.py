@@ -179,13 +179,14 @@ class AddressBook:
                         max_subseq_tb_element = tb_reachable_xpaths[tb_xpath]
             info['tbr'] = max_subseq_tb_element
             min_subseq_tb_action = None
-            for tb_xpath in tb_actions_xpaths:
-                if tb_xpath.startswith(oac_node.xpath):
-                    tb_node = Node.createNodeFromDict(tb_actions_xpaths[tb_xpath])
-                    if not bounds_included(oac_node.bounds, tb_node.bounds):
-                        continue
-                    if min_subseq_tb_action is None or len(min_subseq_tb_action['xpath']) < len(tb_xpath):
-                        min_subseq_tb_action = tb_actions_xpaths[tb_xpath]
+            if info['tbr'] is not None:
+                for tb_xpath in tb_actions_xpaths:
+                    if tb_xpath.startswith(oac_node.xpath):
+                        tb_node = Node.createNodeFromDict(tb_actions_xpaths[tb_xpath])
+                        if not bounds_included(oac_node.bounds, tb_node.bounds):
+                            continue
+                        if min_subseq_tb_action is None or len(min_subseq_tb_action['xpath']) < len(tb_xpath):
+                            min_subseq_tb_action = tb_actions_xpaths[tb_xpath]
             info['tba'] = min_subseq_tb_action
             min_subseq_api_action = None
             for api_xpath in api_actions_xpaths:
