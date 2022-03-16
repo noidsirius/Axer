@@ -167,6 +167,8 @@ class AddressBook:
                     with open(self.get_log_path('s_areg', action['index'], extension=BLIND_MONKEY_EVENTS_TAG)) as f2:
                         if "TYPE_VIEW_CLICKED" in f2.read():
                             api_actions_xpaths[action['element']['xpath']] = action
+        tba_resource_id_to_action = {}
+        apia_resource_id_to_action = {}
         for oac_node in oac_nodes:
             info = {}
             max_subseq_tb_element = None
@@ -188,6 +190,8 @@ class AddressBook:
                         if min_subseq_tb_action is None or len(min_subseq_tb_action['xpath']) < len(tb_xpath):
                             min_subseq_tb_action = tb_actions_xpaths[tb_xpath]
             info['tba'] = min_subseq_tb_action
+            if info['tba'] is not None and info['tba']['resource_id']:
+                tba_resource_id_to_action[info['tba']['resource_id']] = info['tba']
             min_subseq_api_action = None
             for api_xpath in api_actions_xpaths:
                 if api_xpath.startswith(oac_node.xpath):
@@ -197,7 +201,14 @@ class AddressBook:
                     if min_subseq_api_action is None or len(min_subseq_api_action['xpath']) < len(tb_xpath):
                         min_subseq_api_action = api_actions_xpaths[api_xpath]
             info['apia'] = min_subseq_api_action
+            if info['apia'] is not None and info['apia']['resource_id']:
+                tba_resource_id_to_action[info['apia']['resource_id']] = info['apia']
             oac_info_map[oac_node] = info
+        for oac_node, info in oac_info_map.items():
+            if info['tba'] is None and oac_node.resource_id in tba_resource_id_to_action:
+                info['tba'] = tba_resource_id_to_action[oac_node.resource_id]
+            if info['apia'] is None and oac_node.resource_id in apia_resource_id_to_action:
+                info['apia'] = apia_resource_id_to_action[oac_node.resource_id]
         return oac_info_map
 
 

@@ -153,6 +153,7 @@ async def execute_latte_command(device, command: str, extra: str):
                  +"\hline" \
                  + "\n"
         print(header)
+        csv_data = [("App", "Snapshot", "Nodes", "PSmell", "ASmell", "PTBR", "ATBA", "AAPIA")]
         for app_names in [locker_pkgs, latte_pkgs, other_pkgs]:
             for app_name in app_names:
                 if not app_name:
@@ -208,9 +209,19 @@ async def execute_latte_command(device, command: str, extra: str):
                     app_row += f"& {(len(all_ope) / number_of_nodes):.2f} "  # OAE Reduction
                     app_row += "& - "  # OAE Precision
                     app_row += "\\\\ \n"
+                    csv_data.append((app_path.name,
+                                     s_index,
+                                     number_of_nodes,
+                                     len(smells['P']),
+                                     len(smells['A']),
+                                     oae_tbr,
+                                     oae_tba,
+                                     oae_apia
+                                     ))
                 app_row += "\hline \n"
                 print(app_row)
             print("\hline \n")
+        logger.info("\n".join([",".join([str(x) for x in row]) for row in csv_data]))
 
 
     if command == "os_new_rq1":

@@ -268,8 +268,18 @@ class NodesFactory:
             if resource_id.endswith("_ad") \
                 or resource_id.endswith("_ads") \
                 or '_ad_' in resource_id \
-                or remaining.startswith('ads'):
+                or resource_id.endswith("Ads") \
+                    or remaining.startswith('ad_') \
+                    or remaining.startswith('ads'):
                 node.is_ad = True
+            if not node.is_ad and node.class_name == "android.widget.FrameLayout":
+                flag = False
+                for child in children_nodes:
+                    if child.text == "Test Ad":
+                        flag = True
+                        break
+                if flag:
+                    node.is_ad = True
             if node.is_ad:
                 for child_node in children_nodes:
                     child_node.is_ad = True
