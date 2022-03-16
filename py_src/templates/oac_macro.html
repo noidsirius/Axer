@@ -56,6 +56,7 @@
                         <th scope="col">Clickable</th>
                         <th scope="col">Enabled</th>
                         <th scope="col">Visible</th>
+                        <th scope="col">Bounds</th>
                         <th scope="col">TBR</th>
                         <th scope="col">TBA</th>
                         <th scope="col">APIA</th>
@@ -71,9 +72,15 @@
                             <td>{{ node.clickable }}</td>
                             <td>{{ node.enabled }}</td>
                             <td>{{ node.visible }}</td>
+                            <td>{{ node.bounds }}</td>
                             <td>
                                 {% if node.potentially_data() or node.potentially_function() %}
-                                    {{ info.tbr != None }}
+                                    {% if info.tbr != None %}
+                                        {{ info.tbr.bounds }}
+                                    {% else %}
+                                        False
+                                    {% endif %}
+
                                 {% else %}
                                     -
                                 {% endif %}

@@ -6,7 +6,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional, Union, Dict, List
 
-from GUI_utils import Node
+from GUI_utils import Node, bounds_included
 from adb_utils import get_current_activity_name
 from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG
 from latte_executor_utils import ExecutionResult, latte_capture_layout as capture_layout
@@ -172,18 +172,27 @@ class AddressBook:
             max_subseq_tb_element = None
             for tb_xpath in tb_reachable_xpaths:
                 if oac_node.xpath.startswith(tb_xpath):
+                    tb_node = Node.createNodeFromDict(tb_reachable_xpaths[tb_xpath])
+                    if not bounds_included(tb_node.bounds, oac_node.bounds):
+                        continue
                     if max_subseq_tb_element is None or len(max_subseq_tb_element['xpath']) < len(tb_xpath):
                         max_subseq_tb_element = tb_reachable_xpaths[tb_xpath]
             info['tbr'] = max_subseq_tb_element
             min_subseq_tb_action = None
             for tb_xpath in tb_actions_xpaths:
                 if tb_xpath.startswith(oac_node.xpath):
+                    tb_node = Node.createNodeFromDict(tb_actions_xpaths[tb_xpath])
+                    if not bounds_included(oac_node.bounds, tb_node.bounds):
+                        continue
                     if min_subseq_tb_action is None or len(min_subseq_tb_action['xpath']) < len(tb_xpath):
                         min_subseq_tb_action = tb_actions_xpaths[tb_xpath]
             info['tba'] = min_subseq_tb_action
             min_subseq_api_action = None
             for api_xpath in api_actions_xpaths:
                 if api_xpath.startswith(oac_node.xpath):
+                    api_node = Node.createNodeFromDict(api_actions_xpaths[api_xpath])
+                    if not bounds_included(oac_node.bounds, api_node.bounds):
+                        continue
                     if min_subseq_api_action is None or len(min_subseq_api_action['xpath']) < len(tb_xpath):
                         min_subseq_api_action = api_actions_xpaths[api_xpath]
             info['apia'] = min_subseq_api_action
