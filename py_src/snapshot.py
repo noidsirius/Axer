@@ -238,7 +238,7 @@ class Snapshot:
                     logger.info("Change the direction!")
                     self.is_next_direction = False
                     for key, value in self.visited_xpath_count.items():
-                        self.visited_xpath_count[key] = value - 2
+                        self.visited_xpath_count[key] = value - 1
                     if not await load_snapshot(self.initial_snapshot):
                         logger.debug("Error in loading snapshot")
                         return False
@@ -257,7 +257,11 @@ class Snapshot:
         return True
 
     async def point_action(self):
-        logger.info("Validating remaining actions.")
+        if not self.address_book.visited_elements_path.exists():
+            if not await self.emulator_setup():
+                logger.error("Error in emulator setup!")
+            return False
+        logger.info("Performing actions")
         self.writer.start_stb()
         important_actions = await self.get_important_actions()
         logger.info(f"There are {len(important_actions)} actions in explore!")

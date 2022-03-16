@@ -17,8 +17,9 @@ def analyze_snapshot(device,
                      is_oversight: bool,
                      directional_action_limit: int,
                      point_action_limit: int,
+                     only_explore:bool,
+                     only_action:bool,
                      is_instrumented: bool):
-    mode = 1
     visited_elements_in_app = read_all_visited_elements_in_app(snapshot_path.parent)
     logger.info(f"There are {len(visited_elements_in_app)} already visited elements in this app!")
     address_book = AddressBook(snapshot_path)
@@ -29,17 +30,19 @@ def analyze_snapshot(device,
                         directional_action_limit=directional_action_limit,
                         point_action_limit=point_action_limit,
                         device=device)
-    if mode == 1:
+    if only_explore:
+        asyncio.run(snapshot.directed_explore())
+    elif only_action:
+        asyncio.run(snapshot.point_action())
+        open(address_book.finished_path, "w").close()
+    else:
         success_explore = asyncio.run(snapshot.directed_explore_action())
         if not success_explore:
             logger.error("Problem with explore!")
             return
         asyncio.run(snapshot.sighted_explore_action())
-    elif mode == 2:
-        asyncio.run(snapshot.directed_explore())
-        asyncio.run(snapshot.point_action())
 
-    open(address_book.finished_path, "w").close()
+        open(address_book.finished_path, "w").close()
 
 
 if __name__ == "__main__":
@@ -48,6 +51,8 @@ if __name__ == "__main__":
     parser.add_argument('--output-path', type=str, required=True, help='The path that outputs will be written')
     parser.add_argument('--app-name', type=str, required=True, help='Name of the app under test')
     parser.add_argument('--oversight', action='store_true', help='Evaluating Oversight')
+    parser.add_argument('--only-explore', action='store_true', help='Only directionally explore, no action')
+    parser.add_argument('--only-action', action='store_true', help='Only performing action, no explore')
     parser.add_argument('--dir-action-limit', type=int, default=100, help='Max number of directional reachable actions')
     parser.add_argument('--point-action-limit', type=int, default=100, help='Max number of point actions')
     parser.add_argument('--device', type=str, default=DEVICE_NAME, help='The device name')
@@ -91,6 +96,8 @@ if __name__ == "__main__":
                          directional_action_limit=args.dir_action_limit,
                          point_action_limit=args.point_action_limit,
                          is_oversight=args.oversight,
+                         only_explore=args.only_explore,
+                         only_action=args.only_action,
                          is_instrumented=args.instrumented)
     except Exception as e:
         logger.error("Exception happened in analyzing the snapshot", exc_info=e)
