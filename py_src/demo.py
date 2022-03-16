@@ -149,7 +149,7 @@ async def execute_latte_command(device, command: str, extra: str):
         oac_names = {}
         for w in ['A', 'P']:
             oac_names[w] = {oac.name: oac for oac in OAC if oac.name.startswith(w)}
-        header = "App & Snapshot & \#Nodes & \#P Smell & \#A Smell & Smell Reduction & Smell Precision & \#P TBR &  \#A TBA & \#A APIA & OAE Reduction & OAE Precision \\\\" \
+        header = "App & Snapshot & \#Nodes & \#P Smell & \#A Smell & Smell Reduction & Smell Precision & \#P TBR & \#P APIR &  \#A TBA & \#A APIA & OAE Reduction & OAE Precision \\\\" \
                  +"\hline" \
                  + "\n"
         print(header)
@@ -161,7 +161,7 @@ async def execute_latte_command(device, command: str, extra: str):
                 app_path = result_path.joinpath(app_name)
                 if not app_path.exists() or not app_path.is_dir():
                     app_row = "\multirow{1}{*}{\\texttt{" + app_path.name[:15] + "}" + ("..." if len(app_path.name) > 15 else "") + "} "
-                    app_row += "& - & - & - & - & - & - & - & - & - & - & - \\\\ \n"
+                    app_row += "& - & - & - & - & - & - & - & - & - & - & - & - \\\\ \n"
                     app_row += "\hline \n"
                     print(app_row)
                     continue
@@ -173,7 +173,7 @@ async def execute_latte_command(device, command: str, extra: str):
                 snapshot_count = len(snapshot_paths)
                 if snapshot_count == 0:
                     app_row = "\multirow{1}{*}{\\texttt{" + app_path.name[:15] + "}" + ("..." if len(app_path.name) > 15 else "") + "} "
-                    app_row += "& - & - & - & - & - & - & - & - & - & - & - \\\\ \n"
+                    app_row += "& - & - & - & - & - & - & - & - & - & - & - & - \\\\ \n"
                     app_row += "\hline \n"
                     print(app_row)
                     continue
@@ -203,6 +203,7 @@ async def execute_latte_command(device, command: str, extra: str):
                     app_row += f"& {(len(all_smells) / number_of_nodes):.2f} "  # Smell Reduction
                     app_row += "& - "  # Smell Precision
                     oae_tbr = len([s for s in smells['P'] if s[1]['tbr'] is not None])
+                    app_row += f"& {len(smells['P'])} "  # P APIR
                     oae_tba = len([s for s in smells['A'] if s[1]['tba'] is not None])
                     oae_apia = len([s for s in smells['A'] if s[1]['apia'] is not None])
                     app_row += f"& {oae_tbr} & {oae_tba} & {oae_apia} "  # TBR TBA APIA
@@ -391,29 +392,29 @@ async def execute_latte_command(device, command: str, extra: str):
 
 
 if __name__ == "__main__":
-    # run_local = False
-    # device = None
-    # if run_local:
-    #     command = "write_nodes"
-    #     extra = "/Users/navid/StudioProjects/Latte/dev_results/com.meditationmoments.meditationmoments/com.meditationmoments.meditationmoments.S_1/EXP/INITIAL.xml"
-    # else:
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--command', type=str, help='The command sending to Latte')
-    parser.add_argument('--extra', type=str, default="", help='The extra information sent to Latte')
-    parser.add_argument('--device', type=str, default=DEVICE_NAME, help='The device name')
-    parser.add_argument('--adb-host', type=str, default=ADB_HOST, help='The host address of ADB')
-    parser.add_argument('--adb-port', type=int, default=ADB_PORT, help='The port number of ADB')
-    args = parser.parse_args()
-    command = args.command
-    extra = args.extra
-    logging.basicConfig(level=logging.DEBUG)
-    try:
-        client = AdbClient(host=args.adb_host, port=args.adb_port)
-        device = asyncio.run(client.device(args.device))
-        logger.debug(f"Device {device.serial} is connected!")
-    except Exception as e:
-        logger.error(f"The device is not connected to {args.device}")
-        device = None
+    run_local = False
+    device = None
+    if run_local:
+        command = "os_n2_rq1"
+        extra = "../dev_results"
+    else:
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--command', type=str, help='The command sending to Latte')
+        parser.add_argument('--extra', type=str, default="", help='The extra information sent to Latte')
+        parser.add_argument('--device', type=str, default=DEVICE_NAME, help='The device name')
+        parser.add_argument('--adb-host', type=str, default=ADB_HOST, help='The host address of ADB')
+        parser.add_argument('--adb-port', type=int, default=ADB_PORT, help='The port number of ADB')
+        args = parser.parse_args()
+        command = args.command
+        extra = args.extra
+        logging.basicConfig(level=logging.DEBUG)
+        try:
+            client = AdbClient(host=args.adb_host, port=args.adb_port)
+            device = asyncio.run(client.device(args.device))
+            logger.debug(f"Device {device.serial} is connected!")
+        except Exception as e:
+            logger.error(f"The device is not connected to {args.device}")
+            device = None
 
     if command:
         asyncio.run(execute_latte_command(device, command, extra))
