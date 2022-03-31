@@ -14,6 +14,7 @@
                 <th scope="col">Redundant Actions<br> (Visited in other snapshots)</th>
                 <th scope="col">Valid Elements </th>
                 <th scope="col">Visited Elements</th>
+                <th scope="col">Visited Gif</th>
                 <th scope="col">Visited Actions</th>
                 <th scope="col">Sighted Remaining Elements</th>
                 <th scope="col">...</th>
@@ -22,7 +23,7 @@
             <tbody>
             <tr>
                 <td>
-                    <a href="#" class="enlarge">
+                    <a  class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.all_element_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
@@ -30,7 +31,7 @@
                     <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_layout_path('exp', 'INITIAL'), result_path)) }}">Layout</a>
                 </td>
                 <td>
-                    <a href="#" class="enlarge">
+                    <a  class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.atf_issues_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
@@ -38,19 +39,19 @@
                     <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.atf_issues_path, result_path)) }}">ATF Issues</a>
                 </td>
                 <td>
-                    <a href="#" class="enlarge">
+                    <a  class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.all_action_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
                 </td>
                 <td>
-                    <a href="#" class="enlarge">
+                    <a  class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.redundant_action_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
                 </td>
                 <td>
-                    <a href="#" class="enlarge">
+                    <a  class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.valid_action_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
@@ -58,7 +59,7 @@
                     <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.valid_elements_path, result_path)) }}">Valid Elements</a>
                 </td>
                 <td>
-                    <a href="#" class="enlarge">
+                    <a  class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.visited_elements_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
@@ -66,7 +67,15 @@
                     <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.visited_elements_path, result_path)) }}">Visited Elements</a>
                 </td>
                 <td>
-                    <a href="#" class="enlarge">
+                    <a  class="enlarge">
+                        <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.visited_elements_gif, result_path)) }}" class="rounded d-block mx-auto"
+                             style="width: 10rem;">
+                    </a>
+                    <hr>
+                    <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.visited_elements_path, result_path)) }}">Visited Elements</a>
+                </td>
+                <td>
+                    <a  class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.visited_action_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
@@ -74,7 +83,7 @@
                     <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.action_path, result_path)) }}">Performed Actions</a>
                 </td>
                 <td>
-                    <a href="#" class="enlarge">
+                    <a  class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.s_action_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
@@ -134,7 +143,7 @@
             <tr>
                 {% for oac_name in oac_names + ['oacs'] %}
                     <td>
-                        <a href="#" class="enlarge">
+                        <a  class="enlarge">
                             <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_os_result_path(oac_name, extension='png'), result_path)) }}" class="rounded d-block mx-auto"
                                  style="width: 10rem;">
                         </a>

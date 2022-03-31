@@ -67,7 +67,12 @@ if __name__ == "__main__":
     snapshot_result_path = app_result_path.joinpath(args.snapshot)
     if not snapshot_result_path.exists():
         snapshot_result_path.mkdir(parents=True)
-    log_path = app_result_path.joinpath(f"{args.snapshot}.log")
+    log_path_name = args.snapshot
+    if args.only_explore:
+        log_path_name += "_exp"
+    elif args.only_action:
+        log_path_name += "_act"
+    log_path = app_result_path.joinpath(f"{log_path_name}.log")
 
     if args.debug:
         level = logging.DEBUG

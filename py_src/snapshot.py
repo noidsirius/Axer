@@ -248,11 +248,14 @@ class Snapshot:
                     self.writer.write_last_navigate_log(tb_navigate_log)
                     break
             logger.debug("Next focused element is " + next_focused_element)
-
+        visited_elements = [visited_element['element'] if visited_element['node'] is None
+                            else visited_element['node'] for visited_element in self.writer.visited_elements]
         annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
                           self.address_book.visited_elements_screenshot,
-                          [visited_element['element'] if visited_element['node'] is None
-                           else visited_element['node'] for visited_element in self.writer.visited_elements])
+                          visited_elements)
+        annotate_elements(self.address_book.get_screenshot_path('exp', 'INITIAL'),
+                          self.address_book.visited_elements_gif,
+                          visited_elements)
         logger.info("Done Exploring!")
         return True
 
@@ -370,7 +373,7 @@ class Snapshot:
             # ------------------- Navigate Next -------------------
             tb_navigate_log, next_focused_element = await self.navigate_next(padb_logger)
             if not next_focused_element:
-                if not self.is_next_direction:
+                if self.is_next_direction:
                     logger.info("Change the direction!")
                     self.is_next_direction = True
                     for key, value in self.visited_xpath_count.items():
@@ -391,7 +394,8 @@ class Snapshot:
             # ------------------- End Navigate Next -------------------
             logger.info("Groundhog Day!")
 
-        if next_focused_element is not None:
+        if next_focused_element is not None or self.directional_action_limit == 0:
+            logger.info("Continue linear directional explore")
             # TODO: Refactor this
             #  The directional exploration is not done yet
             while True:

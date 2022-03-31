@@ -49,6 +49,7 @@ class AddressBook:
         self.redundant_action_screenshot = self.mode_path_map['exp'].joinpath("redundant_actions.png")
         self.visited_action_screenshot = self.mode_path_map['exp'].joinpath("visited_actions.png")
         self.visited_elements_screenshot = self.mode_path_map['exp'].joinpath("visited_elements.png")
+        self.visited_elements_gif = self.mode_path_map['exp'].joinpath("visited_elements.gif")
         self.finished_path = self.snapshot_result_path.joinpath("finished.flag")
         self.last_explore_log_path = self.snapshot_result_path.joinpath("last_explore.log")
         self.visited_elements_path = self.snapshot_result_path.joinpath("visited.jsonl")
@@ -261,9 +262,9 @@ class ResultWriter:
         if not is_sighted:
             exp_screenshot_path = self.address_book.get_screenshot_path('exp', action_index, should_exists=True)
             if exp_screenshot_path:
-                annotate_rectangle(exp_screenshot_path,
-                                   self.address_book.get_screenshot_path('exp', action_index, extension="edited"),
-                                   [reg_action_result.bound],
+                annotate_rectangle(source_img=exp_screenshot_path,
+                                   target_img=self.address_book.get_screenshot_path('exp', action_index, extension="edited"),
+                                   bounds=[reg_action_result.bound],
                                    outline=(0, 255, 255),
                                    scale=15,
                                    width=15,)
@@ -271,15 +272,15 @@ class ResultWriter:
             initial_path = self.address_book.get_screenshot_path('s_exp', 'INITIAL', should_exists=True)
             if initial_path is not None:
                 if isinstance(tb_action_result, ExecutionResult):
-                    annotate_rectangle(initial_path,
-                                       self.address_book.get_screenshot_path('s_exp', action_index, extension="edited"),
+                    annotate_rectangle(source_img=initial_path,
+                                       target_img=self.address_book.get_screenshot_path('s_exp', action_index, extension="edited"),
                                        bounds=[reg_action_result.bound, tb_action_result.bound],
                                        outline=[(255, 0, 255), (255, 255, 0)],
                                        width=[5, 15],
                                        scale=[1, 20])
                 else:
-                    annotate_rectangle(initial_path,
-                                       self.address_book.get_screenshot_path('s_exp', action_index, extension="edited"),
+                    annotate_rectangle(source_img=initial_path,
+                                       target_img=self.address_book.get_screenshot_path('s_exp', action_index, extension="edited"),
                                        bounds=[reg_action_result.bound],
                                        outline=(255, 0, 255),
                                        width=5,
