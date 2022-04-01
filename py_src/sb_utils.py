@@ -79,7 +79,7 @@ def statice_analyze(layout_path: Union[str, Path],
     result_path = address_book.get_os_result_path()
     with open(result_path, "w") as f:
         for node, oacs in node_to_oac_map.items():
-            entry = {'node': json.loads(node.toJSONStr()), 'OACs': [str(x) for x in oacs]}
+            entry = {'node': node.toJSON(), 'OACs': [str(x) for x in oacs]}
             f.write(f"{json.dumps(entry)}\n")
 
     return list(node_to_oac_map.keys())

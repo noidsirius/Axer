@@ -242,7 +242,7 @@ class ResultWriter:
             'index': len(self.visited_elements),
             'state': state,
             'element': visited_element,
-            'node': json.loads(node.toJSONStr()) if use_detailed else None
+            'node': node.toJSON() if use_detailed else None
         }
         self.visited_elements.append(visited_element)
         with open(self.address_book.visited_elements_path, "a") as f:
@@ -290,7 +290,7 @@ class ResultWriter:
                       'tb_action_result': tb_action_result,
                       'reg_action_result': reg_action_result,
                       'areg_action_result': areg_action_result,
-                      'node': None if node is None else json.loads(node.toJSONStr()),
+                      'node': None if node is None else node.toJSON(),
                       'is_sighted': is_sighted
                       }
         self.actions.append(new_action)

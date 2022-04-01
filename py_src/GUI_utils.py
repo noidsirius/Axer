@@ -202,6 +202,9 @@ class Node:
                                              if k not in excluded_attributes},
                           sort_keys=True)
 
+    def toJSON(self, excluded_attributes: List[str] = None) -> dict:
+        return json.loads(self.toJSONStr(excluded_attributes))
+
     def __str__(self):
         a = {"index": self.index, "class": self.class_name, "text": self.text,
              "bounds": "[{},{}][{},{}]".format(self.bounds[0], self.bounds[1], self.bounds[2], self.bounds[3]),
