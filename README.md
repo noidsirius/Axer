@@ -1,6 +1,16 @@
 # BlindMonkey
 ## Setup
--  Install python packages `pip install -r requirements.txt`
+- For OS X
+  - Install coreutils "brew install coreutils"
+  - Use Java8, if there are multiple Java versions use [jenv](https://www.jenv.be/)
+  - Set `ANDROID_HOME` environment varilable (usually `export ANDROID_HOME=~/Library/Android/sdk`)
+  - Add emulator and platform tools to `PATH` (if it's not already added). `export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:${PATH}"`
+- For other UNIX system: it's not tested
+
+- Optional: create a virtual environment in `.env`
+
+- run `source env`
+- Install python packages `pip install -r requirements.txt`
 - Initialize an Android Virtual Device (AVD) with SDK +28 and name it `testAVD_1`
 -	Disable soft main keys and virtual keyboard by adding `hw.mainKeys=yes` and `hw.kayboard=yes`  to `~/.android/avd/testAVD_1.avd/config.ini`
 	- If virtual device is not disabled, please follow this [link](https://support.honeywellaidc.com/s/article/CN51-Android-How-to-prevent-virtual-keyboard-from-popping-up)
@@ -23,6 +33,7 @@ You can interact with Latte by sending commands to its Broadcast Receiver or rec
 - **General**
 	- `log`: Prints the current layout's xpaths in Android logs.
 	- `is_live`: Given a string as the extra, creates a file `is_live_<extra>.txt`. It can be used to determine Latte is alive.
+	- `invisible_nodes`: Make Latte does (not) consider invisible nodes. Extra can be 'true' or 'false'
 	- `capture_layout`: Dumps the XML file of the current layout. Output's file name: `a11y_layout.xml`
 	- `report_a11y_issues`: Prints the accessibility issues (reported by Accessibility Testing Framework) in Android logs.
 	- `sequence`: Execute a sequence of commands which is given in input as a JSON string. Example: [{'command': 'log', 'extra': 'NONE'}]

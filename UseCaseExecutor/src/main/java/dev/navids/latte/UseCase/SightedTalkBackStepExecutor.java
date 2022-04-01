@@ -12,7 +12,7 @@ import dev.navids.latte.LatteService;
 import dev.navids.latte.Utils;
 
 public class SightedTalkBackStepExecutor implements StepExecutor {
-
+    public static boolean apiFocus = false;
     @Override
     public boolean executeStep(StepCommand step) {
         Log.i(LatteService.TAG, "STB Executing Step " + step);
@@ -49,10 +49,16 @@ public class SightedTalkBackStepExecutor implements StepExecutor {
             else {
                 AccessibilityNodeInfo node = similarNodes.get(0);
                 if(!ActionUtils.isFocusedNodeTarget(similarNodes)){
-                    Pair<Integer, Integer> clickableCoordinate = ActionUtils.getClickableCoordinate(node, false);
-                    int x =clickableCoordinate.first, y = clickableCoordinate.second;
-                    Log.e(LatteService.TAG, String.format("Physically clicking on (%d, %d)", x, y));
-                    ActionUtils.performTap(x, y);
+                    if(apiFocus){
+                        Log.e(LatteService.TAG, String.format("API Focusing on %s", node));
+                        ActionUtils.a11yFocusOnNode(node);
+                    }
+                    else {
+                        Pair<Integer, Integer> clickableCoordinate = ActionUtils.getClickableCoordinate(node, false);
+                        int x = clickableCoordinate.first, y = clickableCoordinate.second;
+                        Log.e(LatteService.TAG, String.format("Physically clicking on (%d, %d)", x, y));
+                        ActionUtils.performTap(x, y);
+                    }
                     locatableStep.increaseLocatingAttempts();
                     return false;
                 }

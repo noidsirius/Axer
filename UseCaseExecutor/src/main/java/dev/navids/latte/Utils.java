@@ -76,20 +76,14 @@ public class Utils {
 
     public static List<AccessibilityNodeInfo> findSimilarNodes(ConceivedWidgetInfo target, List<String> myMaskedAttributes){
         List<AccessibilityNodeInfo> result = new ArrayList<>();
-        List<AccessibilityNodeInfo> nonVisibleResult = new ArrayList<>();
         for(AccessibilityNodeInfo node : getAllA11yNodeInfo(false)) {
-            if(!node.isVisibleToUser())
+            if(!LatteService.considerInvisibleNodes && !node.isVisibleToUser())
                 continue;
             ActualWidgetInfo currentNodeInfo = ActualWidgetInfo.createFromA11yNode(node); // TODO: Use Cache
             if (target.isSimilar(currentNodeInfo, myMaskedAttributes)) {
-                if(node.isVisibleToUser())
-                    result.add(node);
-                else
-                    nonVisibleResult.add(node);
+                result.add(node);
             }
         }
-        if(result.size() == 0)
-            result.addAll(nonVisibleResult);
         return result;
     }
 
@@ -176,10 +170,12 @@ public class Utils {
         // Extra Attributes
         serializer.attribute("", "importantForAccessibility", Boolean.toString(node.isImportantForAccessibility()));
         serializer.attribute("", "supportsWebAction", Boolean.toString(supportsWebAction));
-        serializer.attribute("", "z-a11y-actions", String.join("-", actions));
+        serializer.attribute("", "actionList", String.join("-", actions));
         serializer.attribute("", "clickableSpan", Boolean.toString(hasClickableSpan));
         serializer.attribute("", "drawingOrder", Integer.toString(node.getDrawingOrder()));
-//        serializer.attribute("", "visible", Boolean.toString(node.isVisibleToUser()));
+        serializer.attribute("", "visible", Boolean.toString(node.isVisibleToUser()));
+        serializer.attribute("", "invalid", Boolean.toString(node.isContentInvalid()));
+        serializer.attribute("", "contextClickable", Boolean.toString(node.isContextClickable()));
         // Regular Attributes
         serializer.attribute("", "index", Integer.toString(index));
         serializer.attribute("", "text", safeCharSeqToString(node.getText()));
@@ -202,7 +198,7 @@ public class Utils {
         for (int i = 0; i < count; i++) {
             AccessibilityNodeInfo child = node.getChild(i);
             if (child != null) {
-                if (child.isVisibleToUser()) {
+                if (LatteService.considerInvisibleNodes || child.isVisibleToUser()) {
                 dumpNodeRec(child, serializer, i, width, height);
                 child.recycle();
                 } else {

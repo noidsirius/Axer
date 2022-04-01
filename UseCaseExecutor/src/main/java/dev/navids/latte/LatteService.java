@@ -43,6 +43,7 @@ public class LatteService extends AccessibilityService {
     private boolean connected = false;
     public static String TAG = "LATTE_SERVICE";
     private String A11Y_EVENT_TAG = "LATTE_A11Y_EVENT_TAG";
+    public static boolean considerInvisibleNodes = true;
 
     public static LatteService getInstance() {
         return instance;
@@ -111,8 +112,9 @@ public class LatteService extends AccessibilityService {
                     break;
                 }
             AccessibilityWindowInfo activeWindow = null;
-            if(getRootInActiveWindow() != null)
-                activeWindow = getRootInActiveWindow().getWindow();
+            AccessibilityNodeInfo rootInActiveWindow = getRootInActiveWindow();
+            if(rootInActiveWindow != null)
+                activeWindow = rootInActiveWindow.getWindow();
             JSONObject jsonWindowContentChange = null;
             int activeWindowId = activeWindow != null ? activeWindow.getId() : -1;
             String activeWindowTitle = activeWindow != null && activeWindow.getTitle() != null ? activeWindow.getTitle().toString() : "null";

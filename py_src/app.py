@@ -11,10 +11,12 @@ import math
 import datetime
 from ansi2html import Ansi2HTMLConverter
 from json2html import json2html
-from flask import Flask, request, jsonify, send_from_directory, render_template
+from flask import Flask, request, jsonify, send_from_directory, render_template, make_response
+
+from consts import BLIND_MONKEY_EVENTS_TAG
 
 sys.path.append(str(pathlib.Path(__file__).parent.resolve()))
-from results_utils import AddressBook
+from results_utils import AddressBook, OAC
 from post_analysis import do_post_analysis, get_post_analysis, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, \
     XML_PROBLEM \
     , DIFFERENT_BEHAVIOR, UNREACHABLE, POST_ANALYSIS_PREFIX
@@ -260,7 +262,7 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
         'snapshot_name': address_book.snapshot_name()
     }
     step['action'] = action['element']
-    step['action']['detailed_element'] = action.get('detailed_element', 'null')
+    step['action']['node'] = action.get('node', 'null')
     step['tags'] = []
     if address_book.tags_path.exists():
         with open(address_book.tags_path, encoding="utf-8") as f:
@@ -296,6 +298,8 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
                 static_root_path)
             step['mode_info'][f'{mode}_log'] = address_book.get_log_path(f'{prefix}{mode}',
                                                                          action['index']).relative_to(static_root_path)
+            step['mode_info'][f'{mode}_event_log'] = address_book.get_log_path(f'{prefix}{mode}',
+                                                                         action['index'], extension=BLIND_MONKEY_EVENTS_TAG).relative_to(static_root_path)
             step['mode_info'][f'{mode}_layout'] = address_book.get_layout_path(f'{prefix}{mode}',
                                                                                action['index']).relative_to(
                 static_root_path)
@@ -335,7 +339,8 @@ def inject_user():
     return dict(all_result_paths=all_result_paths,
                 static_path_fixer=static_path_fixer,
                 mode_to_repr=mode_to_repr,
-                zip=zip)
+                zip=zip,
+                oac_names=[oac.name for oac in OAC])
 
 
 @flask_app.route(f'/v2/static/<path:path>')
@@ -355,12 +360,20 @@ def send_result_static_v2(path: str):
                     content += line
         html_log = Ansi2HTMLConverter().convert(content)
         return html_log
-    if path.name.endswith('.jsonl'):
+    elif path.name.endswith('.jsonl'):
         content_list = []
         with open(path) as f:
             for line in f.readlines():
                 content_list.append(json.loads(line))
         return json2html.convert(content_list)
+    elif path.name.endswith('.xml'):
+        with open(path) as f:
+            content = f.read()
+            content = content.replace("&", "&amp;")
+
+        response = make_response(content)
+        response.headers['Content-Type'] = 'application/xml'
+        return response
 
     return send_from_directory(path.parent.resolve(), path.name)
 
@@ -387,7 +400,10 @@ def report_app_v2(result_path: str, app_name: str):
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is incorrect!"
     app_result_dir = result_path.joinpath(app_name)
-    app = create_app_info(app_result_dir)
+    app = {'name': app_result_dir.name,
+           'address_books': [AddressBook(snapshot_path)
+                             for snapshot_path in app_result_dir.iterdir()
+                             if snapshot_path.is_dir()]}
     return render_template('v2_app.html', app=app, result_path=result_path_str)
 
 
@@ -432,10 +448,14 @@ def search_v2(result_path_str: str):
         left_screen_fields = ['None'] * 1
         op_screen_fields = ['=']
         right_screen_fields = ['None'] * 1
-    count_field = request.args.get('count', '10')
-    if not count_field.isdecimal():
-        count_field = 10
-    count_field = int(count_field)
+    action_limit_field = request.args.get('action_limit_field', '10')
+    if not action_limit_field.isdecimal():
+        action_limit_field = 10
+    action_limit_field = int(action_limit_field)
+    snapshot_limit_field = request.args.get('snapshot_limit_field', '1000')
+    if not snapshot_limit_field.isdecimal():
+        snapshot_limit_field = 1000
+    snapshot_limit_field = int(snapshot_limit_field)
     limit_per_snapshot = 1 if one_result_per_snapshot == 'on' else 10000
     include_tags = include_tags_field.split(",")
     exclude_tags = exclude_tags_field.split(",")
@@ -476,16 +496,28 @@ def search_v2(result_path_str: str):
 
     search_results = get_search_manager(result_path).search(search_query=search_query,
                                                             # limit=count_field,
-                                                            limit_per_snapshot= limit_per_snapshot)
-    result_count = len(search_results)
-    action_results = []
-    for search_result in search_results[:count_field]:
-        action_result = create_step(search_result.address_book,
-                                    result_path.parent,
-                                    search_result.action,
-                                    search_result.post_analysis,
-                                    is_sighted=search_result.is_sighted)
-        action_results.append(action_result)
+                                                            action_per_snapshot_limit= limit_per_snapshot)
+    all_action_result_count = sum(len(x.action_results) for x in search_results)
+    all_snapshots_result_count = len(search_results)
+    action_result_count = 0
+    results = []
+    for address_book, search_action_results in search_results:
+        if action_result_count >= action_limit_field:
+            break
+        if len(results) >= snapshot_limit_field:
+            break
+        snapshot_result = {'address_book': address_book, 'action_results': []}
+        for search_action_result in search_action_results:
+            action_result = create_step(address_book,
+                                        result_path.parent,
+                                        search_action_result.action,
+                                        search_action_result.post_analysis,
+                                        is_sighted=search_action_result.action['is_sighted'])
+            snapshot_result['action_results'].append(action_result)
+            action_result_count += 1
+            if action_result_count >= action_limit_field:
+                break
+        results.append(snapshot_result)
 
     app_names = ['All']
     for app_path in result_path.iterdir():
@@ -495,7 +527,9 @@ def search_v2(result_path_str: str):
 
     return render_template('search.html',
                            result_path=result_path_str,
-                           result_count=result_count,
+                           results=results,
+                           all_action_result_count=all_action_result_count,
+                           all_snapshots_result_count=all_snapshots_result_count,
                            action_attrs=zip(action_attr_names, action_attr_fields),
                            action_xml_attrs=zip(action_xml_attr_names, action_xml_attr_fields),
                            tb_type=tb_type,
@@ -504,7 +538,8 @@ def search_v2(result_path_str: str):
                            areg_result_field=areg_result_field,
                            post_analysis_result=post_analysis_result,
                            one_result_per_snapshot=one_result_per_snapshot,
-                           count_field=count_field,
+                           action_limit_field=action_limit_field,
+                           snapshot_limit_field=snapshot_limit_field,
                            include_tags_field=include_tags_field,
                            exclude_tags_field=exclude_tags_field,
                            xml_fields=zip(left_xml_fields, cycle(op_xml_fields), right_xml_fields),
@@ -512,7 +547,6 @@ def search_v2(result_path_str: str):
                            xml_search_fields=xml_search_fields,
                            xml_search_mode=xml_search_mode,
                            xml_search_attrs=xml_search_attrs,
-                           action_results=action_results,
                            app_name_field=app_name_field,
                            app_names=app_names)
 
@@ -630,3 +664,19 @@ def report_v2(result_path, app_name, snapshot_name):
                            all_steps=all_steps,
                            name=snapshot_name,
                            errors=errors)
+
+
+@flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/report_sb")
+def report_sb_v2(result_path, app_name, snapshot_name):
+    result_path_str = result_path
+    result_path = pathlib.Path(fix_path(result_path))
+    if not (result_path.is_dir() and result_path.exists()):
+        return "The result path is incorrect!"
+    snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)
+    address_book = AddressBook(snapshot_path)
+    tb_steps = []
+    return render_template('v2_sb_report.html',
+                           result_path=result_path_str,
+                           app_name=app_name,
+                           address_book=address_book,
+                           name=snapshot_name)

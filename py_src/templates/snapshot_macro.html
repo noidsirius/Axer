@@ -14,6 +14,7 @@
                 <th scope="col">Redundant Actions<br> (Visited in other snapshots)</th>
                 <th scope="col">Valid Elements </th>
                 <th scope="col">Visited Elements</th>
+                <th scope="col">Visited Gif</th>
                 <th scope="col">Visited Actions</th>
                 <th scope="col">Sighted Remaining Elements</th>
                 <th scope="col">...</th>
@@ -22,7 +23,7 @@
             <tbody>
             <tr>
                 <td>
-                    <a href="#" class="enlarge">
+                    <a  class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.all_element_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
@@ -30,7 +31,7 @@
                     <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_layout_path('exp', 'INITIAL'), result_path)) }}">Layout</a>
                 </td>
                 <td>
-                    <a href="#" class="enlarge">
+                    <a  class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.atf_issues_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
@@ -38,25 +39,27 @@
                     <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.atf_issues_path, result_path)) }}">ATF Issues</a>
                 </td>
                 <td>
-                    <a href="#" class="enlarge">
+                    <a  class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.all_action_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
                 </td>
                 <td>
-                    <a href="#" class="enlarge">
+                    <a  class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.redundant_action_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
                 </td>
                 <td>
-                    <a href="#" class="enlarge">
+                    <a  class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.valid_action_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
+                    <hr>
+                    <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.valid_elements_path, result_path)) }}">Valid Elements</a>
                 </td>
                 <td>
-                    <a href="#" class="enlarge">
+                    <a  class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.visited_elements_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
@@ -64,16 +67,30 @@
                     <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.visited_elements_path, result_path)) }}">Visited Elements</a>
                 </td>
                 <td>
-                    <a href="#" class="enlarge">
+                    <a  class="enlarge">
+                        <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.visited_elements_gif, result_path)) }}" class="rounded d-block mx-auto"
+                             style="width: 10rem;">
+                    </a>
+                    <hr>
+                    <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.visited_elements_path, result_path)) }}">Visited Elements</a>
+                </td>
+                <td>
+                    <a  class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.visited_action_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
+                    <hr>
+                    <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.action_path, result_path)) }}">Performed Actions</a>
                 </td>
                 <td>
-                    <a href="#" class="enlarge">
+                    <a  class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.s_action_screenshot, result_path)) }}" class="rounded d-block mx-auto"
                              style="width: 10rem;">
                     </a>
+                    <hr>
+                    <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.s_possible_action_path, result_path)) }}">Possible Actions</a>
+                    -
+                    <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.action_path, result_path)) }}">Performed Actions</a>
                 </td>
                 <th scope="row">
                     <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_bm_log_path(), result_path)) }}">BlindMonkey Log</a>
@@ -90,6 +107,7 @@
                     <hr>
                     <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_layout_path('exp', 'INITIAL'), result_path)) }}">Layout </a>
                     <hr>
+                    <a class="btn btn-success" href="{{ url_for('report_sb_v2', result_path=result_path, app_name=address_book.app_name(), snapshot_name=address_book.snapshot_name()) }}">(SB)</a>
 {#                    <div class="form-check form-switch">#}
 {#                        <input class="form-check-input" type="checkbox" id="tb_steps_switch" checked>#}
 {#                        <label class="form-check-label" for="flexSwitchCheckDefault">Hide passed actions</label>#}
@@ -106,5 +124,60 @@
                 {{ error_logs.replace('\n','<br>').replace("ERROR", "<span class='text-danger'>ERROR</span>") | safe }}
             </div>
         </div>
+    </div>
+{% endmacro %}
+
+{% macro snapshot_bs_summary(address_book) %}
+    <div class="row">
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                {% for oac_name in oac_names %}
+                    <th scope="col">{{ oac_name }}</th>
+                {% endfor %}
+                <th scope="col">All </th>
+                <th scope="col">...</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                {% for oac_name in oac_names + ['oacs'] %}
+                    <td>
+                        <a  class="enlarge">
+                            <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_os_result_path(oac_name, extension='png'), result_path)) }}" class="rounded d-block mx-auto"
+                                 style="width: 10rem;">
+                        </a>
+                        <hr>
+                        Count: {{ address_book.get_oacs(oac_name) | length }}
+                        <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_os_result_path(oac_name, extension='jsonl'), result_path)) }}">
+                            Details
+                        </a>
+                    </td>
+                {% endfor %}
+                <th scope="row">
+                    <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_bm_log_path(), result_path)) }}">BlindMonkey Log</a>
+                    <hr>
+                    <a class="btn btn-primary" href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_layout_path('exp', 'INITIAL'), result_path)) }}">Layout </a>
+                    <hr>
+                    <a class="btn btn-success" href="{{ url_for('report_v2', result_path=result_path, app_name=address_book.app_name(), snapshot_name=address_book.snapshot_name()) }}">(Snapshot)</a>
+                    <hr>
+                    Snapshot: <a
+                        href="{{ url_for('report_v2',
+                                    result_path=address_book.result_path(),
+                                    app_name=address_book.app_name(),
+                                    snapshot_name=address_book.snapshot_name()) }}">
+                        {{ address_book.snapshot_name().split('.S_')[-1] }}
+                        </a>
+                    <hr>
+                    App: <a
+                        href="{{ url_for('report_app_v2',
+                                    result_path=address_book.result_path(),
+                                    app_name=address_book.app_name()) }}">
+                    {{ address_book.app_name() }}
+                    </a>
+                </th>
+            </tr>
+            </tbody>
+        </table>
     </div>
 {% endmacro %}

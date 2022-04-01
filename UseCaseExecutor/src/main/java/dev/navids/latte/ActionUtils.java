@@ -20,6 +20,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import dev.navids.latte.UseCase.FocusStep;
+import dev.navids.latte.UseCase.StepState;
+
 public class ActionUtils {
     private static Map<Integer, String> pendingActions = new HashMap<>();
     private static int pendingActionId = 0;
@@ -279,5 +282,18 @@ public class ActionUtils {
 
         new Handler().postDelayed(() -> { executeSwipeGesture(direction, secondDirection, callback);}, 10);
         return true;
+    }
+
+    public static boolean a11yFocusOnNode(AccessibilityNodeInfo node){
+        AccessibilityNodeInfo currentFocusedNode = LatteService.getInstance().getAccessibilityFocusedNode();
+        if (currentFocusedNode != null)
+            currentFocusedNode.performAction(AccessibilityNodeInfo.ACTION_CLEAR_ACCESSIBILITY_FOCUS);
+        ActualWidgetInfo focusableWidget = ActualWidgetInfo.createFromA11yNode(node);
+        if (focusableWidget == null) {
+            Log.e(LatteService.TAG, "The requested focusing  widget is null!");
+            return false;
+        }
+        Log.i(LatteService.TAG, "Focusing on widget: " + focusableWidget.completeToString(true));
+        return node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS);
     }
 }

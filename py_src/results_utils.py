@@ -2,16 +2,32 @@ import logging
 import asyncio
 import json
 import shutil
+from enum import Enum
 from pathlib import Path
-from typing import Optional, Union, List
+from typing import Optional, Union, Dict, List
+
+from GUI_utils import Node, bounds_included
 from adb_utils import get_current_activity_name
-from consts import BLIND_MONKEY_TAG
+from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG
 from latte_executor_utils import ExecutionResult, latte_capture_layout as capture_layout
 from padb_utils import ParallelADBLogger, save_screenshot
 from utils import annotate_rectangle
 
 
 logger = logging.getLogger(__name__)
+
+
+class OAC(Enum):  # Overly Accessible Condition
+    P1_BELONGS = 1
+    P2_OUT_OF_BOUNDS = 2
+    P3_COVERED = 3
+    P4_ZERO_AREA = 4
+    P5_AINVISIBLE = 5
+    A1_PINVISIBLE = 101
+    A2_CONDITIONAL_DISABLED = 102
+    A3_INCONSISTENT_ABILITIES = 103
+    A4_CAMOUFLAGED = 104
+    O_AD = -1
 
 
 class AddressBook:
@@ -23,6 +39,7 @@ class AddressBook:
         self.mode_path_map = {}
         for mode in navigate_modes:
             self.mode_path_map[mode] = self.snapshot_result_path.joinpath(mode.upper())
+        self.ovsersight_path = self.snapshot_result_path.joinpath("OS")
         self.atf_issues_path = self.mode_path_map['exp'].joinpath("atf_issues.jsonl")
         self.action_path = self.snapshot_result_path.joinpath("action.jsonl")
         self.all_element_screenshot = self.mode_path_map['exp'].joinpath("all_elements.png")
@@ -32,11 +49,13 @@ class AddressBook:
         self.redundant_action_screenshot = self.mode_path_map['exp'].joinpath("redundant_actions.png")
         self.visited_action_screenshot = self.mode_path_map['exp'].joinpath("visited_actions.png")
         self.visited_elements_screenshot = self.mode_path_map['exp'].joinpath("visited_elements.png")
+        self.visited_elements_gif = self.mode_path_map['exp'].joinpath("visited_elements.gif")
         self.finished_path = self.snapshot_result_path.joinpath("finished.flag")
         self.last_explore_log_path = self.snapshot_result_path.joinpath("last_explore.log")
         self.visited_elements_path = self.snapshot_result_path.joinpath("visited.jsonl")
         self.valid_elements_path = self.snapshot_result_path.joinpath("valid_elements.jsonl")
         self.tags_path = self.snapshot_result_path.joinpath("tags.jsonl")
+        self.s_possible_action_path = self.snapshot_result_path.joinpath("s_possible_action.jsonl")
         self.s_action_path = self.snapshot_result_path.joinpath("s_action.jsonl")
         self.s_action_screenshot = self.mode_path_map['s_exp'].joinpath("all_actions.png")
 
@@ -44,6 +63,7 @@ class AddressBook:
         if self.snapshot_result_path.exists():
             shutil.rmtree(self.snapshot_result_path.absolute())
         self.snapshot_result_path.mkdir()
+        self.ovsersight_path.mkdir()
         for path in self.mode_path_map.values():
             path.mkdir()
         self.action_path.touch()
@@ -92,6 +112,107 @@ class AddressBook:
             return None
         return path
 
+    # BlindSimmer
+    def get_os_result_path(self, oac: Union[OAC, str] = None, extension: str = "jsonl") -> Path:
+        if oac is None:
+            oac = "oacs"
+        elif isinstance(oac, OAC):
+            oac = oac.name
+        return self.ovsersight_path.joinpath(f"{oac}.{extension}")
+
+    def get_oacs(self, oac: Union[OAC, str] = None) -> List[Node]:
+        path = self.get_os_result_path(oac)
+        if not path.exists():
+            return []
+        oacs = []
+        if oac is None:
+            oac = "oacs"
+        elif isinstance(oac, OAC):
+            oac = oac.name
+        with open(path) as f:
+            for line in f.readlines():
+                res = json.loads(line)
+                if oac == "oacs":
+                    node = Node.createNodeFromDict(res['node'])
+                else:
+                    node = Node.createNodeFromDict(res)
+                oacs.append(node)
+        return oacs
+
+    def get_oacs_with_info(self, oac: Union[OAC, str] = None) -> Dict[Node, Dict]:
+        oac_nodes = self.get_oacs(oac)
+        oac_info_map = {}
+        tb_reachable_xpaths = {}
+        if self.visited_elements_path.exists():
+            with open(self.visited_elements_path) as f:
+                for res in f.readlines():
+                    element = json.loads(res)['element']
+                    tb_reachable_xpaths[element['xpath']] = element
+        tb_actions_xpaths = {}
+        if self.action_path.exists():
+            with open(self.action_path) as f:
+                for action in f.readlines():
+                    action = json.loads(action)
+                    with open(self.get_log_path('tb', action['index'], extension=BLIND_MONKEY_EVENTS_TAG)) as f2:
+                        if "TYPE_VIEW_CLICKED" in f2.read():
+                            tb_actions_xpaths[action['element']['xpath']] = action
+        api_actions_xpaths = {}
+        if self.s_action_path.exists():
+            with open(self.s_action_path) as f:
+                for action in f.readlines():
+                    action = json.loads(action)
+                    if action['tb_action_result'] is not None:
+                        with open(self.get_log_path('s_tb', action['index'], extension=BLIND_MONKEY_EVENTS_TAG)) as f2:
+                            if "TYPE_VIEW_CLICKED" in f2.read():
+                                tb_actions_xpaths[action['element']['xpath']] = action
+                    with open(self.get_log_path('s_areg', action['index'], extension=BLIND_MONKEY_EVENTS_TAG)) as f2:
+                        if "TYPE_VIEW_CLICKED" in f2.read():
+                            api_actions_xpaths[action['element']['xpath']] = action
+        tba_resource_id_to_action = {}
+        apia_resource_id_to_action = {}
+        for oac_node in oac_nodes:
+            info = {}
+            max_subseq_tb_element = None
+            if oac_node.visible:
+                for tb_xpath in tb_reachable_xpaths:
+                    if oac_node.xpath.startswith(tb_xpath):
+                        tb_node = Node.createNodeFromDict(tb_reachable_xpaths[tb_xpath])
+                        if not bounds_included(tb_node.bounds, oac_node.bounds):
+                            continue
+                        if max_subseq_tb_element is None or len(max_subseq_tb_element['xpath']) < len(tb_xpath):
+                            max_subseq_tb_element = tb_reachable_xpaths[tb_xpath]
+            info['tbr'] = max_subseq_tb_element
+            min_subseq_tb_action = None
+            if info['tbr'] is not None:
+                for tb_xpath in tb_actions_xpaths:
+                    if tb_xpath.startswith(oac_node.xpath):
+                        tb_node = Node.createNodeFromDict(tb_actions_xpaths[tb_xpath])
+                        if not bounds_included(oac_node.bounds, tb_node.bounds):
+                            continue
+                        if min_subseq_tb_action is None or len(min_subseq_tb_action['xpath']) < len(tb_xpath):
+                            min_subseq_tb_action = tb_actions_xpaths[tb_xpath]
+            info['tba'] = min_subseq_tb_action
+            if info['tba'] is not None and info['tba']['resource_id']:
+                tba_resource_id_to_action[info['tba']['resource_id']] = info['tba']
+            min_subseq_api_action = None
+            for api_xpath in api_actions_xpaths:
+                if api_xpath.startswith(oac_node.xpath):
+                    api_node = Node.createNodeFromDict(api_actions_xpaths[api_xpath])
+                    if not bounds_included(oac_node.bounds, api_node.bounds):
+                        continue
+                    if min_subseq_api_action is None or len(min_subseq_api_action['xpath']) < len(tb_xpath):
+                        min_subseq_api_action = api_actions_xpaths[api_xpath]
+            info['apia'] = min_subseq_api_action
+            if info['apia'] is not None and info['apia']['resource_id']:
+                tba_resource_id_to_action[info['apia']['resource_id']] = info['apia']
+            oac_info_map[oac_node] = info
+        for oac_node, info in oac_info_map.items():
+            if info['tba'] is None and oac_node.resource_id in tba_resource_id_to_action:
+                info['tba'] = tba_resource_id_to_action[oac_node.resource_id]
+            if info['apia'] is None and oac_node.resource_id in apia_resource_id_to_action:
+                info['apia'] = apia_resource_id_to_action[oac_node.resource_id]
+        return oac_info_map
+
 
 class ResultWriter:
     def __init__(self, address_book: AddressBook):
@@ -99,28 +220,29 @@ class ResultWriter:
         self.visited_elements = []
         self.actions = []
 
-    def visit_element(self, visited_element: dict, state: str, detailed_element: Union[dict, None]) -> None:
+    def visit_element(self, visited_element: dict, state: str, node: Union[Node, None]) -> None:
         """
         Write the visited element into exploration result
         :param visited_element: The element that is visited by Latte
         :param state: The state of the visited element can be 'skipped', 'repetitive', 'selected'
-        :param detailed_element: The equivalent element with more information such as 'clickable' or 'focused'
+        :param node: The equivalent element with more information such as 'clickable' or 'focused'
         """
-        use_detailed = detailed_element is not None
-        if use_detailed:
-            for key in visited_element:
-                if key not in detailed_element or key == 'bounds':
-                    continue
-                if visited_element[key] != detailed_element[key]:
-                    use_detailed = False
-                    logger.warning(f"The detailed element doesn't match. Visited Element: {visited_element},"
-                                 f" Detailed Element: {detailed_element}")
-                    break
+        use_detailed = node is not None
+        # TODO: Fix this
+        # if use_detailed:
+        #     for key in visited_element:
+        #         if key not in node or key == 'bounds':
+        #             continue
+        #         if visited_element[key] != node[key]:
+        #             use_detailed = False
+        #             logger.warning(f"The detailed element doesn't match. Visited Element: {visited_element},"
+        #                          f" Node: {node}")
+        #             break
         visited_element = {
             'index': len(self.visited_elements),
             'state': state,
             'element': visited_element,
-            'detailed_element': detailed_element if use_detailed else None
+            'node': node.toJSON() if use_detailed else None
         }
         self.visited_elements.append(visited_element)
         with open(self.address_book.visited_elements_path, "a") as f:
@@ -134,15 +256,15 @@ class ResultWriter:
                    tb_action_result: Union[str, ExecutionResult],
                    reg_action_result: ExecutionResult,
                    areg_action_result: ExecutionResult = None,
-                   detailed_element: dict = None,
+                   node: Node = None,
                    is_sighted: bool = False):
         action_index = self.get_action_index()
         if not is_sighted:
             exp_screenshot_path = self.address_book.get_screenshot_path('exp', action_index, should_exists=True)
             if exp_screenshot_path:
-                annotate_rectangle(exp_screenshot_path,
-                                   self.address_book.get_screenshot_path('exp', action_index, extension="edited"),
-                                   [reg_action_result.bound],
+                annotate_rectangle(source_img=exp_screenshot_path,
+                                   target_img=self.address_book.get_screenshot_path('exp', action_index, extension="edited"),
+                                   bounds=[reg_action_result.bound],
                                    outline=(0, 255, 255),
                                    scale=15,
                                    width=15,)
@@ -150,15 +272,15 @@ class ResultWriter:
             initial_path = self.address_book.get_screenshot_path('s_exp', 'INITIAL', should_exists=True)
             if initial_path is not None:
                 if isinstance(tb_action_result, ExecutionResult):
-                    annotate_rectangle(initial_path,
-                                       self.address_book.get_screenshot_path('s_exp', action_index, extension="edited"),
+                    annotate_rectangle(source_img=initial_path,
+                                       target_img=self.address_book.get_screenshot_path('s_exp', action_index, extension="edited"),
                                        bounds=[reg_action_result.bound, tb_action_result.bound],
                                        outline=[(255, 0, 255), (255, 255, 0)],
                                        width=[5, 15],
                                        scale=[1, 20])
                 else:
-                    annotate_rectangle(initial_path,
-                                       self.address_book.get_screenshot_path('s_exp', action_index, extension="edited"),
+                    annotate_rectangle(source_img=initial_path,
+                                       target_img=self.address_book.get_screenshot_path('s_exp', action_index, extension="edited"),
                                        bounds=[reg_action_result.bound],
                                        outline=(255, 0, 255),
                                        width=5,
@@ -168,7 +290,7 @@ class ResultWriter:
                       'tb_action_result': tb_action_result,
                       'reg_action_result': reg_action_result,
                       'areg_action_result': areg_action_result,
-                      'detailed_element': detailed_element,
+                      'node': None if node is None else node.toJSON(),
                       'is_sighted': is_sighted
                       }
         self.actions.append(new_action)
@@ -216,9 +338,57 @@ class ResultWriter:
             f.write(log_message)
 
 
-def read_all_visited_elements_in_app(app_path: Union[str, Path]) -> dict:
+def get_snapshot_paths(result_path: Union[str, Path] = None,
+                       app_path: Union[str, Path] = None,
+                       snapshot_path: Union[str, Path] = None) -> List[Path]:
+    available_paths = 0
+    if snapshot_path:
+        available_paths += 1
+    if app_path:
+        available_paths += 1
+    if result_path:
+        available_paths += 1
+
+    if available_paths != 1:
+        logger.error(f"Error. You must provide exactly one path to process!")
+        return []
+
+    snapshot_paths = []
+
+    if result_path:
+        result_path = Path(result_path) if isinstance(result_path, str) else result_path
+        if not result_path.is_dir():
+            logger.error(f"The result path doesn't exist! {result_path}")
+            return []
+        for app_path in result_path.iterdir():
+            if not app_path.is_dir():
+                continue
+            for snapshot_path in app_path.iterdir():
+                if not snapshot_path.is_dir():
+                    continue
+                snapshot_paths.append(snapshot_path)
+    elif app_path:
+        app_path = Path(app_path) if isinstance(app_path, str) else app_path
+        if not app_path.is_dir():
+            logger.error(f"The app path doesn't exist! {app_path}")
+            return []
+        for snapshot_path in app_path.iterdir():
+            if not snapshot_path.is_dir():
+                continue
+            snapshot_paths.append(snapshot_path)
+    elif snapshot_path:
+        snapshot_path = Path(snapshot_path) if isinstance(snapshot_path, str) else snapshot_path
+        if not snapshot_path.is_dir():
+            logger.error(f"The snapshot doesn't exist! {snapshot_path}")
+            return []
+        snapshot_paths.append(snapshot_path)
+
+    return snapshot_paths
+
+
+def read_all_visited_elements_in_app(app_path: Union[str, Path]) -> Dict[str, Node]:
     """
-    Given the result path of an app, returns visited elements dictionary, mapping xpath to the list of its elements
+    Given the result path of an app, returns visited nodes, mapping xpath to the list of its nodes
     """
     visited_elements = {}
     app_path = Path(app_path) if isinstance(app_path, str) else app_path
@@ -233,19 +403,13 @@ def read_all_visited_elements_in_app(app_path: Union[str, Path]) -> dict:
         with open(address_book.visited_elements_path) as f:
             for line in f.readlines():
                 element = json.loads(line)
-                if element['state'] != 'selected' or element['detailed_element'] is None:
+                if element['state'] != 'selected' or element['node'] is None:
                     continue
-                if element['element']['xpath'] not in visited_elements:
-                    # logger.warning(f"Repetitive element's xpath, New element {element},"
-                    #                f" Stored element: {visited_elements[element['element']['xpath']]}")
-                    visited_elements[element['element']['xpath']] = []
-                visited_elements[element['element']['xpath']].append(element['detailed_element'])
+                visited_elements.setdefault(element['element']['xpath'], [])
+                visited_elements[element['element']['xpath']].append(Node.createNodeFromDict(element['node']))
         with open(address_book.s_action_path) as f:
             for line in f.readlines():
                 action = json.loads(line)
-                if action['element']['xpath'] not in visited_elements:
-                    # logger.warning(f"Repetitive element's xpath, New element {element},"
-                    #                f" Stored element: {visited_elements[element['element']['xpath']]}")
-                    visited_elements[action['element']['xpath']] = []
-                visited_elements[action['element']['xpath']].append(action['element'])
+                visited_elements.setdefault(action['element']['xpath'], [])
+                visited_elements[action['element']['xpath']].append(Node.createNodeFromDict(action['node']))
     return visited_elements

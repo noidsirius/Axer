@@ -19,6 +19,7 @@
                         <td>
                             <a href="{{ url_for('report_v2', result_path=result_path, app_name=app.name, snapshot_name=snapshot.id) }}">{{ snapshot.id }}</a>
                             -<a href="{{ url_for('send_result_static_v2', path=snapshot.log_path) }}">(log)</a>
+                            -<a href="{{ url_for('report_sb_v2', result_path=result_path, app_name=app.name, snapshot_name=snapshot.id) }}">(SB)</a>
                         </td>
                         <td>{{ snapshot.actions }}</td>
                         <td>{{ snapshot.different_behavior }}</td>

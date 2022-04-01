@@ -1,0 +1,2 @@
+export LATTE_PATH="$(realpath $(dirname $0))"
+source $LATTE_PATH/.env/bin/activate

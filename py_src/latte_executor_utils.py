@@ -5,6 +5,8 @@ from typing import Union, Tuple, List
 import logging
 import xmlformatter
 from collections import namedtuple
+
+from GUI_utils import Node
 from adb_utils import read_local_android_file
 from a11y_service import A11yServiceManager
 from consts import TB_NAVIGATE_RETRY_COUNT, ACTION_EXECUTION_RETRY_COUNT, TB_SELECT_TIMEOUT, TB_NAVIGATE_TIMEOUT, \
@@ -160,11 +162,12 @@ async def setup_talkback_executor():
                                            "enable"])
 
 
-async def setup_sighted_talkback_executor():
+async def setup_sighted_talkback_executor(api_focus:bool = False):
     await A11yServiceManager.setup_latte_a11y_services(tb=True)
     await send_commands_sequence_to_latte([("set_step_executor", "sighted_tb"),
                                            ("set_delay", str(TB_EXECUTOR_INTERVAL)),
                                            ("set_physical_touch", "false"),
+                                           ("nav_api_focus", "true" if api_focus else "false"),
                                            "enable"])
 
 
@@ -201,11 +204,11 @@ async def tb_focused_node() -> Union[str, None]:
     return None
 
 
-async def tb_navigate_next() -> Union[str, None]:
+async def tb_navigate_next(prev: bool = False) -> Union[str, None]:
     for i in range(TB_NAVIGATE_RETRY_COUNT):
-        logger.debug(f"Perform Next!, Try: {i}")
+        logger.debug(f"Perform {'Prev' if prev else 'Next'}!, Try: {i}")
         await A11yServiceManager.setup_latte_a11y_services(tb=True)
-        if not await talkback_nav_command("next"):
+        if not await talkback_nav_command("prev" if prev else "next"):
             logger.warning("Error in sending Nav command to Latte")
             continue
         next_command_json = await read_local_android_file(FINAL_ACITON_FILE, wait_time=TB_NAVIGATE_TIMEOUT)
@@ -235,7 +238,8 @@ def analyze_execution_result(result: str, command: str = None) -> ExecutionResul
         error_message = result if result else "FAILED"
         if command:
             command_json = json.loads(command)
-            bounds = convert_bounds(command_json['bounds'])
+            node = Node.createNodeFromDict(command_json)
+            bounds = node.bounds
         return get_unsuccessful_execution_result(state=error_message, bounds=bounds)
     parts = result.split('$')
     state = parts[1].split(':')[1].strip()
@@ -249,7 +253,7 @@ def analyze_execution_result(result: str, command: str = None) -> ExecutionResul
     return ExecutionResult(state, events, time, resourceId, className, contentDescription, xpath, bounds)
 
 
-async def execute_command(command: str, executor_name: str = "reg") -> ExecutionResult:
+async def execute_command(command: str, executor_name: str = "reg", api_focus: bool = False) -> ExecutionResult:
     result = ""
     for i in range(ACTION_EXECUTION_RETRY_COUNT):
         if executor_name == 'reg':
@@ -259,7 +263,7 @@ async def execute_command(command: str, executor_name: str = "reg") -> Execution
         elif executor_name == 'tb':
             await setup_talkback_executor()
         elif executor_name == 'stb':
-            await setup_sighted_talkback_executor()
+            await setup_sighted_talkback_executor(api_focus=api_focus)
         logger.debug(f"Execute Step Command, Try: {i}")
         await do_step(command)
         result = await read_local_android_file(CUSTOM_STEP_RESULT, wait_time=REGULAR_EXECUTE_TIMEOUT_TIME)
@@ -289,16 +293,16 @@ async def stb_execute_command(command: str) -> ExecutionResult:
     return await execute_command(command, 'stb')
 
 
-def get_missing_actions(a_actions, b_actions):
-    a_dict = {}
-    b_dict = {}
-    for x in a_actions:
-        a_dict[x['xpath']] = x
-    for x in b_actions:
-        b_dict[x['xpath']] = x
-    all_keys = set(a_dict.keys()).union(b_dict.keys())
+def get_missing_actions(important_nodes: List[Node], executed_elements: List[dict]) -> List[Node]:
+    xpath_to_important_nodes = {}
+    xpath_to_done_elements = {}
+    for x in important_nodes:
+        xpath_to_important_nodes[x.xpath] = x
+    for x in executed_elements:
+        xpath_to_done_elements[x['xpath']] = x
+    all_keys = set(xpath_to_important_nodes.keys()).union(xpath_to_done_elements.keys())
     missing_actions = []
     for k in all_keys:
-        if k not in b_dict.keys():
-            missing_actions.append(a_dict[k])
+        if k not in xpath_to_done_elements.keys():
+            missing_actions.append(xpath_to_important_nodes[k])
     return missing_actions

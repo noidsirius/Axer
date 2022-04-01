@@ -33,11 +33,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 import dev.navids.latte.UseCase.RegularStepExecutor;
+import dev.navids.latte.UseCase.SightedTalkBackStepExecutor;
 import dev.navids.latte.UseCase.StepExecutor;
 import dev.navids.latte.UseCase.UseCaseExecutor;
 
@@ -45,6 +45,7 @@ public class CommandReceiver extends BroadcastReceiver {
     static final String ACTION_COMMAND_INTENT = "dev.navids.latte.COMMAND";
     static final String ACTION_COMMAND_CODE = "command";
     static final String ACTION_COMMAND_EXTRA = "extra";
+
     interface CommandEvent {
         void doAction(String extra);
     }
@@ -55,6 +56,7 @@ public class CommandReceiver extends BroadcastReceiver {
         // ----------- General ----------------
         commandEventMap.put("is_live", (extra) -> Utils.createFile(String.format(Config.v().IS_LIVE_FILE_PATH_PATTERN, extra), "I'm alive " + extra));
         commandEventMap.put("log", (extra) -> Utils.getAllA11yNodeInfo(true));
+        commandEventMap.put("invisible_nodes", (extra) -> LatteService.considerInvisibleNodes = (extra.equals("true")));
         commandEventMap.put("report_a11y_issues", (extra) -> {
             Context context2 = LatteService.getInstance().getApplicationContext();
             Set<AccessibilityHierarchyCheck> contrastChecks = new HashSet<>(Arrays.asList(
@@ -112,11 +114,13 @@ public class CommandReceiver extends BroadcastReceiver {
             }
         });
         // ---------------------------- TalkBack Navigation -----------
-        commandEventMap.put("nav_next", (extra) -> TalkBackNavigator.v().nextFocus(null));
+        commandEventMap.put("nav_next", (extra) -> TalkBackNavigator.v().changeFocus(null, false));
+        commandEventMap.put("nav_prev", (extra) -> TalkBackNavigator.v().changeFocus(null, true));
         commandEventMap.put("nav_select", (extra) -> TalkBackNavigator.v().selectFocus(null));
         commandEventMap.put("nav_current_focus", (extra) -> TalkBackNavigator.v().currentFocus());
         commandEventMap.put("tb_a11y_tree", (extra) -> TalkBackNavigator.v().logTalkBackTreeNodeList(null));
         commandEventMap.put("nav_clear_history", (extra) -> TalkBackNavigator.v().clearHistory());
+        commandEventMap.put("nav_api_focus", (extra) -> SightedTalkBackStepExecutor.apiFocus = (extra.equals("true")));
         commandEventMap.put("nav_interrupt", (extra) -> TalkBackNavigator.v().interrupt());
         // --------------------------- UseCase Executor ----------------
         commandEventMap.put("enable", (extra) -> UseCaseExecutor.v().enable());

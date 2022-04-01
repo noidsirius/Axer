@@ -6,12 +6,13 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Union, List
 from results_utils import AddressBook
-from post_analysis import get_post_analysis, SUCCESS, EXEC_FAILURE, \
-    XML_PROBLEM, DIFFERENT_BEHAVIOR, UNREACHABLE, POST_ANALYSIS_PREFIX, A11Y_WARNING, OTHER, INEFFECTIVE, \
+from post_analysis import get_post_analysis, SUCCESS, A11Y_WARNING, OTHER, INEFFECTIVE, \
     CRASHED, API_SMELL, EXTERNAL_SERVICE, LOADING, TB_WEBVIEW_LOADING, API_A11Y_ISSUE, TB_A11Y_ISSUE
 from utils import convert_bounds
 
-SearchResult = namedtuple('SearchResult', ['action', 'post_analysis', 'address_book', 'is_sighted'])
+
+SearchActionResult = namedtuple('SearchActionResult', ['action', 'post_analysis'])
+SearchSnapshotResult = namedtuple('SearchSnapshotResult', ['address_book', 'action_results'])
 
 
 class SearchQuery:
@@ -33,6 +34,7 @@ class SearchQuery:
         for i_filter in self.filters:
             if not i_filter(action, action_post_analysis, address_book, is_sighted):
                 return False
+        logging.getLogger("F").error(f"!!!!!!!!!!!! -> {address_book.snapshot_result_path}")
         return True
 
     def contains_action_attr(self, attr_name: str, value: str):
@@ -48,12 +50,13 @@ class SearchQuery:
 
     def contains_action_xml_attr(self, attr_name: str, value: str):
         def action_xml_attr_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
+            # TODO:
             action_attr_values = [action['element'][attr] for attr in ['bounds', 'resourceId', 'class']]
             prefix = "s_" if is_sighted else ""
-            if 'detailed_element' in action and action['detailed_element']:
-                if attr_name not in action['detailed_element']:
+            if 'node' in action and action['node']:
+                if attr_name not in action['node']:
                     return False
-                return value in action['detailed_element'][attr_name]
+                return value in action['node'][attr_name]
             layout_path = address_book.get_layout_path(f'{prefix}exp', action['index'], should_exists=True)
             if layout_path is None:
                 return False
@@ -123,10 +126,14 @@ class SearchQuery:
                                     new_attr = attr.lower()
                                     if attr in ['width', 'height', 'area']:
                                         new_attr = 'bounds'
-                                    if f'{new_attr}="' not in line:
+                                    # TODO: Should be removed eventually
+                                    if attr == 'actionList' and 'z-a11y-actions' in line:
+                                        new_attr = 'z-a11y-actions'
+                                    if f'{new_attr}="' not in line \
+                                            or line[line.index(f'{new_attr}="')-1] not in [' ', '<']:
                                         flag = False
                                         break
-                                    value = line[line.index(new_attr):].split('"')[1]
+                                    value = line[line.index(f'{new_attr}="'):].split('"')[1]
                                     if new_attr == "bounds":
                                         bounds = convert_bounds(value)
                                         target = 0
@@ -148,7 +155,7 @@ class SearchQuery:
                                             if target != int(query):
                                                 flag = False
                                                 break
-                                    elif new_attr == 'z-a11y-actions':
+                                    elif attr == 'actionList':
                                         actions = set(value.split('-'))
                                         is_include = True
                                         if query.startswith("!"):
@@ -158,9 +165,19 @@ class SearchQuery:
                                         if is_include != query_set.issubset(actions):
                                             flag = False
                                             break
-                                    elif query.lower() not in value:
-                                        flag = False
-                                        break
+                                    else:
+                                        if query == "~":  # The value should be empty
+                                            if len(value) > 0:
+                                                flag = False
+                                                break
+                                        else:
+                                            is_include = True
+                                            if query.startswith("!"):
+                                                is_include = False
+                                                query = query[1:]
+                                            if is_include != (query.lower() in value):
+                                                flag = False
+                                                break
                             if flag:
                                 return True
             return False
@@ -266,28 +283,33 @@ class SearchManager:
 
     def search(self,
                search_query: SearchQuery,
-               limit: int = 10000,
-               limit_per_snapshot: int = 1000,
-               ) -> List[SearchResult]:
-        search_results = []
+               snapshot_limit: int = 10000,
+               action_limit: int = 10000,
+               action_per_snapshot_limit: int = 1000,
+               ) -> List[SearchSnapshotResult]:
+        search_snapshot_result = []
+        action_count = 0
         for app_path in self.result_path.iterdir():
-            if len(search_results) >= limit:
+            if action_count >= action_limit:
                 break
             if not app_path.is_dir():
                 continue
             if not search_query.is_valid_app(app_path.name):
                 continue
             for snapshot_path in app_path.iterdir():
-                if len(search_results) >= limit:
+                if len(search_snapshot_result) >= snapshot_limit:
+                    break
+                if action_count >= action_limit:
                     break
                 if not snapshot_path.is_dir():
                     continue
-                snapshot_result_count = 0
+                search_action_result_list = []
+                action_in_snapshot_count = 0
                 address_book = AddressBook(snapshot_path)
                 post_analysis_results = get_post_analysis(snapshot_path=snapshot_path)
                 action_paths = [address_book.action_path, address_book.s_action_path]
                 for action_path in action_paths:
-                    if len(search_results) >= limit or snapshot_result_count >= limit_per_snapshot:
+                    if action_count >= action_limit or action_in_snapshot_count >= action_per_snapshot_limit:
                         break
                     is_sighted = "s_action" in action_path.name
                     if not action_path.exists():
@@ -298,15 +320,15 @@ class SearchManager:
                             action_post_analysis = post_analysis_results['sighted' if is_sighted else 'unsighted'].get(action['index'], {})
                             if not search_query.satisfies(action, action_post_analysis, address_book, is_sighted):
                                 continue
-                            search_result = SearchResult(action=action,
-                                                         post_analysis=action_post_analysis,
-                                                         address_book=address_book,
-                                                         is_sighted=is_sighted)
-                            search_results.append(search_result)
-                            snapshot_result_count += 1
-                            if len(search_results) >= limit or snapshot_result_count >= limit_per_snapshot:
+                            search_action_result = SearchActionResult(action=action,
+                                                               post_analysis=action_post_analysis)
+                            search_action_result_list.append(search_action_result)
+                            action_in_snapshot_count += 1
+                            action_count += 1
+                            if action_count >= action_limit or action_in_snapshot_count >= action_per_snapshot_limit:
                                 break
-        return search_results
+                search_snapshot_result.append(SearchSnapshotResult(address_book, search_action_result_list))
+        return search_snapshot_result
 
 
 @lru_cache(maxsize=None)

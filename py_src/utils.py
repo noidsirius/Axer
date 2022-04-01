@@ -3,6 +3,8 @@ from typing import List, Union, Tuple
 from pathlib import Path
 from PIL import Image, ImageDraw
 
+from GUI_utils import Node
+
 logger = logging.getLogger(__name__)
 
 
@@ -43,7 +45,7 @@ def annotate_rectangle(source_img,
                        bounds: List[Tuple],
                        outline: Union[List, Tuple] = None,
                        width: Union[List, int] = 10,
-                       scale: Union[List, int] = 5):
+                       scale: Union[List, int] = 5) -> Image:
     if isinstance(outline, list):
         if len(outline) != len(bounds):
             logger.error(
@@ -76,39 +78,52 @@ def annotate_rectangle(source_img,
                          max(bound[0], bound[2]),
                          max(bound[1], bound[3]))
             dashed_rectangle(draw, new_bound, outline=o, width=w, scale=s)
-        im.save(target_img, quality=95)
+        if target_img is not None:
+            im.save(target_img, quality=95)
+        return im
     except Exception as e:
         logger.error(f"A problem with image annotation, Exception: {e}")
+    return None
 
 
 def annotate_elements(source_img: Union[str, Path],
                       target_img: Union[str, Path],
-                      elements: List,
+                      elements: List[Union[Node, dict]],
                       outline: Tuple = None,
                       width: int = 5,
                       scale: int = 5):
-    bounds = []
+    if isinstance(target_img, str):
+        target_img = Path(target_img)
+    is_gif = target_img.name.endswith(".gif")
+    bounds_list = []
     outlines = []
     widths = []
     scales = []
-    for element in elements:
-        if element is None or not element['bounds'] or element['bounds'] == 'null':
-            logger.debug(f"The bounds of element {element} is empty!")
+    for node in elements:
+        if node is None:
+            logger.debug(f"The bounds of element {node} is empty!")
             continue
-        bounds.append(convert_bounds(element['bounds']))
+        if isinstance(node, dict):
+            node = Node.createNodeFromDict(node)
+        bounds = node.bounds
+        class_name = node.class_name
+        # else:
+        #     bounds = convert_bounds(node['bounds'])
+        #     class_name = node['class_name']
+        bounds_list.append(bounds)
         if outline is not None:
             outlines.append(outline)  # sandybrown
             widths.append(width)
             scales.append(scale)
-        elif element['class'] == 'android.widget.ImageView':
+        elif class_name == 'android.widget.ImageView':
             outlines.append((244, 164, 96))  # sandybrown
             widths.append(10)
             scales.append(scale)
-        elif element['class'] == 'android.widget.TextView':
+        elif class_name == 'android.widget.TextView':
             outlines.append((144, 238, 144))  # lightgreen
             widths.append(10)
             scales.append(scale)
-        elif element['class'].endswith('Button'):
+        elif class_name.endswith('Button'):
             outlines.append((220, 20, 60))  # Crimson
             widths.append(10)
             scales.append(scale)
@@ -117,9 +132,23 @@ def annotate_elements(source_img: Union[str, Path],
             widths.append(width)
             scales.append(scale)
 
-    annotate_rectangle(source_img,
-                       target_img,
-                       bounds,
-                       outline=outlines,
-                       width=widths,
-                       scale=scales)
+    if is_gif:
+        images = []
+        for bounds, outline, width, scale in zip(bounds_list, outlines, widths, scales):
+            img = annotate_rectangle(source_img=source_img,
+                                       target_img=None,
+                                       bounds=[bounds],
+                                       outline=outline,
+                                       width=width,
+                                       scale=scale)
+            images.append(img)
+        if len(images) > 0:
+            images[0].save(target_img,
+                           save_all=True, append_images=images[1:], optimize=False, duration=300, loop=0)
+    else:
+        annotate_rectangle(source_img=source_img,
+                           target_img=target_img,
+                           bounds=bounds_list,
+                           outline=outlines,
+                           width=widths,
+                           scale=scales)

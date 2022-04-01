@@ -45,6 +45,16 @@ public class TalkBackNavigator {
         return true;
     }
 
+    public boolean performPrev(Navigator.DoneCallback doneCallback){
+        Log.i(LatteService.TAG, "performPrev");
+        if (!ActionUtils.swipeLeft(doneCallback))
+        {
+            Log.i(LatteService.TAG, "There is a problem with swiping left");
+            return false;
+        }
+        return true;
+    }
+
     public boolean logTalkBackTreeNodeList(Navigator.DoneCallback doneCallback){
         Log.i(LatteService.TAG, "perform Up then Left");
         if (!ActionUtils.swipeUpThenLeft(doneCallback))
@@ -117,11 +127,11 @@ public class TalkBackNavigator {
         new File(dir, Config.v().FINISH_ACTION_FILE_PATH).delete();
     }
 
-    public boolean nextFocus(Navigator.DoneCallback callback) {
+    public boolean changeFocus(Navigator.DoneCallback callback, boolean prev) {
         Utils.deleteFile(Config.v().FINISH_ACTION_FILE_PATH);
         WidgetInfo widgetInfo = ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getAccessibilityFocusedNode());
         Log.i(LatteService.TAG, String.format("Widget %s is visited XPATH: %s.", widgetInfo, widgetInfo != null ? widgetInfo.getAttr("xpath") : "NONE"));
-        boolean result = performNext(new Navigator.DoneCallback() {
+        Navigator.DoneCallback afterChangeCallback = new Navigator.DoneCallback() {
             @Override
             public void onCompleted(AccessibilityNodeInfo nodeInfo) {
                 WidgetInfo newWidgetNodeInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo, true);
@@ -146,7 +156,12 @@ public class TalkBackNavigator {
                 if(callback != null)
                     callback.onError(message);
             }
-        });
+        };
+        boolean result = false;
+        if(prev)
+            result = performPrev(afterChangeCallback);
+        else
+            result = performNext(afterChangeCallback);
         return result;
     }
 
