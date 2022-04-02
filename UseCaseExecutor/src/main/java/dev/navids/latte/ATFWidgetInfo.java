@@ -6,8 +6,7 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import com.google.android.apps.common.testing.accessibility.framework.AccessibilityHierarchyCheckResult;
 import com.google.android.apps.common.testing.accessibility.framework.uielement.ViewHierarchyElement;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.json.simple.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -106,13 +105,9 @@ public class ATFWidgetInfo extends WidgetInfo {
         if (result == null)
             return result;
         com.google.android.apps.common.testing.accessibility.framework.replacements.Rect boundBox = node.getBoundsInScreen();
-        try {
-            result.put("bounds", String.format("[%d,%d][%d,%d]", boundBox.getLeft(), boundBox.getTop(), boundBox.getRight(), boundBox.getBottom()));
-            result.put("ATFSeverity", accessibilityHierarchyCheckResult.getType());
-            result.put("ATFType", accessibilityHierarchyCheckResult.getSourceCheckClass().getSimpleName());
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        result.put("bounds", String.format("[%d,%d][%d,%d]", boundBox.getLeft(), boundBox.getTop(), boundBox.getRight(), boundBox.getBottom()));
+        result.put("ATFSeverity", accessibilityHierarchyCheckResult.getType());
+        result.put("ATFType", accessibilityHierarchyCheckResult.getSourceCheckClass().getSimpleName());
         return result;
     }
 

@@ -6,7 +6,7 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 
-import org.json.JSONObject;
+import org.json.simple.JSONObject;
 
 import java.io.File;
 import java.util.HashMap;

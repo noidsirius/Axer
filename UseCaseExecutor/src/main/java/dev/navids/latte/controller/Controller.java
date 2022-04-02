@@ -2,20 +2,24 @@ package dev.navids.latte.controller;
 
 import android.util.Log;
 
+import org.json.simple.JSONObject;
+
 import java.io.File;
 
 import dev.navids.latte.ActualWidgetInfo;
 import dev.navids.latte.Config;
 import dev.navids.latte.LatteService;
+import dev.navids.latte.UseCase.InfoStep;
 import dev.navids.latte.UseCase.LocatableStep;
 import dev.navids.latte.UseCase.NavigateStep;
 import dev.navids.latte.UseCase.StepCommand;
 import dev.navids.latte.UseCase.StepState;
 import dev.navids.latte.Utils;
+import dev.navids.latte.WidgetInfo;
 
 public class Controller {
-    private Locator locator;
-    private ActionPerformer actionPerformer;
+    private final Locator locator;
+    private final ActionPerformer actionPerformer;
     public Controller(Locator locator, ActionPerformer actionPerformer){
         this.locator = locator;
         this.actionPerformer = actionPerformer;
@@ -49,6 +53,30 @@ public class Controller {
         }
         else if (command instanceof NavigateStep){
             navigate(command, (NavigateStep) command);
+        }
+        else if (command instanceof InfoStep){
+            InfoStep infoStep = (InfoStep) command;
+            if(infoStep.getQuestion().equals("a11y_focused")){
+                WidgetInfo widgetInfo = ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getAccessibilityFocusedNode());
+                if (widgetInfo != null) {
+                    Log.i(LatteService.TAG, "The focused node is: " + widgetInfo + " Xpath: " + widgetInfo.getXpath());
+                    JSONObject jsonCommand = widgetInfo.getJSONCommand("xpath", false, "click");
+                    infoStep.setJsonResult(jsonCommand);
+                    infoStep.setState(StepState.COMPLETED);
+                }
+                else{
+                    Log.i(LatteService.TAG, "The focused node is null! ");
+                    infoStep.setState(StepState.FAILED);
+                }
+            }
+            else{
+                infoStep.setState(StepState.FAILED);
+            }
+            writeResult(infoStep);
+        }
+        else{
+            Log.e(LatteService.TAG, "Unrecognizable Command!");
+            writeResult(null);
         }
     }
 

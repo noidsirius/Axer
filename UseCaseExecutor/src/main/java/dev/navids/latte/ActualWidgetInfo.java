@@ -3,8 +3,7 @@ package dev.navids.latte;
 import android.graphics.Rect;
 import android.view.accessibility.AccessibilityNodeInfo;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.json.simple.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -130,11 +129,7 @@ public class ActualWidgetInfo extends WidgetInfo {
             return result;
         Rect boundBox = new Rect();
         node.getBoundsInScreen(boundBox);
-        try {
-            result.put("bounds", String.format("[%d,%d][%d,%d]", boundBox.left, boundBox.top, boundBox.right, boundBox.bottom));
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        result.put("bounds", String.format("[%d,%d][%d,%d]", boundBox.left, boundBox.top, boundBox.right, boundBox.bottom));
         return result;
     }
 

@@ -92,7 +92,7 @@ public class CommandReceiver extends BroadcastReceiver {
                 ATFWidgetInfo widgetInfo = ATFWidgetInfo.createFromViewHierarchyElement(res);
                 if (widgetInfo == null)
                     continue;
-                org.json.JSONObject jsonCommand = widgetInfo.getJSONCommand("", false, "");
+                JSONObject jsonCommand = widgetInfo.getJSONCommand("", false, "");
                 String jsonCommandStr = jsonCommand != null ? jsonCommand.toString() : "Error";
                 report_jsonl.append(jsonCommandStr).append("\n");
             }

@@ -47,6 +47,8 @@ public abstract class StepCommand {
                 stepCommand = new NextStep(stepJson);
             else if (PreviousStep.isPreviousAction(action))
                 stepCommand = new PreviousStep(stepJson);
+            else if (InfoStep.isInfo(action))
+                stepCommand = new InfoStep(stepJson);
             else
                 stepCommand = null;
             return stepCommand;

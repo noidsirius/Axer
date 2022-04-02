@@ -3,8 +3,10 @@ package dev.navids.latte;
 
 import androidx.annotation.Nullable;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+//import org.json.JSONException;
+//import org.json.JSONObject;
+
+import org.json.simple.JSONObject;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -95,21 +97,15 @@ public abstract class WidgetInfo implements Serializable {
     }
 
     public JSONObject getJSONCommand(String located_by, boolean skip, String action){
-        JSONObject jsonCommand = null;
-        try {
-            jsonCommand = new JSONObject()
-                    .put("resource_id", this.getAttr("resourceId"))
-                    .put("content_desc", this.getAttr("contentDescription"))
-                    .put("text", this.getAttr("text"))
-                    .put("class_name", this.getAttr("class"))
-                    .put("xpath", this.getAttr("xpath"))
-                    .put("located_by", located_by)
-                    .put("skip", skip)
-                    .put("action", action);
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        JSONObject jsonCommand = new JSONObject();
+        jsonCommand.put("resource_id", this.getAttr("resourceId"));
+        jsonCommand.put("content_desc", this.getAttr("contentDescription"));
+        jsonCommand.put("text", this.getAttr("text"));
+        jsonCommand.put("class_name", this.getAttr("class"));
+        jsonCommand.put("xpath", this.getAttr("xpath"));
+        jsonCommand.put("located_by", located_by);
+        jsonCommand.put("skip", skip);
+        jsonCommand.put("action", action);
         return jsonCommand;
     }
 

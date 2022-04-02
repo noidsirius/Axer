@@ -8,9 +8,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
 
-
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.json.simple.JSONObject;
 
 import java.io.File;
 import java.util.HashMap;
@@ -157,21 +155,13 @@ public class LatteService extends AccessibilityService {
             int activeWindowId = activeWindow != null ? activeWindow.getId() : -1;
             String activeWindowTitle = activeWindow != null && activeWindow.getTitle() != null ? activeWindow.getTitle().toString() : "null";
             String changedWindowTitle = changedWindow != null && changedWindow.getTitle() != null ? changedWindow.getTitle().toString() : "null";
-            try {
-                jsonWindowContentChange = new JSONObject()
-                        .put("changedWindowId", event.getWindowId())
-                        .put("changedWindowTitle", changedWindowTitle)
-                        .put("activeWindowId", activeWindowId)
-                        .put("activeWindowTitle", activeWindowTitle)
-                        .put("Element", jsonEelement);
-
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            if (jsonWindowContentChange != null)
-                Log.i(A11Y_EVENT_TAG, "WindowContentChange: " + jsonWindowContentChange.toString());
-            else
-                Log.i(A11Y_EVENT_TAG, "WindowContentChange: null");
+            jsonWindowContentChange = new JSONObject();
+            jsonWindowContentChange.put("changedWindowId", event.getWindowId());
+            jsonWindowContentChange.put("changedWindowTitle", changedWindowTitle);
+            jsonWindowContentChange.put("activeWindowId", activeWindowId);
+            jsonWindowContentChange.put("activeWindowTitle", activeWindowTitle);
+            jsonWindowContentChange.put("Element", jsonEelement);
+            Log.i(A11Y_EVENT_TAG, "WindowContentChange: " + jsonWindowContentChange.toString());
         }
 //        Log.i(TAG, "   Type : " +AccessibilityEvent.eventTypeToString(event.getEventType()));
     }
