@@ -12,6 +12,7 @@ import dev.navids.latte.ActualWidgetInfo;
 import dev.navids.latte.LatteService;
 import dev.navids.latte.Utils;
 
+@Deprecated
 public class RegularStepExecutor implements StepExecutor {
 
     public static boolean is_physical = false;

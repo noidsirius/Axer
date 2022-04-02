@@ -40,6 +40,7 @@ import dev.navids.latte.UseCase.RegularStepExecutor;
 import dev.navids.latte.UseCase.SightedTalkBackStepExecutor;
 import dev.navids.latte.UseCase.StepExecutor;
 import dev.navids.latte.UseCase.UseCaseExecutor;
+import dev.navids.latte.controller.Controller;
 
 public class CommandReceiver extends BroadcastReceiver {
     static final String ACTION_COMMAND_INTENT = "dev.navids.latte.COMMAND";
@@ -122,6 +123,24 @@ public class CommandReceiver extends BroadcastReceiver {
         commandEventMap.put("nav_clear_history", (extra) -> TalkBackNavigator.v().clearHistory());
         commandEventMap.put("nav_api_focus", (extra) -> SightedTalkBackStepExecutor.apiFocus = (extra.equals("true")));
         commandEventMap.put("nav_interrupt", (extra) -> TalkBackNavigator.v().interrupt());
+        // --------------------------- UseCase Executor ----------------
+        commandEventMap.put("controller_set", (extra) -> {
+            LatteService.getInstance().getSelectedController().interrupt();
+            LatteService.getInstance().getSelectedController().clearResult();
+            Controller controller = LatteService.getInstance().getController(extra);
+            if (controller != null) {
+                Log.i(LatteService.TAG, "The controller " + extra + " is selected!");
+                LatteService.getInstance().setSelectedController(controller);
+            }
+            else
+                Log.e(LatteService.TAG, "The controller " + extra + " could not be found!");
+        });
+        commandEventMap.put("controller_execute", (extra) -> LatteService.getInstance().getSelectedController().executeCommand(extra));
+        commandEventMap.put("controller_interrupt", (extra) -> LatteService.getInstance().getSelectedController().interrupt());
+        commandEventMap.put("controller_reset", (extra) -> {
+            LatteService.getInstance().getSelectedController().interrupt();
+            LatteService.getInstance().getSelectedController().clearResult();
+        });
         // --------------------------- UseCase Executor ----------------
         commandEventMap.put("enable", (extra) -> UseCaseExecutor.v().enable());
         commandEventMap.put("disable", (extra) -> UseCaseExecutor.v().disable());

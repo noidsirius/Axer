@@ -15,6 +15,7 @@ import android.view.WindowManager;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,10 @@ import dev.navids.latte.UseCase.FocusStep;
 import dev.navids.latte.UseCase.StepState;
 
 public class ActionUtils {
+    public interface ActionCallback{
+        void onCompleted(AccessibilityNodeInfo nodeInfo);
+        void onError(String message);
+    };
     private static Map<Integer, String> pendingActions = new HashMap<>();
     private static int pendingActionId = 0;
     public static boolean isActionPending(){
@@ -46,6 +51,10 @@ public class ActionUtils {
             super.onCancelled(gestureDescription);
         }
     };
+
+    public static boolean isFocusedNodeTarget(AccessibilityNodeInfo similarNode) {
+        return isFocusedNodeTarget(Collections.singletonList(similarNode));
+    }
 
     public static boolean isFocusedNodeTarget(List<AccessibilityNodeInfo> similarNodes) {
         if(similarNodes.size() == 0)
@@ -72,45 +81,47 @@ public class ActionUtils {
         return getClickableCoordinate(node, true);
     }
 
-    public static Pair<Integer, Integer> getClickableCoordinate(AccessibilityNodeInfo node, boolean fast){
+    public static Pair<Integer, Integer> getClickableCoordinate(AccessibilityNodeInfo node, boolean excludeDescendantsBounds){
         int x, y;
-        if(fast)
+        if(excludeDescendantsBounds)
         {
-            List<AccessibilityNodeInfo> children = new ArrayList<>();
-            children.add(node);
-            for (int i = 0; i < children.size(); i++) {
-                AccessibilityNodeInfo child = children.get(i);
+            // Find All Descendants of the node
+            List<AccessibilityNodeInfo> descendants = new ArrayList<>();
+            descendants.add(node);
+            for (int i = 0; i < descendants.size(); i++) {
+                AccessibilityNodeInfo child = descendants.get(i);
                 for (int j = 0; j < child.getChildCount(); j++)
-                    children.add(child.getChild(j));
+                    descendants.add(child.getChild(j));
             }
+            descendants.remove(0);
+            // ----
             Rect nodeBox = new Rect();
             node.getBoundsInScreen(nodeBox);
-            children.remove(0);
-            int left = nodeBox.right;
-            int right = nodeBox.left;
-            int top = nodeBox.bottom;
-            int bottom = nodeBox.top;
-            for (AccessibilityNodeInfo child : children) {
+            int firstDescendantLeft = nodeBox.right;
+            int lastDescendantRight = nodeBox.left;
+            int firstDescendantTop = nodeBox.bottom;
+            int lastDescendantBottom = nodeBox.top;
+            for (AccessibilityNodeInfo child : descendants) {
                 if(!child.isClickable())
                     continue;
                 Rect box = new Rect();
                 child.getBoundsInScreen(box);
-                left = Integer.min(left, box.left);
-                right = Integer.max(right, box.right);
-                top = Integer.min(top, box.top);
-                bottom = Integer.max(bottom, box.bottom);
+                firstDescendantLeft = Integer.min(firstDescendantLeft, box.left);
+                lastDescendantRight = Integer.max(lastDescendantRight, box.right);
+                firstDescendantTop = Integer.min(firstDescendantTop, box.top);
+                lastDescendantBottom = Integer.max(lastDescendantBottom, box.bottom);
             }
-            Log.i(LatteService.TAG, " -------> " + nodeBox + " " + left + " " + right + " " + top + " " + bottom);
-            if(left > nodeBox.left)
-                x = (left+ nodeBox.left) / 2;
-            else if(right < nodeBox.right)
-                x = (right + nodeBox.right) / 2;
+            Log.i(LatteService.TAG, " -------> " + nodeBox + " " + firstDescendantLeft + " " + lastDescendantRight + " " + firstDescendantTop + " " + lastDescendantBottom);
+            if(firstDescendantLeft > nodeBox.left)
+                x = (firstDescendantLeft+ nodeBox.left) / 2;
+            else if(lastDescendantRight < nodeBox.right)
+                x = (lastDescendantRight + nodeBox.right) / 2;
             else
                 x = nodeBox.centerX();
-            if(top > nodeBox.top)
-                y = (top+nodeBox.top) / 2;
-            else if(bottom < nodeBox.bottom)
-                y = (top+nodeBox.top) / 2;
+            if(firstDescendantTop > nodeBox.top)
+                y = (firstDescendantTop+nodeBox.top) / 2;
+            else if(lastDescendantBottom < nodeBox.bottom)
+                y = (firstDescendantTop+nodeBox.top) / 2;
             else
                 y = nodeBox.centerY();
         }
@@ -123,6 +134,7 @@ public class ActionUtils {
         return new Pair<>(x,y);
     }
 
+    public static boolean performTap(Pair<Integer, Integer> coordinates){ return performTap(coordinates.first, coordinates.second); }
     public static boolean performTap(int x, int y){ return performTap(x, y, Config.v().TAP_DURATION); }
     public static boolean performTap(int x, int y, int duration){ return performTap(x, y, 0, duration); }
     public static boolean performTap(int x, int y, int startTime, int duration){ return performTap(x, y, startTime, duration, defaultCallBack); }
@@ -242,17 +254,17 @@ public class ActionUtils {
         LatteService.getInstance().dispatchGesture(gestureDescription, callback, null);
     }
 
-    public static boolean swipeLeft(Navigator.DoneCallback doneCallback){ return swipeToDirection("left", doneCallback);}
-    public static boolean swipeRight(Navigator.DoneCallback doneCallback){ return swipeToDirection("right", doneCallback);}
-    public static boolean swipeUp(Navigator.DoneCallback doneCallback){ return swipeToDirection("up", doneCallback);}
-    public static boolean swipeDown(Navigator.DoneCallback doneCallback){ return swipeToDirection("down", doneCallback);}
-    public static boolean swipeToDirection(String direction, Navigator.DoneCallback doneCallback){
+    public static boolean swipeLeft(ActionCallback doneCallback){ return swipeToDirection("left", doneCallback);}
+    public static boolean swipeRight(ActionCallback doneCallback){ return swipeToDirection("right", doneCallback);}
+    public static boolean swipeUp(ActionCallback doneCallback){ return swipeToDirection("up", doneCallback);}
+    public static boolean swipeDown(ActionCallback doneCallback){ return swipeToDirection("down", doneCallback);}
+    public static boolean swipeToDirection(String direction, ActionCallback doneCallback){
         return swipeToDirection(direction, "", doneCallback);
     }
-    public static boolean swipeUpThenLeft(Navigator.DoneCallback doneCallback){
+    public static boolean swipeUpThenLeft(ActionCallback doneCallback){
         return swipeToDirection("up", "left", doneCallback);
     }
-    public static boolean swipeToDirection(String direction, String secondDirection, Navigator.DoneCallback doneCallback){
+    public static boolean swipeToDirection(String direction, String secondDirection, ActionCallback doneCallback){
         if(isActionPending()){
             Log.i(LatteService.TAG, String.format("Do nothing since another action is pending! (Size:%d)", pendingActions.size()));
             return false;
@@ -295,5 +307,18 @@ public class ActionUtils {
         }
         Log.i(LatteService.TAG, "Focusing on widget: " + focusableWidget.completeToString(true));
         return node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS);
+    }
+
+    public static boolean focusOnNode(AccessibilityNodeInfo node){
+        AccessibilityNodeInfo currentFocusedNode = LatteService.getInstance().getFocusedNode();
+        if (currentFocusedNode != null)
+            currentFocusedNode.performAction(AccessibilityNodeInfo.ACTION_CLEAR_FOCUS);
+        ActualWidgetInfo focusableWidget = ActualWidgetInfo.createFromA11yNode(node);
+        if (focusableWidget == null) {
+            Log.e(LatteService.TAG, "The requested focusing  widget is null!");
+            return false;
+        }
+        Log.i(LatteService.TAG, "Focusing on widget: " + focusableWidget.completeToString(true));
+        return node.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
     }
 }

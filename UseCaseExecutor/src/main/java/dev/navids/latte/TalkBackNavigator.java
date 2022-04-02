@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 // TODO: Why it doesn't use Navigator interface?
+@Deprecated
 public class TalkBackNavigator {
     private static TalkBackNavigator instance;
     private TalkBackNavigator(){}
@@ -35,7 +36,7 @@ public class TalkBackNavigator {
         Utils.createFile(Config.v().FINISH_ACTION_FILE_PATH, "INTERRUPT"); // TODO: make consistent with custom step
     }
 
-    public boolean performNext(Navigator.DoneCallback doneCallback){
+    public boolean performNext(ActionUtils.ActionCallback doneCallback){
         Log.i(LatteService.TAG, "performNext");
         if (!ActionUtils.swipeRight(doneCallback))
         {
@@ -45,7 +46,7 @@ public class TalkBackNavigator {
         return true;
     }
 
-    public boolean performPrev(Navigator.DoneCallback doneCallback){
+    public boolean performPrev(ActionUtils.ActionCallback doneCallback){
         Log.i(LatteService.TAG, "performPrev");
         if (!ActionUtils.swipeLeft(doneCallback))
         {
@@ -55,7 +56,7 @@ public class TalkBackNavigator {
         return true;
     }
 
-    public boolean logTalkBackTreeNodeList(Navigator.DoneCallback doneCallback){
+    public boolean logTalkBackTreeNodeList(ActionUtils.ActionCallback doneCallback){
         Log.i(LatteService.TAG, "perform Up then Left");
         if (!ActionUtils.swipeUpThenLeft(doneCallback))
         {
@@ -65,7 +66,7 @@ public class TalkBackNavigator {
         return true;
     }
 
-    public boolean performSelect(Navigator.DoneCallback doneCallback){
+    public boolean performSelect(ActionUtils.ActionCallback doneCallback){
         Log.i(LatteService.TAG, "performSelect");
         if(isPending()){
             Log.i(LatteService.TAG, String.format("Do nothing since another action is pending! (Size:%d)", pendingActions.size()));
@@ -97,10 +98,10 @@ public class TalkBackNavigator {
     }
 
 
-    public boolean selectFocus(Navigator.DoneCallback doneCallback) {
+    public boolean selectFocus(ActionUtils.ActionCallback doneCallback) {
         Utils.deleteFile(Config.v().FINISH_ACTION_FILE_PATH);
         AccessibilityNodeInfo focusedNode = LatteService.getInstance().getAccessibilityFocusedNode();
-        boolean result = performSelect(new Navigator.DoneCallback() {
+        boolean result = performSelect(new ActionUtils.ActionCallback() {
             @Override
             public void onCompleted(AccessibilityNodeInfo nodeInfo) {
                 WidgetInfo newWidgetNodeInfo = ActualWidgetInfo.createFromA11yNode(focusedNode);
@@ -127,11 +128,11 @@ public class TalkBackNavigator {
         new File(dir, Config.v().FINISH_ACTION_FILE_PATH).delete();
     }
 
-    public boolean changeFocus(Navigator.DoneCallback callback, boolean prev) {
+    public boolean changeFocus(ActionUtils.ActionCallback callback, boolean prev) {
         Utils.deleteFile(Config.v().FINISH_ACTION_FILE_PATH);
         WidgetInfo widgetInfo = ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getAccessibilityFocusedNode());
         Log.i(LatteService.TAG, String.format("Widget %s is visited XPATH: %s.", widgetInfo, widgetInfo != null ? widgetInfo.getAttr("xpath") : "NONE"));
-        Navigator.DoneCallback afterChangeCallback = new Navigator.DoneCallback() {
+        ActionUtils.ActionCallback afterChangeCallback = new ActionUtils.ActionCallback() {
             @Override
             public void onCompleted(AccessibilityNodeInfo nodeInfo) {
                 WidgetInfo newWidgetNodeInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo, true);

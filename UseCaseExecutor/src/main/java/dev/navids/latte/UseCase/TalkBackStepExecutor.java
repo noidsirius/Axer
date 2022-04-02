@@ -16,6 +16,7 @@ import dev.navids.latte.TalkBackNavigator;
 import dev.navids.latte.Utils;
 import dev.navids.latte.WidgetInfo;
 
+@Deprecated
 public class TalkBackStepExecutor implements StepExecutor {
     private int waitAttemptsForFocusChange = 0;
     public int pendingActionId = 0;

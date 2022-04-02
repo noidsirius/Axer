@@ -58,7 +58,7 @@ public class Utils {
 
     private static List<AccessibilityNodeInfo> getAllA11yNodeInfo(AccessibilityNodeInfo rootNode, String prefix, boolean log){
         if(rootNode == null) {
-            Log.i(LatteService.TAG, "The root node is null!");
+            Log.e(LatteService.TAG, "The root node is null!");
             return new ArrayList<>();
         }
         List<AccessibilityNodeInfo> result = new ArrayList<>();

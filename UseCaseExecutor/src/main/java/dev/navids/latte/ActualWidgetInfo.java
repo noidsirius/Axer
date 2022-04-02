@@ -18,7 +18,7 @@ public class ActualWidgetInfo extends WidgetInfo {
     }
 
     public static ActualWidgetInfo createFromA11yNode(AccessibilityNodeInfo node){
-        return createFromA11yNode(node, true);
+        return createFromA11yNode(node, false);
     }
 
     /**
@@ -50,6 +50,11 @@ public class ActualWidgetInfo extends WidgetInfo {
         widgetInfo.setXpath(widgetInfo.getXpath());
         return widgetInfo;
     }
+
+    public AccessibilityNodeInfo getA11yNodeInfo() {
+        return node;
+    }
+
 
     @Override
     public String getXpath() {

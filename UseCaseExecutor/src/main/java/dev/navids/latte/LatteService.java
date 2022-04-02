@@ -21,6 +21,14 @@ import dev.navids.latte.UseCase.RegularStepExecutor;
 import dev.navids.latte.UseCase.SightedTalkBackStepExecutor;
 import dev.navids.latte.UseCase.StepExecutor;
 import dev.navids.latte.UseCase.TalkBackStepExecutor;
+import dev.navids.latte.controller.A11YAPIActionPerformer;
+import dev.navids.latte.controller.BaseLocator;
+import dev.navids.latte.controller.Controller;
+import dev.navids.latte.controller.TalkBackAPILocator;
+import dev.navids.latte.controller.TalkBackActionPerformer;
+import dev.navids.latte.controller.TalkBackTouchLocator;
+import dev.navids.latte.controller.TouchActionPerformer;
+import dev.navids.latte.controller.TouchLocator;
 
 public class LatteService extends AccessibilityService {
     private static LatteService instance;
@@ -63,6 +71,30 @@ public class LatteService extends AccessibilityService {
     public StepExecutor getStepExecutor(String key){
         return stepExecutorsMap.getOrDefault(key, null);
     }
+
+    private Map<String, Controller> controllerMap = new HashMap<>();
+
+    public Controller getSelectedController() {
+        return selectedController;
+    }
+
+    public void setSelectedController(Controller selectedController) {
+        this.selectedController = selectedController;
+    }
+
+    private Controller selectedController = null;
+
+    public boolean addController(String key, Controller controller){
+        if(controllerMap.containsKey(key))
+            return false;
+        controllerMap.put(key, controller);
+        return true;
+    }
+
+    public Controller getController(String key){
+        return controllerMap.getOrDefault(key, null);
+    }
+
     @Override
     protected void onServiceConnected() {
         Log.i(TAG, "Latte Service has started!");
@@ -77,6 +109,12 @@ public class LatteService extends AccessibilityService {
         addStepExecutor("regular", new RegularStepExecutor());
         addStepExecutor("talkback", new TalkBackStepExecutor());
         addStepExecutor("sighted_tb", new SightedTalkBackStepExecutor());
+
+        addController("touch", new Controller(new TouchLocator(), new TouchActionPerformer()));
+        addController("a11y_api", new Controller(new BaseLocator(), new A11YAPIActionPerformer()));
+        addController("tb_api", new Controller(new TalkBackAPILocator(), new TalkBackActionPerformer()));
+        addController("tb_touch", new Controller(new TalkBackTouchLocator(), new TalkBackActionPerformer()));
+        selectedController = getController("touch");
     }
 
     @Override

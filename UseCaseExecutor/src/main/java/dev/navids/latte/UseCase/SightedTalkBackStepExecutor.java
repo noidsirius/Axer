@@ -11,6 +11,7 @@ import dev.navids.latte.ActualWidgetInfo;
 import dev.navids.latte.LatteService;
 import dev.navids.latte.Utils;
 
+@Deprecated
 public class SightedTalkBackStepExecutor implements StepExecutor {
     public static boolean apiFocus = false;
     @Override

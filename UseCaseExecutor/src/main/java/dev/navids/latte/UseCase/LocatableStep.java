@@ -60,4 +60,12 @@ public abstract class LocatableStep extends StepCommand {
         return targetWidget;
     }
 
+    @Override
+    public JSONObject getJSON() {
+        JSONObject jsonObject = super.getJSON();
+        jsonObject.put("targetWidget", targetWidget.getJSONCommand("", false, ""));
+        jsonObject.put("actedWidget", actedWidget == null ? null : actedWidget.getJSONCommand("", false, ""));
+        jsonObject.put("locatingAttempts", getNumberOfLocatingAttempts());
+        return jsonObject;
+    }
 }

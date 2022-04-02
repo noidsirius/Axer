@@ -7,6 +7,7 @@ import java.util.Locale;
 
 import dev.navids.latte.LatteService;
 
+@Deprecated
 public class UseCase {
     private List<StepCommand> steps;
     int currentStepIndex = -1;

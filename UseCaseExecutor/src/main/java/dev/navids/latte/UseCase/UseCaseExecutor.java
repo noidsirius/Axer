@@ -16,9 +16,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import dev.navids.latte.ActualWidgetInfo;
 import dev.navids.latte.Config;
 import dev.navids.latte.LatteService;
+import dev.navids.latte.controller.AbstractLocator;
+import dev.navids.latte.controller.Controller;
+import dev.navids.latte.controller.Locator;
+import dev.navids.latte.controller.TalkBackAPILocator;
+import dev.navids.latte.controller.TalkBackActionPerformer;
 
+@Deprecated
 public class UseCaseExecutor{
 
     enum ExecutorState{
@@ -167,24 +174,46 @@ public class UseCaseExecutor{
 
     public synchronized boolean initiateCustomStep(String stepJSONString){
         clearHistory();
-        JSONParser jsonParser = new JSONParser();
-        try {
-            JSONObject stepJSON = (JSONObject) jsonParser.parse(stepJSONString);
-            customStep = createStepFromJson(stepJSON);
+//        JSONParser jsonParser = new JSONParser();
+//        try {
+//            JSONObject stepJSON = (JSONObject) jsonParser.parse(stepJSONString);
+            customStep = createStepFromJson(stepJSONString);
+            if(customStep == null){
+                writeCustomStepResult();
+                return false;
+            }
             Log.i(LatteService.TAG, "CustomStep is created: " + customStep);
             if(customStep instanceof SleepStep) {
                 Log.e(LatteService.TAG, "CustomStep cannot be SleepStep.");
                 customStep = null;
                 return false;
             }
+            if (customStep instanceof LocatableStep)
+            {
+                Controller controller = new Controller(new TalkBackAPILocator(), new TalkBackActionPerformer());
+                controller.executeCommand(customStep);
+                return true;
+//                AbstractLocator locator = new TalkBackAPILocator();
+//                locator.locate((LocatableStep) customStep, new Locator.LocatorCallback() {
+//                    @Override
+//                    public void onCompleted(ActualWidgetInfo actualWidgetInfo) {
+//                        Log.i(LatteService.TAG, "Completed " + actualWidgetInfo);
+//                    }
+//
+//                    @Override
+//                    public void onError(String message) {
+//                        Log.e(LatteService.TAG, "Error " + message);
+//                    }
+//                });
+            }
             mode = ExecutorState.CUSTOM_STEP;
             return true;
-        } catch (ParseException e) {
-            e.printStackTrace();
-            Log.e(LatteService.TAG, "CustomStep cannot be created " + e.getLocalizedMessage());
-        }
-        writeCustomStepResult();
-        return false;
+//        } catch (ParseException e) {
+//            e.printStackTrace();
+//            Log.e(LatteService.TAG, "CustomStep cannot be created " + e.getLocalizedMessage());
+//        }
+//        writeCustomStepResult();
+//        return false;
     }
 
     public synchronized void setDelay(long delay){
@@ -213,6 +242,18 @@ public class UseCaseExecutor{
         }
         currentUseCase = new UseCase(steps);
         Log.i(LatteService.TAG, String.format("New UseCase is initalized with %d steps", currentUseCase.getStepCount()));
+    }
+
+    public static StepCommand createStepFromJson(String stepJsonString){
+        JSONParser jsonParser = new JSONParser();
+        try {
+            JSONObject stepJSON = (JSONObject) jsonParser.parse(stepJsonString);
+            return createStepFromJson(stepJSON);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            Log.e(LatteService.TAG, "CustomStep cannot be created " + e.getLocalizedMessage());
+        }
+        return null;
     }
 
     public static StepCommand createStepFromJson(JSONObject stepJson){
