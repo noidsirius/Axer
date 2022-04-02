@@ -188,24 +188,6 @@ public class UseCaseExecutor{
                 customStep = null;
                 return false;
             }
-            if (customStep instanceof LocatableStep)
-            {
-                Controller controller = new Controller(new TalkBackAPILocator(), new TalkBackActionPerformer());
-                controller.executeCommand(customStep);
-                return true;
-//                AbstractLocator locator = new TalkBackAPILocator();
-//                locator.locate((LocatableStep) customStep, new Locator.LocatorCallback() {
-//                    @Override
-//                    public void onCompleted(ActualWidgetInfo actualWidgetInfo) {
-//                        Log.i(LatteService.TAG, "Completed " + actualWidgetInfo);
-//                    }
-//
-//                    @Override
-//                    public void onError(String message) {
-//                        Log.e(LatteService.TAG, "Error " + message);
-//                    }
-//                });
-            }
             mode = ExecutorState.CUSTOM_STEP;
             return true;
 //        } catch (ParseException e) {

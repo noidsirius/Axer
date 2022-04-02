@@ -298,7 +298,7 @@ class Snapshot:
                         return []
                     executor = mode if mode != 'tb' else 'stb'
                     log_message_map, result_map[mode] = await padb_logger.execute_async_with_log(
-                        execute_command(action.toJSONStr(), executor_name=executor, api_focus=True), tags=tags)
+                        execute_command(action.toJSONStr(), executor_name=executor, api_focus=False), tags=tags)
                     layout = await self.writer.capture_current_state(self.device, f"s_{mode}",
                                                                      self.writer.get_action_index(),
                                                                      log_message_map=log_message_map)
