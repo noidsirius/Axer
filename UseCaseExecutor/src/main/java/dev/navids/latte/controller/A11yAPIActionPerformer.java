@@ -7,7 +7,7 @@ import dev.navids.latte.ActualWidgetInfo;
 import dev.navids.latte.LatteService;
 import dev.navids.latte.UseCase.ClickStep;
 
-public class A11YAPIActionPerformer extends BaseActionPerformer {
+public class A11yAPIActionPerformer extends BaseActionPerformer {
     @Override
     public boolean executeClick(ClickStep clickStep, ActualWidgetInfo actualWidgetInfo) {
         AccessibilityNodeInfo clickableNode = actualWidgetInfo.getA11yNodeInfo();

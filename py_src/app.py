@@ -624,10 +624,10 @@ def report_v2(result_path, app_name, snapshot_name):
     tb_steps = []
     errors = []
     error_logs = ""
-    with open(f"{str(snapshot_path)}.log", encoding="utf-8") as f:
-        for line in f.readlines():
-            if line.startswith("ERROR:"):
-                error_logs += line
+    # with open(f"{str(snapshot_path)}.log", encoding="utf-8") as f:
+    #     for line in f.readlines():
+    #         if line.startswith("ERROR:"):
+    #             error_logs += line
     post_analysis_results = get_post_analysis(snapshot_path=snapshot_path)
     if len(post_analysis_results['unsighted']) == 0:
         errors.append("No post-analysis result is available!")

@@ -144,7 +144,7 @@ public class TalkBackNavigator {
                 else {
                     Log.i(LatteService.TAG, "The next focused node is: " + newWidgetNodeInfo + " Xpath: " + newWidgetNodeInfo.getXpath());
                     JSONObject jsonCommand = newWidgetNodeInfo.getJSONCommand("xpath", false, "click");
-                    jsonCommandStr = jsonCommand != null ? jsonCommand.toString() : "Error";
+                    jsonCommandStr = jsonCommand != null ? jsonCommand.toJSONString() : "Error";
                 }
                 Utils.createFile(Config.v().FINISH_ACTION_FILE_PATH, jsonCommandStr);
                 if(callback != null)
@@ -172,7 +172,7 @@ public class TalkBackNavigator {
         if (widgetInfo != null) {
             Log.i(LatteService.TAG, "The focused node is: " + widgetInfo + (widgetInfo != null ? " Xpath: " + widgetInfo.getXpath() : ""));
             JSONObject jsonCommand = widgetInfo.getJSONCommand("xpath", false, "click");
-            String jsonCommandStr = jsonCommand != null ? jsonCommand.toString() : "Error";
+            String jsonCommandStr = jsonCommand != null ? jsonCommand.toJSONString() : "Error";
             Utils.createFile(Config.v().FINISH_ACTION_FILE_PATH, jsonCommandStr);
         }
         else{

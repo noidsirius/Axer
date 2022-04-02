@@ -47,7 +47,7 @@ public abstract class AbstractLocator implements Locator {
             this(status, "S: " + status.name());
         }
     }
-    private static long delay = 1000;
+    private static long delay = 1000; // TODO: Configurable
     private static final AtomicInteger locatorId = new AtomicInteger(0);
 
     public final synchronized void locate(LocatableStep locatableStep, Locator.LocatorCallback callback){

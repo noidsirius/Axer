@@ -3,7 +3,6 @@ package dev.navids.latte;
 import android.accessibilityservice.AccessibilityService;
 import android.content.IntentFilter;
 import android.util.Log;
-import android.view.WindowId;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
@@ -12,14 +11,13 @@ import org.json.simple.JSONObject;
 
 import java.io.File;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import dev.navids.latte.UseCase.RegularStepExecutor;
 import dev.navids.latte.UseCase.SightedTalkBackStepExecutor;
 import dev.navids.latte.UseCase.StepExecutor;
 import dev.navids.latte.UseCase.TalkBackStepExecutor;
-import dev.navids.latte.controller.A11YAPIActionPerformer;
+import dev.navids.latte.controller.A11yAPIActionPerformer;
 import dev.navids.latte.controller.BaseLocator;
 import dev.navids.latte.controller.Controller;
 import dev.navids.latte.controller.TalkBackAPILocator;
@@ -109,7 +107,7 @@ public class LatteService extends AccessibilityService {
         addStepExecutor("sighted_tb", new SightedTalkBackStepExecutor());
 
         addController("touch", new Controller(new TouchLocator(), new TouchActionPerformer()));
-        addController("a11y_api", new Controller(new BaseLocator(), new A11YAPIActionPerformer()));
+        addController("a11y_api", new Controller(new BaseLocator(), new A11yAPIActionPerformer()));
         addController("tb_api", new Controller(new TalkBackAPILocator(), new TalkBackActionPerformer()));
         addController("tb_touch", new Controller(new TalkBackTouchLocator(), new TalkBackActionPerformer()));
         selectedController = getController("touch");
@@ -161,7 +159,7 @@ public class LatteService extends AccessibilityService {
             jsonWindowContentChange.put("activeWindowId", activeWindowId);
             jsonWindowContentChange.put("activeWindowTitle", activeWindowTitle);
             jsonWindowContentChange.put("Element", jsonEelement);
-            Log.i(A11Y_EVENT_TAG, "WindowContentChange: " + jsonWindowContentChange.toString());
+            Log.i(A11Y_EVENT_TAG, "WindowContentChange: " + jsonWindowContentChange.toJSONString());
         }
 //        Log.i(TAG, "   Type : " +AccessibilityEvent.eventTypeToString(event.getEventType()));
     }

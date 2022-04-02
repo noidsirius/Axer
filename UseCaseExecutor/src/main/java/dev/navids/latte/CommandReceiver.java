@@ -93,7 +93,7 @@ public class CommandReceiver extends BroadcastReceiver {
                 if (widgetInfo == null)
                     continue;
                 JSONObject jsonCommand = widgetInfo.getJSONCommand("", false, "");
-                String jsonCommandStr = jsonCommand != null ? jsonCommand.toString() : "Error";
+                String jsonCommandStr = jsonCommand != null ? jsonCommand.toJSONString() : "Error";
                 report_jsonl.append(jsonCommandStr).append("\n");
             }
             Utils.createFile(Config.v().ATF_ISSUES_FILE_PATH, report_jsonl.toString());

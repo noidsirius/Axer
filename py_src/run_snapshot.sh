@@ -1,5 +1,5 @@
 #!/bin/bash
-SNAPSHOT_TIMEOUT=240
+SNAPSHOT_TIMEOUT=900
 SNAPSHOT=$1
 RESULT_PATH=${2:-$(realpath ../dev_results)}
 RESULT_PATH=$(realpath "$RESULT_PATH")

@@ -106,7 +106,7 @@ public class ATFWidgetInfo extends WidgetInfo {
             return result;
         com.google.android.apps.common.testing.accessibility.framework.replacements.Rect boundBox = node.getBoundsInScreen();
         result.put("bounds", String.format("[%d,%d][%d,%d]", boundBox.getLeft(), boundBox.getTop(), boundBox.getRight(), boundBox.getBottom()));
-        result.put("ATFSeverity", accessibilityHierarchyCheckResult.getType());
+        result.put("ATFSeverity", accessibilityHierarchyCheckResult.getType().toString());
         result.put("ATFType", accessibilityHierarchyCheckResult.getSourceCheckClass().getSimpleName());
         return result;
     }

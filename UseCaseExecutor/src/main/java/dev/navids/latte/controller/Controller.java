@@ -156,7 +156,7 @@ public class Controller {
     }
 
     private void writeResult(StepCommand stepCommand){
-        String jsonCommandStr = stepCommand != null ? stepCommand.getJSON().toString() : "Error";
+        String jsonCommandStr = stepCommand != null ? stepCommand.getJSON().toJSONString() : "Error";
         Utils.createFile(Config.v().CONTROLLER_RESULT_FILE_NAME, jsonCommandStr);
     }
 }
