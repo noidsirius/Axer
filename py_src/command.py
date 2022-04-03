@@ -60,3 +60,8 @@ class NextCommand(NavigateCommand):
 class PreviousCommand(NavigateCommand):
     def __init__(self):
         super().__init__('previous')
+
+
+class SelectCommand(NavigateCommand):
+    def __init__(self):
+        super().__init__('select')

@@ -19,11 +19,11 @@ public abstract class Command {
         this.executeByA11yAssistantService = !skip;
     }
 
-    public static Command createStepFromJson(String stepJsonString){
+    public static Command createCommandFromJSON(String stepJsonString){
         JSONParser jsonParser = new JSONParser();
         try {
             JSONObject stepJSON = (JSONObject) jsonParser.parse(stepJsonString);
-            return createStepFromJson(stepJSON);
+            return createCommandFromJSON(stepJSON);
         } catch (ParseException e) {
             e.printStackTrace();
             Log.e(LatteService.TAG, "CustomStep cannot be created " + e.getLocalizedMessage());
@@ -31,24 +31,26 @@ public abstract class Command {
         return null;
     }
 
-    public static Command createStepFromJson(JSONObject stepJson){
+    public static Command createCommandFromJSON(JSONObject commandJSON){
         try {
-            String action = (String) stepJson.getOrDefault("action", "UNKNOWN");
+            String action = (String) commandJSON.getOrDefault("action", "UNKNOWN");
             Command command = null;
             if (SleepCommand.isSleepAction(action))
-                command = new SleepCommand(stepJson);
+                command = new SleepCommand(commandJSON);
             else if (TypeCommand.isTypeStep(action))
-                command = new TypeCommand(stepJson);
+                command = new TypeCommand(commandJSON);
             else if (ClickCommand.isClickStep(action))
-                command = new ClickCommand(stepJson);
+                command = new ClickCommand(commandJSON);
             else if (FocusCommand.isFocusStep(action))
-                command = new FocusCommand(stepJson);
+                command = new FocusCommand(commandJSON);
             else if (NextCommand.isNextAction(action))
-                command = new NextCommand(stepJson);
+                command = new NextCommand(commandJSON);
             else if (PreviousCommand.isPreviousAction(action))
-                command = new PreviousCommand(stepJson);
+                command = new PreviousCommand(commandJSON);
+            else if (SelectCommand.isSelectCommand(action))
+                command = new SelectCommand(commandJSON);
             else if (InfoCommand.isInfo(action))
-                command = new InfoCommand(stepJson);
+                command = new InfoCommand(commandJSON);
             else
                 command = null;
             return command;

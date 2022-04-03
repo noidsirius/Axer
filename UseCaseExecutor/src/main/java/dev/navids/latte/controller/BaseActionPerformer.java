@@ -9,6 +9,7 @@ import dev.navids.latte.UseCase.ClickCommand;
 import dev.navids.latte.UseCase.FocusCommand;
 import dev.navids.latte.UseCase.NextCommand;
 import dev.navids.latte.UseCase.PreviousCommand;
+import dev.navids.latte.UseCase.SelectCommand;
 import dev.navids.latte.UseCase.TypeCommand;
 
 public class BaseActionPerformer extends AbstractActionPerformer {
@@ -38,5 +39,10 @@ public class BaseActionPerformer extends AbstractActionPerformer {
     @Override
     public void navigatePrevious(PreviousCommand previousStep, ExecutorCallback callback) {
 
+    }
+
+    @Override
+    public void navigateSelect(SelectCommand selectCommand, ExecutorCallback callback) {
+        
     }
 }

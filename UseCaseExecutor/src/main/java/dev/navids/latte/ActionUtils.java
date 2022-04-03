@@ -35,16 +35,26 @@ public class ActionUtils {
         pendingActions.clear(); // TODO: Do we need to cancel the pending actions somehow?
     }
 
-    private static AccessibilityService.GestureResultCallback defaultCallBack= new AccessibilityService.GestureResultCallback() {
+    static class DefaultGestureCallback extends AccessibilityService.GestureResultCallback {
+        private ActionCallback actionCallback = null;
+        DefaultGestureCallback(ActionCallback actionCallback){
+            this.actionCallback = actionCallback;
+        }
+        DefaultGestureCallback(){this(null);};
+
         @Override
         public void onCompleted(GestureDescription gestureDescription) {
             Log.i(LatteService.TAG, "Complete Gesture " + gestureDescription.toString());
+            if (actionCallback != null)
+                actionCallback.onCompleted(null);
             super.onCompleted(gestureDescription);
         }
 
         @Override
         public void onCancelled(GestureDescription gestureDescription) {
             Log.i(LatteService.TAG, "Cancel Gesture " + gestureDescription.toString());
+            if (actionCallback != null)
+                actionCallback.onError("The gesture is cancelled");
             super.onCancelled(gestureDescription);
         }
     };
@@ -134,7 +144,7 @@ public class ActionUtils {
     public static boolean performTap(Pair<Integer, Integer> coordinates){ return performTap(coordinates.first, coordinates.second); }
     public static boolean performTap(int x, int y){ return performTap(x, y, Config.v().TAP_DURATION); }
     public static boolean performTap(int x, int y, int duration){ return performTap(x, y, 0, duration); }
-    public static boolean performTap(int x, int y, int startTime, int duration){ return performTap(x, y, startTime, duration, defaultCallBack); }
+    public static boolean performTap(int x, int y, int startTime, int duration){ return performTap(x, y, startTime, duration, new DefaultGestureCallback()); }
     public static boolean performTap(int x, int y, int startTime, int duration, AccessibilityService.GestureResultCallback callback){
         if(x < 0 || y < 0)
             return false;
@@ -155,7 +165,10 @@ public class ActionUtils {
     }
 
     public static boolean performDoubleTap(){
-        return performDoubleTap(defaultCallBack);
+        return performDoubleTap(new DefaultGestureCallback(null));
+    }
+    public static boolean performDoubleTap(ActionCallback callback){
+        return performDoubleTap(new DefaultGestureCallback(callback));
     }
     public static boolean performDoubleTap(final AccessibilityService.GestureResultCallback callback){
         Log.i(LatteService.TAG, "performDoubleTap");

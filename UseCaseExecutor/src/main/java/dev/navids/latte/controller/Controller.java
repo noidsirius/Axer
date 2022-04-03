@@ -34,7 +34,7 @@ public class Controller {
     }
 
     public void executeCommand(String stepCommandJson){
-        Command command = Command.createStepFromJson(stepCommandJson);
+        Command command = Command.createCommandFromJSON(stepCommandJson);
         executeCommand(command);
     }
 

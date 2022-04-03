@@ -9,6 +9,7 @@ import dev.navids.latte.UseCase.LocatableCommand;
 import dev.navids.latte.UseCase.NavigateCommand;
 import dev.navids.latte.UseCase.NextCommand;
 import dev.navids.latte.UseCase.PreviousCommand;
+import dev.navids.latte.UseCase.SelectCommand;
 import dev.navids.latte.UseCase.TypeCommand;
 
 public abstract class AbstractActionPerformer implements ActionPerformer {
@@ -20,6 +21,8 @@ public abstract class AbstractActionPerformer implements ActionPerformer {
             navigateNext((NextCommand) navigateCommand, callback);
         else if (navigateCommand instanceof PreviousCommand)
             navigatePrevious((PreviousCommand) navigateCommand, callback);
+        else if (navigateCommand instanceof SelectCommand)
+            navigateSelect((SelectCommand) navigateCommand, callback);
         else {
             Log.e(LatteService.TAG, "This navigate step is unrecognizable " + navigateCommand);
             callback.onError("Unrecognizable Action");
@@ -66,4 +69,5 @@ public abstract class AbstractActionPerformer implements ActionPerformer {
     public abstract boolean executeFocus(FocusCommand focusStep, ActualWidgetInfo actualWidgetInfo);
     public abstract void navigateNext(NextCommand nextStep, ExecutorCallback callback);
     public abstract void navigatePrevious(PreviousCommand previousStep, ExecutorCallback callback);
+    public abstract void navigateSelect(SelectCommand selectCommand, ExecutorCallback callback);
 }

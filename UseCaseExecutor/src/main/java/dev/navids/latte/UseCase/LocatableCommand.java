@@ -1,10 +1,13 @@
 package dev.navids.latte.UseCase;
 
+import android.util.Log;
+
 import org.json.simple.JSONObject;
 
 import dev.navids.latte.ActualWidgetInfo;
 import dev.navids.latte.ConceivedWidgetInfo;
 import dev.navids.latte.Config;
+import dev.navids.latte.LatteService;
 
 public abstract class LocatableCommand extends Command {
     private final ConceivedWidgetInfo targetWidget;
@@ -49,7 +52,13 @@ public abstract class LocatableCommand extends Command {
 
     LocatableCommand(JSONObject stepJson) {
         super(stepJson);
-        targetWidget = ConceivedWidgetInfo.createFromJson(stepJson);
+        Object obj = stepJson.getOrDefault("target", null);
+        if (obj != null)
+            targetWidget = ConceivedWidgetInfo.createFromJson((JSONObject) obj);
+        else {
+            Log.e(LatteService.TAG, "The target widget is null!");
+            targetWidget = new ConceivedWidgetInfo("", "", "", "", "", "");
+        }
     }
 
     public static boolean isLocatableAction(String action) {
