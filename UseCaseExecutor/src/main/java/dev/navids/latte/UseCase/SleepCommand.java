@@ -6,10 +6,10 @@ import org.json.simple.JSONObject;
 
 import dev.navids.latte.LatteService;
 
-public class SleepStep extends StepCommand {
+public class SleepCommand extends Command {
     private long sleepTime;
 
-    SleepStep(JSONObject stepJson) {
+    SleepCommand(JSONObject stepJson) {
         super(stepJson);
         long sleepTime = Long.parseLong((String) stepJson.getOrDefault("sleep", "-1"));
         if(sleepTime == -1) {

@@ -9,7 +9,7 @@ import dev.navids.latte.LatteService;
 
 @Deprecated
 public class UseCase {
-    private List<StepCommand> steps;
+    private List<Command> steps;
     int currentStepIndex = -1;
     private long startTime = -1;
     private long totalTime = 0;
@@ -30,7 +30,7 @@ public class UseCase {
         return true;
     }
 
-    StepCommand getCurrentStepCommand(){
+    Command getCurrentStepCommand(){
         if (!(currentStepIndex >=0 && currentStepIndex < steps.size()))
             return null;
         while(steps.get(currentStepIndex).isDone()){
@@ -50,7 +50,7 @@ public class UseCase {
     }
 
 
-    public UseCase(List<StepCommand> steps) {
+    public UseCase(List<Command> steps) {
         this.steps = steps;
     }
 
@@ -68,23 +68,23 @@ public class UseCase {
         int failedCount = 0;
         StringBuilder finalResult = new StringBuilder();
         for(int i=0; i<steps.size(); i++) {
-            StepCommand step = steps.get(i);
+            Command step = steps.get(i);
             int number_of_actions = 0;
             String actingWidget = "";
-            if(step instanceof LocatableStep){
-                LocatableStep locatableStep = (LocatableStep) step;
-                totalEvents += locatableStep.getNumberOfLocatingAttempts() + locatableStep.getNumberOfActingAttempts();
-                number_of_actions = locatableStep.getNumberOfLocatingAttempts() + locatableStep.getNumberOfActingAttempts();
-                actingWidget = locatableStep.getActedWidget().completeToString(true);
+            if(step instanceof LocatableCommand){
+                LocatableCommand locatableCommand = (LocatableCommand) step;
+                totalEvents += locatableCommand.getNumberOfLocatingAttempts() + locatableCommand.getNumberOfActingAttempts();
+                number_of_actions = locatableCommand.getNumberOfLocatingAttempts() + locatableCommand.getNumberOfActingAttempts();
+                actingWidget = locatableCommand.getActedWidget().completeToString(true);
             }
 
-            if(step.getState() != StepState.COMPLETED && firstProbelmaticCommand < 0)
+            if(step.getState() != Command.CommandState.COMPLETED && firstProbelmaticCommand < 0)
                 firstProbelmaticCommand = i+1;
-            if(step.getState() == StepState.COMPLETED)
+            if(step.getState() == Command.CommandState.COMPLETED)
                 completeCount++;
-            else if(step.getState() == StepState.COMPLETED_BY_HELP)
+            else if(step.getState() == Command.CommandState.COMPLETED_BY_HELP)
                 unlocatedCount++;
-            else if(step.getState() == StepState.FAILED)
+            else if(step.getState() == Command.CommandState.FAILED)
                 failedCount++;
             String message = String.format(Locale.getDefault(),"   Step[%d] $ State: %s $ #Events: %d $ Time: %d $ ActingWidget: %s",
                     i + 1, step.getState().name(),

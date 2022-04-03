@@ -7,7 +7,7 @@ from consts import DEVICE_NAME, ADB_HOST, ADB_PORT
 from ppadb.client_async import ClientAsync as AdbClient
 from results_utils import AddressBook, read_all_visited_elements_in_app
 from logger_utils import ColoredFormatter
-from snapshot import Snapshot
+from bm_snapshotmanager import BM_SnapshotManager
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +23,13 @@ def analyze_snapshot(device,
     visited_elements_in_app = read_all_visited_elements_in_app(snapshot_path.parent)
     logger.info(f"There are {len(visited_elements_in_app)} already visited elements in this app!")
     address_book = AddressBook(snapshot_path)
-    snapshot = Snapshot(snapshot_path.name, address_book,
-                        visited_elements_in_app=visited_elements_in_app,
-                        is_oversight=is_oversight,
-                        instrumented_log=is_instrumented,
-                        directional_action_limit=directional_action_limit,
-                        point_action_limit=point_action_limit,
-                        device=device)
+    snapshot = BM_SnapshotManager(snapshot_path.name, address_book,
+                                  visited_elements_in_app=visited_elements_in_app,
+                                  is_oversight=is_oversight,
+                                  instrumented_log=is_instrumented,
+                                  directional_action_limit=directional_action_limit,
+                                  point_action_limit=point_action_limit,
+                                  device=device)
     if only_explore:
         asyncio.run(snapshot.directed_explore())
     elif only_action:

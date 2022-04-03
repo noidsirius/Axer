@@ -21,9 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import dev.navids.latte.UseCase.FocusStep;
-import dev.navids.latte.UseCase.StepState;
-
 public class ActionUtils {
     public interface ActionCallback{
         void onCompleted(AccessibilityNodeInfo nodeInfo);

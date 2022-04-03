@@ -6,8 +6,8 @@ import org.json.simple.JSONObject;
 
 import dev.navids.latte.LatteService;
 
-public class ClickStep extends LocatableStep {
-    ClickStep(JSONObject stepJson) {
+public class ClickCommand extends LocatableCommand {
+    ClickCommand(JSONObject stepJson) {
         super(stepJson);
         Log.i(LatteService.TAG, "Clickable Step: " + this.getTargetWidgetInfo());
     }

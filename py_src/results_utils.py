@@ -13,7 +13,6 @@ from latte_executor_utils import ExecutionResult, latte_capture_layout as captur
 from padb_utils import ParallelADBLogger, save_screenshot
 from utils import annotate_rectangle
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -31,14 +30,18 @@ class OAC(Enum):  # Overly Accessible Condition
 
 
 class AddressBook:
+    BASE_MODE = "base"
+    INITIAL = "INITIAL"
+
     def __init__(self, snapshot_result_path: Union[Path, str]):
         if isinstance(snapshot_result_path, str):
             snapshot_result_path = Path(snapshot_result_path)
         self.snapshot_result_path = snapshot_result_path
-        navigate_modes = ["tb", "reg", "areg", "exp", "s_reg", "s_areg", "s_tb", "s_exp"]
+        navigate_modes = [AddressBook.BASE_MODE, "tb", "reg", "areg", "exp", "s_reg", "s_areg", "s_tb", "s_exp"]
         self.mode_path_map = {}
         for mode in navigate_modes:
             self.mode_path_map[mode] = self.snapshot_result_path.joinpath(mode.upper())
+        self.initiated_path = self.snapshot_result_path.joinpath("initiated.txt")
         self.ovsersight_path = self.snapshot_result_path.joinpath("OS")
         self.atf_issues_path = self.mode_path_map['exp'].joinpath("atf_issues.jsonl")
         self.action_path = self.snapshot_result_path.joinpath("action.jsonl")
@@ -59,7 +62,13 @@ class AddressBook:
         self.s_action_path = self.snapshot_result_path.joinpath("s_action.jsonl")
         self.s_action_screenshot = self.mode_path_map['s_exp'].joinpath("all_actions.png")
 
-    def initiate(self):
+    def initiate(self, recreate: bool = False):
+        if not recreate:
+            if self.initiated_path.exists():
+                with open(self.initiated_path) as f:
+                    content = f.read()
+                if "STRUCTURE" in content:
+                    return
         if self.snapshot_result_path.exists():
             shutil.rmtree(self.snapshot_result_path.absolute())
         self.snapshot_result_path.mkdir()
@@ -69,6 +78,8 @@ class AddressBook:
         self.action_path.touch()
         self.visited_elements_path.touch()
         self.s_action_path.touch()
+        with open(self.initiated_path, "w") as f:
+            f.write("STRUCTURE\n")
 
     def result_path(self) -> str:
         return self.snapshot_result_path.parent.parent.name
@@ -82,7 +93,8 @@ class AddressBook:
     def snapshot_name(self) -> str:
         return self.snapshot_result_path.name
 
-    def get_screenshot_path(self, mode: str, index: Union[int, str], extension: str = None, should_exists: bool = False):
+    def get_screenshot_path(self, mode: str, index: Union[int, str], extension: str = None,
+                            should_exists: bool = False):
         file_name = f"{index}_{extension}.png" if extension else f"{index}.png"
         if not extension and mode == 's_exp':
             file_name = "INITIAL.png"
@@ -94,7 +106,8 @@ class AddressBook:
         return self._get_path(mode, f"{index}.xml", should_exists)
 
     def get_log_path(self, mode: str, index: int, extension: str = None, should_exists: bool = False):
-        file_name = f"{index}_{extension}.log" if (extension is not None and extension != BLIND_MONKEY_TAG) else f"{index}.log"
+        file_name = f"{index}_{extension}.log" if (
+                    extension is not None and extension != BLIND_MONKEY_TAG) else f"{index}.log"
         return self._get_path(mode, file_name, should_exists)
 
     def get_instrumented_log_path(self, mode: str, index: int, should_exists: bool = False):
@@ -214,6 +227,34 @@ class AddressBook:
         return oac_info_map
 
 
+async def capture_current_state(address_book: AddressBook, device,
+                                mode: str,
+                                index: Union[int, str],
+                                has_layout=True,
+                                log_message_map: Optional[dict] = None) -> str:
+    await asyncio.sleep(3)
+    await save_screenshot(device, address_book.get_screenshot_path(mode, index))
+    activity_name = await get_current_activity_name()
+    with open(address_book.get_activity_name_path(mode, index), mode='w') as f:
+        f.write(activity_name + "\n")
+
+    layout = ""
+    if has_layout:
+        padb_logger = ParallelADBLogger(device)
+        log_map, layout = await padb_logger.execute_async_with_log(capture_layout())
+        with open(address_book.get_log_path(mode, index, extension="layout"), mode='w') as f:
+            f.write(log_map[BLIND_MONKEY_TAG])
+        with open(address_book.get_layout_path(mode, index), mode='w') as f:
+            f.write(layout)
+
+    if log_message_map:
+        for tag, log_message in log_message_map.items():
+            with open(address_book.get_log_path(mode, index, extension=tag), mode='w') as f:
+                f.write(log_message)
+
+    return layout  # TODO: Remove it
+
+
 class ResultWriter:
     def __init__(self, address_book: AddressBook):
         self.address_book = address_book
@@ -263,24 +304,27 @@ class ResultWriter:
             exp_screenshot_path = self.address_book.get_screenshot_path('exp', action_index, should_exists=True)
             if exp_screenshot_path:
                 annotate_rectangle(source_img=exp_screenshot_path,
-                                   target_img=self.address_book.get_screenshot_path('exp', action_index, extension="edited"),
+                                   target_img=self.address_book.get_screenshot_path('exp', action_index,
+                                                                                    extension="edited"),
                                    bounds=[reg_action_result.bound],
                                    outline=(0, 255, 255),
                                    scale=15,
-                                   width=15,)
+                                   width=15, )
         else:
             initial_path = self.address_book.get_screenshot_path('s_exp', 'INITIAL', should_exists=True)
             if initial_path is not None:
                 if isinstance(tb_action_result, ExecutionResult):
                     annotate_rectangle(source_img=initial_path,
-                                       target_img=self.address_book.get_screenshot_path('s_exp', action_index, extension="edited"),
+                                       target_img=self.address_book.get_screenshot_path('s_exp', action_index,
+                                                                                        extension="edited"),
                                        bounds=[reg_action_result.bound, tb_action_result.bound],
                                        outline=[(255, 0, 255), (255, 255, 0)],
                                        width=[5, 15],
                                        scale=[1, 20])
                 else:
                     annotate_rectangle(source_img=initial_path,
-                                       target_img=self.address_book.get_screenshot_path('s_exp', action_index, extension="edited"),
+                                       target_img=self.address_book.get_screenshot_path('s_exp', action_index,
+                                                                                        extension="edited"),
                                        bounds=[reg_action_result.bound],
                                        outline=(255, 0, 255),
                                        width=5,
@@ -311,27 +355,12 @@ class ResultWriter:
                                     index: Union[int, str],
                                     has_layout=True,
                                     log_message_map: Optional[dict] = None) -> str:
-        await asyncio.sleep(3)
-        await save_screenshot(device, self.address_book.get_screenshot_path(mode, index))
-        activity_name = await get_current_activity_name()
-        with open(self.address_book.get_activity_name_path(mode, index), mode='w') as f:
-            f.write(activity_name + "\n")
-
-        layout = ""
-        if has_layout:
-            padb_logger = ParallelADBLogger(device)
-            log_map, layout = await padb_logger.execute_async_with_log(capture_layout())
-            with open(self.address_book.get_log_path(mode, index, extension="layout"), mode='w') as f:
-                f.write(log_map[BLIND_MONKEY_TAG])
-            with open(self.address_book.get_layout_path(mode, index), mode='w') as f:
-                f.write(layout)
-
-        if log_message_map:
-            for tag, log_message in log_message_map.items():
-                with open(self.address_book.get_log_path(mode, index, extension=tag), mode='w') as f:
-                    f.write(log_message)
-
-        return layout  # TODO: Remove it
+        return await capture_current_state(address_book=self.address_book,
+                                           device=device,
+                                           mode=mode,
+                                           index=index,
+                                           has_layout=has_layout,
+                                           log_message_map=log_message_map)
 
     def write_last_navigate_log(self, log_message: str):
         with open(self.address_book.last_explore_log_path, mode='w') as f:

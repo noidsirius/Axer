@@ -2,13 +2,11 @@ package dev.navids.latte.UseCase;
 
 import org.json.simple.JSONObject;
 
-import dev.navids.latte.ActualWidgetInfo;
-
-public class InfoStep extends StepCommand{
+public class InfoCommand extends Command {
 
 
     private String question = "";
-    InfoStep(JSONObject stepJson) {
+    InfoCommand(JSONObject stepJson) {
         super(stepJson);
         question = (String) stepJson.getOrDefault("question", "");
     }

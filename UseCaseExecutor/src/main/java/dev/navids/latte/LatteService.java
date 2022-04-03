@@ -39,7 +39,7 @@ public class LatteService extends AccessibilityService {
 
     private AccessibilityNodeInfo focusedNode;
     private AccessibilityNodeInfo accessibilityFocusedNode;
-    CommandReceiver receiver;
+    MessageReceiver receiver;
     public boolean isConnected() {
         return connected;
     }
@@ -98,8 +98,8 @@ public class LatteService extends AccessibilityService {
         for(File file : dir.listFiles())
             if(!file.isDirectory())
                 file.delete();
-        receiver = new CommandReceiver();
-        registerReceiver(receiver, new IntentFilter(CommandReceiver.ACTION_COMMAND_INTENT));
+        receiver = new MessageReceiver();
+        registerReceiver(receiver, new IntentFilter(MessageReceiver.MESSAGE_INTENT));
         instance = this;
         connected = true;
         addStepExecutor("regular", new RegularStepExecutor());

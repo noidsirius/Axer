@@ -7,7 +7,7 @@ import org.json.simple.JSONObject;
 
 import dev.navids.latte.LatteService;
 
-public class TypeStep extends LocatableStep {
+public class TypeCommand extends LocatableCommand {
     public String getText() {
         return text;
     }
@@ -15,7 +15,7 @@ public class TypeStep extends LocatableStep {
     private String text;
 
 
-    TypeStep(JSONObject stepJson) {
+    TypeCommand(JSONObject stepJson) {
         super(stepJson);
         String text = "";
         if (stepJson.containsKey("action_args")) {

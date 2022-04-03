@@ -15,23 +15,23 @@ import dev.navids.latte.Utils;
 public class SightedTalkBackStepExecutor implements StepExecutor {
     public static boolean apiFocus = false;
     @Override
-    public boolean executeStep(StepCommand step) {
+    public boolean executeStep(Command step) {
         Log.i(LatteService.TAG, "STB Executing Step " + step);
-        if(step.getState() != StepState.RUNNING)
+        if(step.getState() != Command.CommandState.RUNNING)
             return false;
-        if(step instanceof LocatableStep){
-            LocatableStep locatableStep = (LocatableStep) step;
-            locatableStep.increaseLocatingAttempts();
-            if(locatableStep.reachedMaxLocatingAttempts()){
+        if(step instanceof LocatableCommand){
+            LocatableCommand locatableCommand = (LocatableCommand) step;
+            locatableCommand.increaseLocatingAttempts();
+            if(locatableCommand.reachedMaxLocatingAttempts()){
                 Log.i(LatteService.TAG, "Reached Stopping Criteria!");
-                locatableStep.setState(StepState.FAILED);
+                locatableCommand.setState(Command.CommandState.FAILED);
                 return false;
             }
-            List<AccessibilityNodeInfo> similarNodes = Utils.findSimilarNodes(locatableStep.getTargetWidgetInfo());
+            List<AccessibilityNodeInfo> similarNodes = Utils.findSimilarNodes(locatableCommand.getTargetWidgetInfo());
             if(similarNodes.size() != 1){
                 if(similarNodes.size() == 0) {
                     Log.i(LatteService.TAG, "The target widget could not be found in current screen.");
-                    Log.i(LatteService.TAG, "The target XPATH: " + locatableStep.getTargetWidgetInfo().getXpath());
+                    Log.i(LatteService.TAG, "The target XPATH: " + locatableCommand.getTargetWidgetInfo().getXpath());
                     List<AccessibilityNodeInfo> allNodes = Utils.getAllA11yNodeInfo(false);
                     for(AccessibilityNodeInfo nodeInfo : allNodes){
                         ActualWidgetInfo actualWidgetInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo);
@@ -60,22 +60,22 @@ public class SightedTalkBackStepExecutor implements StepExecutor {
                         Log.e(LatteService.TAG, String.format("Physically clicking on (%d, %d)", x, y));
                         ActionUtils.performTap(x, y);
                     }
-                    locatableStep.increaseLocatingAttempts();
+                    locatableCommand.increaseLocatingAttempts();
                     return false;
                 }
-                locatableStep.increaseActingAttempts();
-                locatableStep.setActedWidget(ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getAccessibilityFocusedNode()));
-                if(locatableStep instanceof ClickStep){
+                locatableCommand.increaseActingAttempts();
+                locatableCommand.setActedWidget(ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getAccessibilityFocusedNode()));
+                if(locatableCommand instanceof ClickCommand){
                     ActionUtils.performDoubleTap();
-                    locatableStep.setState(StepState.COMPLETED);
+                    locatableCommand.setState(Command.CommandState.COMPLETED);
                 }
-                else if(locatableStep instanceof TypeStep){
-                    ActionUtils.performType(LatteService.getInstance().getAccessibilityFocusedNode(), ((TypeStep) locatableStep).getText());
-                    locatableStep.setState(StepState.COMPLETED);
+                else if(locatableCommand instanceof TypeCommand){
+                    ActionUtils.performType(LatteService.getInstance().getAccessibilityFocusedNode(), ((TypeCommand) locatableCommand).getText());
+                    locatableCommand.setState(Command.CommandState.COMPLETED);
                 }
                 else{
-                    Log.e(LatteService.TAG, "This locatable step is unrecognizable " + locatableStep);
-                    locatableStep.setState(StepState.FAILED);
+                    Log.e(LatteService.TAG, "This locatable step is unrecognizable " + locatableCommand);
+                    locatableCommand.setState(Command.CommandState.FAILED);
                     return false;
                 }
                 return true;
@@ -83,7 +83,7 @@ public class SightedTalkBackStepExecutor implements StepExecutor {
         }
         else {
             Log.e(LatteService.TAG, "This step is unrecognizable " + step);
-            step.setState(StepState.FAILED);
+            step.setState(Command.CommandState.FAILED);
             return false;
         }
     }

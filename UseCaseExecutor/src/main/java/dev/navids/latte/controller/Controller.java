@@ -9,11 +9,10 @@ import java.io.File;
 import dev.navids.latte.ActualWidgetInfo;
 import dev.navids.latte.Config;
 import dev.navids.latte.LatteService;
-import dev.navids.latte.UseCase.InfoStep;
-import dev.navids.latte.UseCase.LocatableStep;
-import dev.navids.latte.UseCase.NavigateStep;
-import dev.navids.latte.UseCase.StepCommand;
-import dev.navids.latte.UseCase.StepState;
+import dev.navids.latte.UseCase.InfoCommand;
+import dev.navids.latte.UseCase.LocatableCommand;
+import dev.navids.latte.UseCase.NavigateCommand;
+import dev.navids.latte.UseCase.Command;
 import dev.navids.latte.Utils;
 import dev.navids.latte.WidgetInfo;
 
@@ -35,11 +34,11 @@ public class Controller {
     }
 
     public void executeCommand(String stepCommandJson){
-        StepCommand command = StepCommand.createStepFromJson(stepCommandJson);
+        Command command = Command.createStepFromJson(stepCommandJson);
         executeCommand(command);
     }
 
-    public void executeCommand(StepCommand command){
+    public void executeCommand(Command command){
         clearResult();
         if(command == null){
             Log.e(LatteService.TAG, "The incoming Command is null!");
@@ -47,32 +46,32 @@ public class Controller {
             return;
         }
 
-        command.setState(StepState.RUNNING);
-        if(command instanceof LocatableStep){
-            executeLocatableStep((LocatableStep) command);
+        command.setState(Command.CommandState.RUNNING);
+        if(command instanceof LocatableCommand){
+            executeLocatableStep((LocatableCommand) command);
         }
-        else if (command instanceof NavigateStep){
-            navigate(command, (NavigateStep) command);
+        else if (command instanceof NavigateCommand){
+            navigate(command, (NavigateCommand) command);
         }
-        else if (command instanceof InfoStep){
-            InfoStep infoStep = (InfoStep) command;
-            if(infoStep.getQuestion().equals("a11y_focused")){
+        else if (command instanceof InfoCommand){
+            InfoCommand infoCommand = (InfoCommand) command;
+            if(infoCommand.getQuestion().equals("a11y_focused")){
                 WidgetInfo widgetInfo = ActualWidgetInfo.createFromA11yNode(LatteService.getInstance().getAccessibilityFocusedNode());
                 if (widgetInfo != null) {
                     Log.i(LatteService.TAG, "The focused node is: " + widgetInfo + " Xpath: " + widgetInfo.getXpath());
                     JSONObject jsonCommand = widgetInfo.getJSONCommand("xpath", false, "click");
-                    infoStep.setJsonResult(jsonCommand);
-                    infoStep.setState(StepState.COMPLETED);
+                    infoCommand.setJsonResult(jsonCommand);
+                    infoCommand.setState(Command.CommandState.COMPLETED);
                 }
                 else{
                     Log.i(LatteService.TAG, "The focused node is null! ");
-                    infoStep.setState(StepState.FAILED);
+                    infoCommand.setState(Command.CommandState.FAILED);
                 }
             }
             else{
-                infoStep.setState(StepState.FAILED);
+                infoCommand.setState(Command.CommandState.FAILED);
             }
-            writeResult(infoStep);
+            writeResult(infoCommand);
         }
         else{
             Log.e(LatteService.TAG, "Unrecognizable Command!");
@@ -80,7 +79,7 @@ public class Controller {
         }
     }
 
-    private void navigate(StepCommand command, NavigateStep navigateStep) {
+    private void navigate(Command command, NavigateCommand navigateCommand) {
         ActionPerformer.ExecutorCallback callback = new ActionPerformer.ExecutorCallback() {
             @Override
             public void onCompleted() {
@@ -89,35 +88,35 @@ public class Controller {
 
             @Override
             public void onCompleted(ActualWidgetInfo navigatedWidget) {
-                command.setState(StepState.COMPLETED);
-                navigateStep.setNavigatedWidget(navigatedWidget);
-                writeResult(navigateStep);
+                command.setState(Command.CommandState.COMPLETED);
+                navigateCommand.setNavigatedWidget(navigatedWidget);
+                writeResult(navigateCommand);
             }
 
             @Override
             public void onError(String message) {
-                navigateStep.setState(StepState.FAILED_PERFORM);
-                Log.e(LatteService.TAG, String.format("Error in navigating command %s. Message: %s", navigateStep, message));
-                writeResult(navigateStep);
+                navigateCommand.setState(Command.CommandState.FAILED_PERFORM);
+                Log.e(LatteService.TAG, String.format("Error in navigating command %s. Message: %s", navigateCommand, message));
+                writeResult(navigateCommand);
             }
         };
         try {
-            actionPerformer.navigate(navigateStep, callback);
+            actionPerformer.navigate(navigateCommand, callback);
         }
         catch (Exception e){
-            navigateStep.setState(StepState.FAILED);
-            Log.e(LatteService.TAG, String.format("An exception happened navigating command %s. Message: %s", navigateStep, e.getMessage()));
-            writeResult(navigateStep);
+            navigateCommand.setState(Command.CommandState.FAILED);
+            Log.e(LatteService.TAG, String.format("An exception happened navigating command %s. Message: %s", navigateCommand, e.getMessage()));
+            writeResult(navigateCommand);
         }
     }
 
-    private void executeLocatableStep(LocatableStep locatableStep) {
+    private void executeLocatableStep(LocatableCommand locatableCommand) {
         Locator.LocatorCallback locatorCallback = new Locator.LocatorCallback() {
             @Override
             public void onCompleted(ActualWidgetInfo actualWidgetInfo) {
-                locatableStep.setActedWidget(actualWidgetInfo);
-                Log.i(LatteService.TAG, String.format("Performing command %s on Widget %s", locatableStep, actualWidgetInfo));
-                actionPerformer.execute(locatableStep, actualWidgetInfo, new ActionPerformer.ExecutorCallback() {
+                locatableCommand.setActedWidget(actualWidgetInfo);
+                Log.i(LatteService.TAG, String.format("Performing command %s on Widget %s", locatableCommand, actualWidgetInfo));
+                actionPerformer.execute(locatableCommand, actualWidgetInfo, new ActionPerformer.ExecutorCallback() {
                     @Override
                     public void onCompleted() {
                         onCompleted(null);
@@ -125,38 +124,38 @@ public class Controller {
 
                     @Override
                     public void onCompleted(ActualWidgetInfo navigatedWidget) {
-                        locatableStep.setState(StepState.COMPLETED);
-                        writeResult(locatableStep);
+                        locatableCommand.setState(Command.CommandState.COMPLETED);
+                        writeResult(locatableCommand);
                     }
 
                     @Override
                     public void onError(String message) {
-                        locatableStep.setState(StepState.FAILED_PERFORM);
-                        Log.e(LatteService.TAG, String.format("Error in performing command %s. Message: %s", locatableStep, message));
-                        writeResult(locatableStep);
+                        locatableCommand.setState(Command.CommandState.FAILED_PERFORM);
+                        Log.e(LatteService.TAG, String.format("Error in performing command %s. Message: %s", locatableCommand, message));
+                        writeResult(locatableCommand);
                     }
                 });
             }
 
             @Override
             public void onError(String message) {
-                locatableStep.setState(StepState.FAILED_LOCATE);
-                Log.e(LatteService.TAG, String.format("Error in locating command %s. Message: %s", locatableStep, message));
-                writeResult(locatableStep);
+                locatableCommand.setState(Command.CommandState.FAILED_LOCATE);
+                Log.e(LatteService.TAG, String.format("Error in locating command %s. Message: %s", locatableCommand, message));
+                writeResult(locatableCommand);
             }
         };
         try {
-            locator.locate(locatableStep, locatorCallback);
+            locator.locate(locatableCommand, locatorCallback);
         }
         catch (Exception e){
-            locatableStep.setState(StepState.FAILED);
-            Log.e(LatteService.TAG, String.format("An exception happened executing command %s. Message: %s", locatableStep, e.getMessage()));
-            writeResult(locatableStep);
+            locatableCommand.setState(Command.CommandState.FAILED);
+            Log.e(LatteService.TAG, String.format("An exception happened executing command %s. Message: %s", locatableCommand, e.getMessage()));
+            writeResult(locatableCommand);
         }
     }
 
-    private void writeResult(StepCommand stepCommand){
-        String jsonCommandStr = stepCommand != null ? stepCommand.getJSON().toJSONString() : "Error";
+    private void writeResult(Command command){
+        String jsonCommandStr = command != null ? command.getJSON().toJSONString() : "Error";
         Utils.createFile(Config.v().CONTROLLER_RESULT_FILE_NAME, jsonCommandStr);
     }
 }

@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import dev.navids.latte.ActualWidgetInfo;
 import dev.navids.latte.ConceivedWidgetInfo;
 import dev.navids.latte.LatteService;
-import dev.navids.latte.UseCase.LocatableStep;
+import dev.navids.latte.UseCase.LocatableCommand;
 import dev.navids.latte.Utils;
 
 public abstract class AbstractLocator implements Locator {
@@ -50,13 +50,13 @@ public abstract class AbstractLocator implements Locator {
     private static long delay = 1000; // TODO: Configurable
     private static final AtomicInteger locatorId = new AtomicInteger(0);
 
-    public final synchronized void locate(LocatableStep locatableStep, Locator.LocatorCallback callback){
+    public final synchronized void locate(LocatableCommand locatableCommand, Locator.LocatorCallback callback){
         if(callback == null)
             callback = new DummyLocatorCallback();
         locatorId.incrementAndGet();
-        Log.d(LatteService.TAG, this.getClass().getSimpleName() +":" + locatorId.intValue() + " locating " + locatableStep);
+        Log.d(LatteService.TAG, this.getClass().getSimpleName() +":" + locatorId.intValue() + " locating " + locatableCommand);
         Locator.LocatorCallback finalCallback = callback;
-        new Handler().post(() -> this.locateTask(locatableStep, finalCallback, locatorId.intValue()));
+        new Handler().post(() -> this.locateTask(locatableCommand, finalCallback, locatorId.intValue()));
     }
 
     @Override
@@ -64,25 +64,25 @@ public abstract class AbstractLocator implements Locator {
         locatorId.incrementAndGet();
     }
 
-    private synchronized void  locateTask(LocatableStep locatableStep, Locator.LocatorCallback callback, int myLocatorId){
-        if(locatableStep == null || locatableStep.getTargetWidgetInfo() == null)
+    private synchronized void  locateTask(LocatableCommand locatableCommand, Locator.LocatorCallback callback, int myLocatorId){
+        if(locatableCommand == null || locatableCommand.getTargetWidgetInfo() == null)
         {
             Log.e(LatteService.TAG, this.getClass().getSimpleName()+":" + myLocatorId + " locating null!");
             callback.onError("The locatableStep is null");
             return;
         }
-        Log.d(LatteService.TAG, this.getClass().getSimpleName() +":" + myLocatorId + " locating " + locatableStep);
+        Log.d(LatteService.TAG, this.getClass().getSimpleName() +":" + myLocatorId + " locating " + locatableCommand);
         if(myLocatorId != locatorId.intValue()){
             Log.d(LatteService.TAG, this.getClass().getSimpleName() + " is interrupted!");
             callback.onError("The targetWidget is null");
             return;
         }
-        if (locatableStep.reachedMaxLocatingAttempts()){
-            Log.d(LatteService.TAG, "Reached max attempt for " + this.getClass().getSimpleName() + " locating " + locatableStep);
+        if (locatableCommand.reachedMaxLocatingAttempts()){
+            Log.d(LatteService.TAG, "Reached max attempt for " + this.getClass().getSimpleName() + " locating " + locatableCommand);
             callback.onError("Reached Max Locating Attempt");
             return;
         }
-        LocatorResult locatorResult = locateAttempt(locatableStep.getTargetWidgetInfo());
+        LocatorResult locatorResult = locateAttempt(locatableCommand.getTargetWidgetInfo());
         if (locatorResult == null || locatorResult.status == LocatorStatus.FAILED)
         {
             Log.d(LatteService.TAG, this.getClass().getSimpleName() +":" + myLocatorId + " is FAILED!");
@@ -100,9 +100,9 @@ public abstract class AbstractLocator implements Locator {
             return;
         }
         else if (locatorResult.status == LocatorStatus.WAITING){
-            locatableStep.increaseLocatingAttempts();
-            Log.d(LatteService.TAG, this.getClass().getSimpleName() +":" + myLocatorId + " is WAITING! Attempt: " + locatableStep.getNumberOfLocatingAttempts());
-            new Handler().postDelayed(() -> this.locateTask(locatableStep, callback, myLocatorId), delay);
+            locatableCommand.increaseLocatingAttempts();
+            Log.d(LatteService.TAG, this.getClass().getSimpleName() +":" + myLocatorId + " is WAITING! Attempt: " + locatableCommand.getNumberOfLocatingAttempts());
+            new Handler().postDelayed(() -> this.locateTask(locatableCommand, callback, myLocatorId), delay);
             return;
         }
         callback.onError("Unknown Error");

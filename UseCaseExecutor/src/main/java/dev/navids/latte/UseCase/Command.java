@@ -8,18 +8,18 @@ import org.json.simple.parser.ParseException;
 
 import dev.navids.latte.LatteService;
 
-public abstract class StepCommand {
-    private StepState state = StepState.NOT_STARTED;
+public abstract class Command {
+    private CommandState state = CommandState.NOT_STARTED;
     private long startTime = -1;
     private long endTime = -1;
     private boolean executeByA11yAssistantService = true; // AKA skip
 
-    StepCommand(JSONObject stepJson){
+    Command(JSONObject stepJson){
         boolean skip = (boolean) stepJson.getOrDefault("skip", false);
         this.executeByA11yAssistantService = !skip;
     }
 
-    public static StepCommand createStepFromJson(String stepJsonString){
+    public static Command createStepFromJson(String stepJsonString){
         JSONParser jsonParser = new JSONParser();
         try {
             JSONObject stepJSON = (JSONObject) jsonParser.parse(stepJsonString);
@@ -31,38 +31,38 @@ public abstract class StepCommand {
         return null;
     }
 
-    public static StepCommand createStepFromJson(JSONObject stepJson){
+    public static Command createStepFromJson(JSONObject stepJson){
         try {
             String action = (String) stepJson.getOrDefault("action", "UNKNOWN");
-            StepCommand stepCommand = null;
-            if (SleepStep.isSleepAction(action))
-                stepCommand = new SleepStep(stepJson);
-            else if (TypeStep.isTypeStep(action))
-                stepCommand = new TypeStep(stepJson);
-            else if (ClickStep.isClickStep(action))
-                stepCommand = new ClickStep(stepJson);
-            else if (FocusStep.isFocusStep(action))
-                stepCommand = new FocusStep(stepJson);
-            else if (NextStep.isNextAction(action))
-                stepCommand = new NextStep(stepJson);
-            else if (PreviousStep.isPreviousAction(action))
-                stepCommand = new PreviousStep(stepJson);
-            else if (InfoStep.isInfo(action))
-                stepCommand = new InfoStep(stepJson);
+            Command command = null;
+            if (SleepCommand.isSleepAction(action))
+                command = new SleepCommand(stepJson);
+            else if (TypeCommand.isTypeStep(action))
+                command = new TypeCommand(stepJson);
+            else if (ClickCommand.isClickStep(action))
+                command = new ClickCommand(stepJson);
+            else if (FocusCommand.isFocusStep(action))
+                command = new FocusCommand(stepJson);
+            else if (NextCommand.isNextAction(action))
+                command = new NextCommand(stepJson);
+            else if (PreviousCommand.isPreviousAction(action))
+                command = new PreviousCommand(stepJson);
+            else if (InfoCommand.isInfo(action))
+                command = new InfoCommand(stepJson);
             else
-                stepCommand = null;
-            return stepCommand;
+                command = null;
+            return command;
         } catch (Exception e) {
             Log.e(LatteService.TAG, "Error in creating Step from Json: " + e.getMessage());
         }
         return null;
     }
 
-    public StepState getState() {
+    public CommandState getState() {
         return state;
     }
 
-    public void setState(StepState state) {
+    public void setState(CommandState state) {
         this.state = state;
         switch (state){
             case NOT_STARTED:
@@ -90,11 +90,11 @@ public abstract class StepCommand {
     }
 
     public boolean isDone(){
-        return state.equals(StepState.COMPLETED) || state.equals(StepState.FAILED) || state.equals(StepState.COMPLETED_BY_HELP);
+        return state.equals(CommandState.COMPLETED) || state.equals(CommandState.FAILED) || state.equals(CommandState.COMPLETED_BY_HELP);
     }
 
     public boolean isNotStarted(){
-        return state.equals(StepState.NOT_STARTED);
+        return state.equals(CommandState.NOT_STARTED);
     }
 
     public boolean shouldExecuteByA11yAssistantService() {
@@ -107,5 +107,15 @@ public abstract class StepCommand {
         jsonObject.put("type", this.getClass().getSimpleName());
         jsonObject.put("state", this.getState().name());
         return jsonObject;
+    }
+
+    public enum CommandState {
+        NOT_STARTED,
+        RUNNING,
+        COMPLETED,
+        FAILED_PERFORM,
+        FAILED_LOCATE,
+        FAILED,
+        COMPLETED_BY_HELP
     }
 }

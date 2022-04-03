@@ -4,8 +4,8 @@ import org.json.simple.JSONObject;
 
 import dev.navids.latte.ActualWidgetInfo;
 
-public abstract class NavigateStep extends StepCommand{
-    NavigateStep(JSONObject stepJson) {
+public abstract class NavigateCommand extends Command {
+    NavigateCommand(JSONObject stepJson) {
         super(stepJson);
     }
     @Override

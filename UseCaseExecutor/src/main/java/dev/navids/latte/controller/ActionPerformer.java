@@ -1,8 +1,8 @@
 package dev.navids.latte.controller;
 
 import dev.navids.latte.ActualWidgetInfo;
-import dev.navids.latte.UseCase.LocatableStep;
-import dev.navids.latte.UseCase.NavigateStep;
+import dev.navids.latte.UseCase.LocatableCommand;
+import dev.navids.latte.UseCase.NavigateCommand;
 
 public interface ActionPerformer {
     public interface ExecutorCallback{
@@ -10,8 +10,8 @@ public interface ActionPerformer {
         void onCompleted(ActualWidgetInfo navigatedWidget);
         void onError(String message);
     }
-    void execute(LocatableStep locatableStep, ActualWidgetInfo actualWidgetInfo, ExecutorCallback callback);
-    void navigate(NavigateStep navigateStep, ExecutorCallback callback);
+    void execute(LocatableCommand locatableCommand, ActualWidgetInfo actualWidgetInfo, ExecutorCallback callback);
+    void navigate(NavigateCommand navigateCommand, ExecutorCallback callback);
 }
 
 class DummyExecutorCallback implements ActionPerformer.ExecutorCallback{

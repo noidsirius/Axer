@@ -6,11 +6,11 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import dev.navids.latte.ActionUtils;
 import dev.navids.latte.ActualWidgetInfo;
 import dev.navids.latte.LatteService;
-import dev.navids.latte.UseCase.ClickStep;
-import dev.navids.latte.UseCase.FocusStep;
-import dev.navids.latte.UseCase.NextStep;
-import dev.navids.latte.UseCase.PreviousStep;
-import dev.navids.latte.UseCase.TypeStep;
+import dev.navids.latte.UseCase.ClickCommand;
+import dev.navids.latte.UseCase.FocusCommand;
+import dev.navids.latte.UseCase.NextCommand;
+import dev.navids.latte.UseCase.PreviousCommand;
+import dev.navids.latte.UseCase.TypeCommand;
 
 public class TalkBackActionPerformer extends BaseActionPerformer {
     static class TalkBackActionCallback implements ActionUtils.ActionCallback{
@@ -38,33 +38,33 @@ public class TalkBackActionPerformer extends BaseActionPerformer {
     }
 
     @Override
-    public boolean executeClick(ClickStep clickStep, ActualWidgetInfo actualWidgetInfo) {
+    public boolean executeClick(ClickCommand clickStep, ActualWidgetInfo actualWidgetInfo) {
         if (isNotFocused(actualWidgetInfo))
             return false;
         return ActionUtils.performDoubleTap();
     }
 
     @Override
-    public boolean executeType(TypeStep typeStep, ActualWidgetInfo actualWidgetInfo) {
+    public boolean executeType(TypeCommand typeStep, ActualWidgetInfo actualWidgetInfo) {
         if (isNotFocused(actualWidgetInfo))
             return false;
         return super.executeType(typeStep, actualWidgetInfo);
     }
 
     @Override
-    public boolean executeFocus(FocusStep focusStep, ActualWidgetInfo actualWidgetInfo) {
+    public boolean executeFocus(FocusCommand focusStep, ActualWidgetInfo actualWidgetInfo) {
         if (isNotFocused(actualWidgetInfo))
             return false;
         return super.executeFocus(focusStep, actualWidgetInfo);
     }
 
     @Override
-    public void navigateNext(NextStep nextStep, ExecutorCallback callback) {
+    public void navigateNext(NextCommand nextStep, ExecutorCallback callback) {
         ActionUtils.swipeRight(new TalkBackActionCallback(callback));
     }
 
     @Override
-    public void navigatePrevious(PreviousStep previousStep, ExecutorCallback callback) {
+    public void navigatePrevious(PreviousCommand previousStep, ExecutorCallback callback) {
         ActionUtils.swipeLeft(new TalkBackActionCallback(callback));
     }
 }

@@ -1,14 +1,14 @@
 package dev.navids.latte.controller;
 
 import dev.navids.latte.ActualWidgetInfo;
-import dev.navids.latte.UseCase.LocatableStep;
+import dev.navids.latte.UseCase.LocatableCommand;
 
 public interface Locator {
     public interface LocatorCallback{
         void onCompleted(ActualWidgetInfo actualWidgetInfo);
         void onError(String message);
     }
-    void locate(LocatableStep locatableStep, LocatorCallback callback);
+    void locate(LocatableCommand locatableCommand, LocatorCallback callback);
     void interrupt();
 }
 

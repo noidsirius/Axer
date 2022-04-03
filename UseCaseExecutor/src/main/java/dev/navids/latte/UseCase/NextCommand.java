@@ -6,21 +6,21 @@ import org.json.simple.JSONObject;
 
 import dev.navids.latte.LatteService;
 
-public class PreviousStep extends NavigateStep {
+public class NextCommand extends NavigateCommand {
 
-    PreviousStep(JSONObject stepJson) {
+    NextCommand(JSONObject stepJson) {
         super(stepJson);
-        Log.i(LatteService.TAG, "Previous Step");
+        Log.i(LatteService.TAG, "Next Step");
     }
 
-    public static boolean isPreviousAction(String action){
-        return action.equals("previous");
+    public static boolean isNextAction(String action){
+        return action.equals("next");
     }
 
 
     @Override
     public String toString() {
-        return "PreviousStep{" +
+        return "NextStep{" +
                 "State=" + getState().name() +
                 '}';
     }
