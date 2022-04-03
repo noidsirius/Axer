@@ -2,13 +2,10 @@ package dev.navids.latte;
 
 import android.view.accessibility.AccessibilityNodeInfo;
 
+@Deprecated
 public interface Navigator {
-    interface DoneCallback{
-        void onCompleted(AccessibilityNodeInfo nodeInfo);
-        void onError(String message);
-    };
-    public AccessibilityNodeInfo nextFocus(DoneCallback callback);
-    public AccessibilityNodeInfo selectFocus(DoneCallback callback);
-    public boolean click(AccessibilityNodeInfo node, DoneCallback callback);
-    public AccessibilityNodeInfo locate(AccessibilityNodeInfo node, DoneCallback callback);
+    public AccessibilityNodeInfo nextFocus(ActionUtils.ActionCallback callback);
+    public AccessibilityNodeInfo selectFocus(ActionUtils.ActionCallback callback);
+    public boolean click(AccessibilityNodeInfo node, ActionUtils.ActionCallback callback);
+    public AccessibilityNodeInfo locate(AccessibilityNodeInfo node, ActionUtils.ActionCallback callback);
 }

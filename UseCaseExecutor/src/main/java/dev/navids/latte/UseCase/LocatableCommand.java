@@ -6,7 +6,7 @@ import dev.navids.latte.ActualWidgetInfo;
 import dev.navids.latte.ConceivedWidgetInfo;
 import dev.navids.latte.Config;
 
-public abstract class LocatableStep extends StepCommand {
+public abstract class LocatableCommand extends Command {
     private final ConceivedWidgetInfo targetWidget;
 
     public ActualWidgetInfo getActedWidget() {
@@ -47,7 +47,7 @@ public abstract class LocatableStep extends StepCommand {
         return numberOfActingAttempts >= Config.v().MAX_ACTING_ATTEMPT;
     }
 
-    LocatableStep(JSONObject stepJson) {
+    LocatableCommand(JSONObject stepJson) {
         super(stepJson);
         targetWidget = ConceivedWidgetInfo.createFromJson(stepJson);
     }
@@ -60,4 +60,12 @@ public abstract class LocatableStep extends StepCommand {
         return targetWidget;
     }
 
+    @Override
+    public JSONObject getJSON() {
+        JSONObject jsonObject = super.getJSON();
+        jsonObject.put("targetWidget", targetWidget.getJSONCommand("", false, ""));
+        jsonObject.put("actedWidget", actedWidget == null ? null : actedWidget.getJSONCommand("", false, ""));
+        jsonObject.put("locatingAttempts", getNumberOfLocatingAttempts());
+        return jsonObject;
+    }
 }

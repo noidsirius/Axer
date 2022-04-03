@@ -6,8 +6,8 @@ import org.json.simple.JSONObject;
 
 import dev.navids.latte.LatteService;
 
-public class FocusStep extends LocatableStep {
-    FocusStep(JSONObject stepJson) {
+public class FocusCommand extends LocatableCommand {
+    FocusCommand(JSONObject stepJson) {
         super(stepJson);
         Log.i(LatteService.TAG, "Focusable Step: " + this.getTargetWidgetInfo());
     }

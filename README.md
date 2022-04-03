@@ -38,6 +38,12 @@ You can interact with Latte by sending commands to its Broadcast Receiver or rec
 	- `report_a11y_issues`: Prints the accessibility issues (reported by Accessibility Testing Framework) in Android logs.
 	- `sequence`: Execute a sequence of commands which is given in input as a JSON string. Example: [{'command': 'log', 'extra': 'NONE'}]
 
+- **Controller**
+  - `controller_set`: Selects a controller among "touch", "tb_touch", "tb_api", "a11y_api" (extra is the name of the controller)
+  - `controller_execute`: Performs a single step where the step is provided in extra. The result will be written in "controller_result.txt"
+	- `controller_interrupt`: Interrupts the current step execution
+	- `controller_reset`: Stops the current step execution and remove the result
+
 - **TalkBack Navigation**
 	- `nav_next`: Navigates the focused element to the next element. Output's file name: `finish_nav_action.txt`
 	- `nav_select`: Selects the focused element (equivalent to Tap). Output's file name: `finish_nav_action.txt`

@@ -12,23 +12,24 @@ import dev.navids.latte.ActualWidgetInfo;
 import dev.navids.latte.LatteService;
 import dev.navids.latte.Utils;
 
+@Deprecated
 public class RegularStepExecutor implements StepExecutor {
 
     public static boolean is_physical = false;
 
     @Override
-    public boolean executeStep(StepCommand step) {
+    public boolean executeStep(Command step) {
         Log.i(LatteService.TAG, "Reg Executing Step " + step + " Physical Touch: " + is_physical);
-        if(step.getState() != StepState.RUNNING)
+        if(step.getState() != Command.CommandState.RUNNING)
             return false;
-        if(step instanceof LocatableStep){
-            LocatableStep locatableStep = (LocatableStep) step;
-            locatableStep.increaseLocatingAttempts();
-            List<AccessibilityNodeInfo> similarNodes = Utils.findSimilarNodes(locatableStep.getTargetWidgetInfo());
+        if(step instanceof LocatableCommand){
+            LocatableCommand locatableCommand = (LocatableCommand) step;
+            locatableCommand.increaseLocatingAttempts();
+            List<AccessibilityNodeInfo> similarNodes = Utils.findSimilarNodes(locatableCommand.getTargetWidgetInfo());
             if(similarNodes.size() != 1){
                 if(similarNodes.size() == 0) {
                     Log.i(LatteService.TAG, "The target widget could not be found in current screen.");
-                    Log.i(LatteService.TAG, "The target XPATH: " + locatableStep.getTargetWidgetInfo().getXpath());
+                    Log.i(LatteService.TAG, "The target XPATH: " + locatableCommand.getTargetWidgetInfo().getXpath());
                     List<AccessibilityNodeInfo> allNodes = Utils.getAllA11yNodeInfo(false);
                     for(AccessibilityNodeInfo nodeInfo : allNodes){
                         ActualWidgetInfo actualWidgetInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo);
@@ -42,33 +43,33 @@ public class RegularStepExecutor implements StepExecutor {
                         Log.i(LatteService.TAG, " Node: " + node);
                     }
                 }
-                if(locatableStep.reachedMaxLocatingAttempts()) {
-                    locatableStep.setState(StepState.FAILED);
+                if(locatableCommand.reachedMaxLocatingAttempts()) {
+                    locatableCommand.setState(Command.CommandState.FAILED);
                     return false;
                 }
                 return true;
             }
             else {
                 AccessibilityNodeInfo node = similarNodes.get(0);
-                locatableStep.increaseActingAttempts();
+                locatableCommand.increaseActingAttempts();
                 ActualWidgetInfo currentNodeInfo = ActualWidgetInfo.createFromA11yNode(node);
-                locatableStep.setActedWidget(currentNodeInfo);
-                if(locatableStep instanceof ClickStep)
-                    return executeClick((ClickStep) locatableStep, node);
-                else if(locatableStep instanceof TypeStep)
-                    return executeType((TypeStep) locatableStep, node);
-                else if(locatableStep instanceof FocusStep)
-                    return executeFocus((FocusStep) locatableStep, node);
+                locatableCommand.setActedWidget(currentNodeInfo);
+                if(locatableCommand instanceof ClickCommand)
+                    return executeClick((ClickCommand) locatableCommand, node);
+                else if(locatableCommand instanceof TypeCommand)
+                    return executeType((TypeCommand) locatableCommand, node);
+                else if(locatableCommand instanceof FocusCommand)
+                    return executeFocus((FocusCommand) locatableCommand, node);
                 else {
-                    Log.e(LatteService.TAG, "This locatable step is unrecognizable " + locatableStep);
-                    locatableStep.setState(StepState.FAILED);
+                    Log.e(LatteService.TAG, "This locatable step is unrecognizable " + locatableCommand);
+                    locatableCommand.setState(Command.CommandState.FAILED);
                     return false;
                 }
             }
         }
         else {
             Log.e(LatteService.TAG, "This step is unrecognizable " + step);
-            step.setState(StepState.FAILED);
+            step.setState(Command.CommandState.FAILED);
             return false;
         }
     }
@@ -79,7 +80,7 @@ public class RegularStepExecutor implements StepExecutor {
         return false;
     }
 
-    private boolean executeClick(ClickStep clickStep, AccessibilityNodeInfo node){
+    private boolean executeClick(ClickCommand clickStep, AccessibilityNodeInfo node){
         if(is_physical){
             Pair<Integer, Integer> clickableCoordinate = ActionUtils.getClickableCoordinate(node, false);
             int x =clickableCoordinate.first, y = clickableCoordinate.second;
@@ -87,10 +88,10 @@ public class RegularStepExecutor implements StepExecutor {
             boolean clickResult = ActionUtils.performTap(x, y);
             if(!clickResult){
                 Log.e(LatteService.TAG, "The location could not be clicked.");
-                clickStep.setState(StepState.FAILED);
+                clickStep.setState(Command.CommandState.FAILED);
                 return false;
             }
-            clickStep.setState(StepState.COMPLETED);
+            clickStep.setState(Command.CommandState.COMPLETED);
             return true;
         }
         else{
@@ -99,28 +100,28 @@ public class RegularStepExecutor implements StepExecutor {
                 clickableNode = clickableNode.getParent();
             if (clickableNode == null || !clickableNode.isClickable()) {
                 Log.e(LatteService.TAG, "The widget is not clickable.");
-                clickStep.setState(StepState.FAILED);
+                clickStep.setState(Command.CommandState.FAILED);
                 return false;
             }
             ActualWidgetInfo clickableWidget = ActualWidgetInfo.createFromA11yNode(clickableNode);
             boolean result = clickableNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
             Log.i(LatteService.TAG, "Clicking on widget: " + clickableWidget.completeToString(true));
-            clickStep.setState(result ? StepState.COMPLETED : StepState.FAILED);
+            clickStep.setState(result ? Command.CommandState.COMPLETED : Command.CommandState.FAILED);
             return result;
         }
     }
 
-    private boolean executeFocus(FocusStep focusStep, AccessibilityNodeInfo node){
+    private boolean executeFocus(FocusCommand focusStep, AccessibilityNodeInfo node){
         boolean result = ActionUtils.a11yFocusOnNode(node);
-        focusStep.setState(result ? StepState.COMPLETED : StepState.FAILED);
+        focusStep.setState(result ? Command.CommandState.COMPLETED : Command.CommandState.FAILED);
         return result;
     }
 
-    private boolean executeType(TypeStep typeStep, AccessibilityNodeInfo node){
+    private boolean executeType(TypeCommand typeStep, AccessibilityNodeInfo node){
         Bundle arguments = new Bundle();
         arguments.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, typeStep.getText());
         boolean result = node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments);
-        typeStep.setState(result ? StepState.COMPLETED : StepState.FAILED);
+        typeStep.setState(result ? Command.CommandState.COMPLETED : Command.CommandState.FAILED);
         return result;
     }
 }

@@ -3,24 +3,28 @@ package dev.navids.latte;
 import android.accessibilityservice.AccessibilityService;
 import android.content.IntentFilter;
 import android.util.Log;
-import android.view.WindowId;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
 
-
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.json.simple.JSONObject;
 
 import java.io.File;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import dev.navids.latte.UseCase.RegularStepExecutor;
 import dev.navids.latte.UseCase.SightedTalkBackStepExecutor;
 import dev.navids.latte.UseCase.StepExecutor;
 import dev.navids.latte.UseCase.TalkBackStepExecutor;
+import dev.navids.latte.controller.A11yAPIActionPerformer;
+import dev.navids.latte.controller.BaseLocator;
+import dev.navids.latte.controller.Controller;
+import dev.navids.latte.controller.TalkBackAPILocator;
+import dev.navids.latte.controller.TalkBackActionPerformer;
+import dev.navids.latte.controller.TalkBackTouchLocator;
+import dev.navids.latte.controller.TouchActionPerformer;
+import dev.navids.latte.controller.TouchLocator;
 
 public class LatteService extends AccessibilityService {
     private static LatteService instance;
@@ -35,7 +39,7 @@ public class LatteService extends AccessibilityService {
 
     private AccessibilityNodeInfo focusedNode;
     private AccessibilityNodeInfo accessibilityFocusedNode;
-    CommandReceiver receiver;
+    MessageReceiver receiver;
     public boolean isConnected() {
         return connected;
     }
@@ -63,6 +67,30 @@ public class LatteService extends AccessibilityService {
     public StepExecutor getStepExecutor(String key){
         return stepExecutorsMap.getOrDefault(key, null);
     }
+
+    private Map<String, Controller> controllerMap = new HashMap<>();
+
+    public Controller getSelectedController() {
+        return selectedController;
+    }
+
+    public void setSelectedController(Controller selectedController) {
+        this.selectedController = selectedController;
+    }
+
+    private Controller selectedController = null;
+
+    public boolean addController(String key, Controller controller){
+        if(controllerMap.containsKey(key))
+            return false;
+        controllerMap.put(key, controller);
+        return true;
+    }
+
+    public Controller getController(String key){
+        return controllerMap.getOrDefault(key, null);
+    }
+
     @Override
     protected void onServiceConnected() {
         Log.i(TAG, "Latte Service has started!");
@@ -70,13 +98,19 @@ public class LatteService extends AccessibilityService {
         for(File file : dir.listFiles())
             if(!file.isDirectory())
                 file.delete();
-        receiver = new CommandReceiver();
-        registerReceiver(receiver, new IntentFilter(CommandReceiver.ACTION_COMMAND_INTENT));
+        receiver = new MessageReceiver();
+        registerReceiver(receiver, new IntentFilter(MessageReceiver.MESSAGE_INTENT));
         instance = this;
         connected = true;
         addStepExecutor("regular", new RegularStepExecutor());
         addStepExecutor("talkback", new TalkBackStepExecutor());
         addStepExecutor("sighted_tb", new SightedTalkBackStepExecutor());
+
+        addController("touch", new Controller(new TouchLocator(), new TouchActionPerformer()));
+        addController("a11y_api", new Controller(new BaseLocator(), new A11yAPIActionPerformer()));
+        addController("tb_api", new Controller(new TalkBackAPILocator(), new TalkBackActionPerformer()));
+        addController("tb_touch", new Controller(new TalkBackTouchLocator(), new TalkBackActionPerformer()));
+        selectedController = getController("touch");
     }
 
     @Override
@@ -119,21 +153,13 @@ public class LatteService extends AccessibilityService {
             int activeWindowId = activeWindow != null ? activeWindow.getId() : -1;
             String activeWindowTitle = activeWindow != null && activeWindow.getTitle() != null ? activeWindow.getTitle().toString() : "null";
             String changedWindowTitle = changedWindow != null && changedWindow.getTitle() != null ? changedWindow.getTitle().toString() : "null";
-            try {
-                jsonWindowContentChange = new JSONObject()
-                        .put("changedWindowId", event.getWindowId())
-                        .put("changedWindowTitle", changedWindowTitle)
-                        .put("activeWindowId", activeWindowId)
-                        .put("activeWindowTitle", activeWindowTitle)
-                        .put("Element", jsonEelement);
-
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            if (jsonWindowContentChange != null)
-                Log.i(A11Y_EVENT_TAG, "WindowContentChange: " + jsonWindowContentChange.toString());
-            else
-                Log.i(A11Y_EVENT_TAG, "WindowContentChange: null");
+            jsonWindowContentChange = new JSONObject();
+            jsonWindowContentChange.put("changedWindowId", event.getWindowId());
+            jsonWindowContentChange.put("changedWindowTitle", changedWindowTitle);
+            jsonWindowContentChange.put("activeWindowId", activeWindowId);
+            jsonWindowContentChange.put("activeWindowTitle", activeWindowTitle);
+            jsonWindowContentChange.put("Element", jsonEelement);
+            Log.i(A11Y_EVENT_TAG, "WindowContentChange: " + jsonWindowContentChange.toJSONString());
         }
 //        Log.i(TAG, "   Type : " +AccessibilityEvent.eventTypeToString(event.getEventType()));
     }
