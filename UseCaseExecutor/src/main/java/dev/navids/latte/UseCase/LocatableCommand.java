@@ -55,7 +55,9 @@ public abstract class LocatableCommand extends Command {
         Object obj = stepJson.getOrDefault("target", null);
         if (obj != null)
             targetWidget = ConceivedWidgetInfo.createFromJson((JSONObject) obj);
-        else {
+        else if (stepJson.containsKey("xpath")) { // Backward Compatibility
+            targetWidget = ConceivedWidgetInfo.createFromJson(stepJson);
+        } else {
             Log.e(LatteService.TAG, "The target widget is null!");
             targetWidget = new ConceivedWidgetInfo("", "", "", "", "", "");
         }

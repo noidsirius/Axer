@@ -7,6 +7,7 @@ import json
 from lxml import etree
 import xml.etree.ElementTree  # BlindSimmer
 
+from json_util import JSONSerializable
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +31,17 @@ def calculate_overlap(bounds: Tuple[int, int, int, int],
     return None
 
 
-class Node:
+class Node(JSONSerializable):
     @staticmethod
     def createNodeFromDict(attributes: dict) -> 'Node':
+        if attributes is None or len(attributes) == 0:
+            return Node()
         return Node(**attributes)
 
     @staticmethod
     def createNodeFromXmlElement(element: Union[xml.etree.ElementTree.Element, etree.Element]) -> 'Node':
+        if element is None:
+            return Node()
         node = Node(**element.attrib)
         node.xml_element = element
         return node
@@ -197,13 +202,13 @@ class Node:
         if excluded_attributes is None:
             excluded_attributes = []
         excluded_attributes.append('xml_element')
-        return json.dumps(self,
-                          default=lambda o: {k: v for (k, v) in o.__dict__.items()
-                                             if k not in excluded_attributes},
-                          sort_keys=True)
+        return super().toJSONStr(excluded_attributes)
 
     def toJSON(self, excluded_attributes: List[str] = None) -> dict:
-        return json.loads(self.toJSONStr(excluded_attributes))
+        if excluded_attributes is None:
+            excluded_attributes = []
+        excluded_attributes.append('xml_element')
+        return super().toJSON(excluded_attributes)
 
     def __str__(self):
         a = {"index": self.index, "class": self.class_name, "text": self.text,

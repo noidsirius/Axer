@@ -1,9 +1,11 @@
+import json
 import logging
 from abc import ABC, abstractmethod
 
 from a11y_service import A11yServiceManager
 from adb_utils import read_local_android_file
-from command import Command
+from command import Command, CommandResponse, LocatableCommand, LocatableCommandResponse, NavigateCommand, \
+    NavigateCommandResponse, InfoCommand, InfoCommandResponse
 from consts import ACTION_EXECUTION_RETRY_COUNT, REGULAR_EXECUTE_TIMEOUT_TIME
 from latte_utils import send_commands_sequence_to_latte, send_command_to_latte
 
@@ -23,10 +25,10 @@ class Controller(ABC):
     async def setup(self):
         pass
 
-    async def execute(self, command: Command, first_setup: bool = False):
+    async def execute(self, command: Command, first_setup: bool = False) -> CommandResponse:
         if first_setup:
             await self.setup()
-        result = None
+        result = {}
         for i in range(ACTION_EXECUTION_RETRY_COUNT):
             if i > 0:
                 await self.setup()
@@ -35,11 +37,22 @@ class Controller(ABC):
             result = await read_local_android_file(Controller.CONTROLLER_RESULT_FILE_NAME, wait_time=REGULAR_EXECUTE_TIMEOUT_TIME)
             if result is None:
                 logger.warning(f"Timeout, skipping {command} for controller {self.name()}")
-                result = "TIMEOUT"
+                result = {'state': 'timeout'}
                 await send_command_to_latte("controller_interrupt")
             else:
+                result = json.loads(result)
                 break
-        return result
+        if result is None:
+            result = {'state': 'maxed_retry'}
+        if isinstance(command, LocatableCommand):
+            response = LocatableCommandResponse.create_from_response(result)
+        elif isinstance(command, NavigateCommand):
+            response = NavigateCommandResponse.create_from_response(result)
+        elif isinstance(command, InfoCommand):
+            response = InfoCommandResponse.create_from_response(result)
+        else:
+            response = CommandResponse.create_from_response(result)
+        return response
 
 
 class TouchController(Controller):
@@ -54,13 +67,13 @@ class A11yAPIController(Controller):
         await send_commands_sequence_to_latte([("controller_set", "a11y_api")])
 
 
-class DirectedTalkBackController(Controller):
+class TalkBackDirectionalController(Controller):
     async def setup(self):
         await A11yServiceManager.setup_latte_a11y_services(tb=True)
         await send_commands_sequence_to_latte([("controller_set", "tb_api")])
 
 
-class TouchTalkBackController(Controller):
+class TalkBackTouchController(Controller):
     async def setup(self):
         await A11yServiceManager.setup_latte_a11y_services(tb=True)
         await send_commands_sequence_to_latte([("controller_set", "tb_touch")])

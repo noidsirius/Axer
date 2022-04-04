@@ -32,11 +32,22 @@ class OAC(Enum):  # Overly Accessible Condition
 class AddressBook:
     BASE_MODE = "base"
     INITIAL = "INITIAL"
+    ## Audits
+    TALKBACK_EXPLORE = "talkback_explore"
 
     def __init__(self, snapshot_result_path: Union[Path, str]):
         if isinstance(snapshot_result_path, str):
             snapshot_result_path = Path(snapshot_result_path)
         self.snapshot_result_path = snapshot_result_path
+        self.audit_path_map = {}
+        # ----------- Audit: talkback_explore ---------------
+        self.audit_path_map[AddressBook.TALKBACK_EXPLORE] = self.snapshot_result_path.joinpath("TalkBackExplore")
+        self.tb_explore_all_nodes_screenshot = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("all_nodes.png")
+        self.tb_explore_android_log = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("android.log")
+        self.tb_explore_visited_nodes_path = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("visited_nodes.jsonl")
+        self.tb_explore_visited_nodes_screenshot = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("visited_nodes.png")
+        self.tb_explore_visited_nodes_gif = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("visited_nodes.gif")
+        # ---------------------------------------------------
         navigate_modes = [AddressBook.BASE_MODE, "tb", "reg", "areg", "exp", "s_reg", "s_areg", "s_tb", "s_exp"]
         self.mode_path_map = {}
         for mode in navigate_modes:
@@ -72,20 +83,31 @@ class AddressBook:
         if self.snapshot_result_path.exists():
             shutil.rmtree(self.snapshot_result_path.absolute())
         self.snapshot_result_path.mkdir()
+        self.initiate_audit_talkback_explore()
+        # ------- Old -----
         self.ovsersight_path.mkdir()
         for path in self.mode_path_map.values():
             path.mkdir()
         self.action_path.touch()
         self.visited_elements_path.touch()
         self.s_action_path.touch()
+        # ------- End Old -----
         with open(self.initiated_path, "w") as f:
             f.write("STRUCTURE\n")
+
+    def initiate_audit_talkback_explore(self):
+        if self.audit_path_map[AddressBook.TALKBACK_EXPLORE].exists():
+            shutil.rmtree(self.audit_path_map[AddressBook.TALKBACK_EXPLORE].absolute())
+        self.audit_path_map[AddressBook.TALKBACK_EXPLORE].mkdir()
 
     def result_path(self) -> str:
         return self.snapshot_result_path.parent.parent.name
 
-    def get_bm_log_path(self) -> Path:
-        return self.snapshot_result_path.parent.joinpath(self.snapshot_result_path.name + ".log")
+    def get_bm_log_path(self, extension: str = "") -> Path:
+        log_name = self.snapshot_name()
+        if extension:
+            log_name += "_" + extension
+        return self.snapshot_result_path.parent.joinpath(log_name + ".log")
 
     def app_name(self) -> str:
         return self.snapshot_result_path.parent.name
