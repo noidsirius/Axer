@@ -56,6 +56,18 @@ async def get_current_activity_name(device_name: str = DEVICE_NAME) -> str:
     return stdout
 
 
+async def get_windows(device_name: str = DEVICE_NAME) -> str:
+    cmd = f"adb -s {device_name} shell dumpsys window windows"
+    r_code, stdout, stderr = await run_bash(cmd)
+    return stdout
+
+
+async def get_activities(device_name: str = DEVICE_NAME) -> str:
+    cmd = f"adb -s {device_name} shell dumpsys activity activities"
+    r_code, stdout, stderr = await run_bash(cmd)
+    return stdout
+
+
 async def is_android_activity_on_top(device_name: str = DEVICE_NAME) -> bool:
     activity_name = await get_current_activity_name(device_name)
     android_names = ["com.android.systemui", "com.google.android"]

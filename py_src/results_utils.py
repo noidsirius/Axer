@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional, Union, Dict, List
 
 from GUI_utils import Node, bounds_included
-from adb_utils import get_current_activity_name
+from adb_utils import get_current_activity_name, get_windows, get_activities
 from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG
 from latte_executor_utils import ExecutionResult, latte_capture_layout as capture_layout
 from padb_utils import ParallelADBLogger, save_screenshot
@@ -32,11 +32,25 @@ class OAC(Enum):  # Overly Accessible Condition
 class AddressBook:
     BASE_MODE = "base"
     INITIAL = "INITIAL"
+    ## Audits
+    TALKBACK_EXPLORE = "talkback_explore"
+    OVERSIGHT_STATIC = "oversight_static"
 
     def __init__(self, snapshot_result_path: Union[Path, str]):
         if isinstance(snapshot_result_path, str):
             snapshot_result_path = Path(snapshot_result_path)
         self.snapshot_result_path = snapshot_result_path
+        self.audit_path_map = {}
+        # ----------- Audit: talkback_explore ---------------
+        self.audit_path_map[AddressBook.TALKBACK_EXPLORE] = self.snapshot_result_path.joinpath("TalkBackExplore")
+        self.tb_explore_all_nodes_screenshot = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("all_nodes.png")
+        self.tb_explore_android_log = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("android.log")
+        self.tb_explore_visited_nodes_path = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("visited_nodes.jsonl")
+        self.tb_explore_visited_nodes_screenshot = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("visited_nodes.png")
+        self.tb_explore_visited_nodes_gif = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("visited_nodes.gif")
+        # ----------- Audit: oversight_static ---------------
+        self.audit_path_map[AddressBook.OVERSIGHT_STATIC] = self.snapshot_result_path.joinpath("OversightStatic")
+        # ---------------------------------------------------
         navigate_modes = [AddressBook.BASE_MODE, "tb", "reg", "areg", "exp", "s_reg", "s_areg", "s_tb", "s_exp"]
         self.mode_path_map = {}
         for mode in navigate_modes:
@@ -72,20 +86,35 @@ class AddressBook:
         if self.snapshot_result_path.exists():
             shutil.rmtree(self.snapshot_result_path.absolute())
         self.snapshot_result_path.mkdir()
+        # ------- Old -----
         self.ovsersight_path.mkdir()
         for path in self.mode_path_map.values():
             path.mkdir()
         self.action_path.touch()
         self.visited_elements_path.touch()
         self.s_action_path.touch()
+        # ------- End Old -----
         with open(self.initiated_path, "w") as f:
             f.write("STRUCTURE\n")
+
+    def initiate_audit_talkback_explore(self):
+        if self.audit_path_map[AddressBook.TALKBACK_EXPLORE].exists():
+            shutil.rmtree(self.audit_path_map[AddressBook.TALKBACK_EXPLORE].absolute())
+        self.audit_path_map[AddressBook.TALKBACK_EXPLORE].mkdir()
+
+    def initiate_audit_oversight_static(self):
+        if self.audit_path_map[AddressBook.OVERSIGHT_STATIC].exists():
+            shutil.rmtree(self.audit_path_map[AddressBook.OVERSIGHT_STATIC].absolute())
+        self.audit_path_map[AddressBook.OVERSIGHT_STATIC].mkdir()
 
     def result_path(self) -> str:
         return self.snapshot_result_path.parent.parent.name
 
-    def get_bm_log_path(self) -> Path:
-        return self.snapshot_result_path.parent.joinpath(self.snapshot_result_path.name + ".log")
+    def get_bm_log_path(self, extension: str = "") -> Path:
+        log_name = self.snapshot_name()
+        if extension:
+            log_name += "_" + extension
+        return self.snapshot_result_path.parent.joinpath(log_name + ".log")
 
     def app_name(self) -> str:
         return self.snapshot_result_path.parent.name
@@ -131,7 +160,7 @@ class AddressBook:
             oac = "oacs"
         elif isinstance(oac, OAC):
             oac = oac.name
-        return self.ovsersight_path.joinpath(f"{oac}.{extension}")
+        return self.audit_path_map[AddressBook.OVERSIGHT_STATIC].joinpath(f"{oac}.{extension}")
 
     def get_oacs(self, oac: Union[OAC, str] = None) -> List[Node]:
         path = self.get_os_result_path(oac)
@@ -231,6 +260,7 @@ async def capture_current_state(address_book: AddressBook, device,
                                 mode: str,
                                 index: Union[int, str],
                                 has_layout=True,
+                                dumpsys: bool = False,
                                 log_message_map: Optional[dict] = None) -> str:
     await asyncio.sleep(3)
     await save_screenshot(device, address_book.get_screenshot_path(mode, index))
@@ -251,6 +281,15 @@ async def capture_current_state(address_book: AddressBook, device,
         for tag, log_message in log_message_map.items():
             with open(address_book.get_log_path(mode, index, extension=tag), mode='w') as f:
                 f.write(log_message)
+
+    if dumpsys:
+        windows = await get_windows()
+        with open(address_book.get_log_path(mode, index, extension="WINDOWS"), mode='w') as f:
+            f.write(windows + "\n")
+        activities = await get_activities()
+        with open(address_book.get_log_path(mode, index, extension="ACTIVITIES"), mode='w') as f:
+            f.write(activities + "\n")
+
 
     return layout  # TODO: Remove it
 

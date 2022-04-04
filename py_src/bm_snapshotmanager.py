@@ -85,9 +85,9 @@ class BM_SnapshotManager:
 
         self.init_layout = await self.writer.capture_current_state(self.device, mode="exp", index="INITIAL",
                                                                    has_layout=True)
-        oac_nodes = statice_analyze(self.writer.address_book.get_layout_path("exp", "INITIAL"),
-                        self.writer.address_book.get_screenshot_path("exp", "INITIAL"),
-                        self.writer.address_book)
+        oac_nodes = statice_analyze(layout_path=self.writer.address_book.get_layout_path("exp", "INITIAL"),
+                        screenshot_path=self.writer.address_book.get_screenshot_path("exp", "INITIAL"),
+                        address_book=self.writer.address_book)
         xpath_to_oac_node = {}
         for node in oac_nodes:
             xpath_to_oac_node[node.xpath] = node
