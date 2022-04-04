@@ -13,9 +13,10 @@ from utils import annotate_elements
 logger = logging.getLogger(__name__)
 
 
-def statice_analyze(layout_path: Union[str, Path],
+def statice_analyze(address_book: AddressBook,
                     screenshot_path: Union[str, Path],
-                    address_book: AddressBook) -> List[Node]:
+                    layout_path: Union[str, Path] = None,
+                    layout: str = None) -> List[Node]:
     if isinstance(layout_path, str):
         layout_path = Path(layout_path)
     if isinstance(screenshot_path, str):
@@ -23,12 +24,17 @@ def statice_analyze(layout_path: Union[str, Path],
 
     pkg_name = address_book.app_name()  # TODO: It's not always correct
 
-    nodes = NodesFactory() \
-        .with_layout_path(layout_path) \
-        .with_ad_detection() \
-        .with_xpath_pass() \
-        .with_covered_pass() \
-        .build()
+    node_factory = NodesFactory()
+    if layout_path:
+        node_factory.with_layout_path(layout_path)
+    elif layout:
+        node_factory.with_layout(layout)
+    else:
+        return []
+    node_factory.with_ad_detection() \
+                .with_xpath_pass() \
+                .with_covered_pass()
+    nodes = node_factory.build()
     screen_bounds = nodes[0].bounds
 
     oa_conditions = {

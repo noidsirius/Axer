@@ -63,23 +63,25 @@ class DeviceSnapshot(Snapshot):
             device = asyncio.run(client.device(DEVICE_NAME))
         self.device = device
 
-    async def setup(self, first_setup: bool = True, **kwargs):
+    async def setup(self, first_setup: bool = True, dumpsys: bool = True, **kwargs):
         initial_layout = initial_screenshot = None
         if first_setup:
-            await A11yServiceManager.setup_latte_a11y_services(tb=True)
+            await A11yServiceManager.setup_latte_a11y_services(tb=False)
             initial_layout = await capture_current_state(self.address_book,
                                                          self.device,
                                                          mode=AddressBook.BASE_MODE,
                                                          index=AddressBook.INITIAL,
+                                                         dumpsys=dumpsys,
                                                          has_layout=True)
             initial_screenshot = self.address_book.get_screenshot_path(AddressBook.BASE_MODE, AddressBook.INITIAL)
         await super().setup(layout=initial_layout, screenshot=initial_screenshot, **kwargs)
 
 
 class EmulatorSnapshot(DeviceSnapshot):
-    def __init__(self, address_book: AddressBook, device: DeviceAsync = None):
+    def __init__(self, address_book: AddressBook, device: DeviceAsync = None, no_save_snapshot: bool = False):
         super().__init__(address_book=address_book, device=device)
         self.tmp_snapshot = self.address_book.snapshot_name() + "_TMP"
+        self.no_save_snapshot = no_save_snapshot
 
     async def setup(self, first_setup: bool = True, initial_emulator_load: bool = False, **kwargs):
         if initial_emulator_load:
@@ -87,7 +89,7 @@ class EmulatorSnapshot(DeviceSnapshot):
                 raise Exception("Error in loading snapshot")
 
         await super().setup(first_setup=first_setup, **kwargs)
-        if first_setup:
+        if first_setup and not self.no_save_snapshot:
             await asyncio.sleep(3)
             await save_snapshot(self.tmp_snapshot)
 
@@ -96,8 +98,12 @@ class EmulatorSnapshot(DeviceSnapshot):
             if not await load_snapshot(self.address_book.snapshot_name(), device_name=self.device.serial):
                 return False
             await asyncio.sleep(3)
-            await save_snapshot(self.tmp_snapshot)
+            if not self.no_save_snapshot:
+                await save_snapshot(self.tmp_snapshot)
             return True
+        if self.no_save_snapshot:
+            logger.error("There is no temporary snapshot saved!")
+            return False
         result = await load_snapshot(self.tmp_snapshot, device_name=self.device.serial)
         await asyncio.sleep(1)
         return result

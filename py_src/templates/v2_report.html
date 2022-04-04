@@ -1,4 +1,4 @@
-{% from "snapshot_macro.html" import talkback_explore, snapshot_action, snapshot_summary with context %}
+{% from "snapshot_macro.html" import talkback_explore, oversight_static, snapshot_action, snapshot_summary with context %}
 {% from "action_macro.html" import action_tag_script, action_row with context %}
 {% extends "layout.html" %}
 {% block title %}
@@ -20,7 +20,19 @@
         {% endfor %}
 
     {% endif %}
+    <div class="row">
+        <a  class="enlarge">
+            <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_screenshot_path('base', 'INITIAL'),result_path)) }}" class="rounded d-block mx-auto"
+                 style="width: 10rem;">
+        </a>
+        <hr>
+        <p class="text-center">
+            <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_layout_path('base', 'INITIAL'), result_path)) }}">Layout</a>
+        </p>
+    </div>
+    {{ oversight_static(address_book) }}
     {{ talkback_explore(address_book) }}
+
     {{ snapshot_summary(address_book, error_logs) }}
     <hr>
         <div class="form-check form-switch">
