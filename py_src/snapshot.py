@@ -47,6 +47,9 @@ class Snapshot:
             .with_xpath_pass() \
             .with_ad_detection() \
             .build()
+        with open(self.address_book.snapshot_result_path.joinpath("nodes.jsonl"), "w") as f:
+            for node in self.nodes:
+                f.write(f"{node.toJSONStr()}\n")
 
     def get_nodes(self, filter_query: Callable[[Node], bool] = None):
         if filter_query is None:

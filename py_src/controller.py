@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from a11y_service import A11yServiceManager
 from adb_utils import read_local_android_file
 from command import Command, CommandResponse, LocatableCommand, LocatableCommandResponse, NavigateCommand, \
-    NavigateCommandResponse, InfoCommand, InfoCommandResponse
+    NavigateCommandResponse, InfoCommand, InfoCommandResponse, create_command_response_from_dict
 from consts import ACTION_EXECUTION_RETRY_COUNT, REGULAR_EXECUTE_TIMEOUT_TIME
 from latte_utils import send_commands_sequence_to_latte, send_command_to_latte
 
@@ -44,14 +44,7 @@ class Controller(ABC):
                 break
         if result is None:
             result = {'state': 'maxed_retry'}
-        if isinstance(command, LocatableCommand):
-            response = LocatableCommandResponse.create_from_response(result)
-        elif isinstance(command, NavigateCommand):
-            response = NavigateCommandResponse.create_from_response(result)
-        elif isinstance(command, InfoCommand):
-            response = InfoCommandResponse.create_from_response(result)
-        else:
-            response = CommandResponse.create_from_response(result)
+        response = create_command_response_from_dict(command, result)
         return response
 
 

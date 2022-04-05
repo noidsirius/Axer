@@ -28,7 +28,7 @@
             <tbody>
             {% for app in apps %}
                 <tr class="app-row table-active" >
-                    <td class="table-secondary" data-bs-toggle="collapse" href="#{{ app.name.replace('.', '_') }}_row"
+                    <td class="table-secondary" data-bs-toggle="collapse" href="#{{ app.name.replace('.', '_').replace('(','_').replace(')','_') }}_row"
                         aria-expanded="false"
                         aria-controls="{{ app.name }}_row" >
                         <i class="fas fa-angle-double-down"></i> {{ app.name }}
@@ -51,7 +51,7 @@
                 </tr>
                 <tr>
                     <td colspan="8">
-                        <div class="collapse" id="{{ app.name.replace('.', '_') }}_row">
+                        <div class="collapse" id="{{ app.name.replace('.', '_').replace('(','_').replace(')','_') }}_row">
                             <div class="row">
                                 {{ app_snapshots(result_path, app) }}
                             </div>
