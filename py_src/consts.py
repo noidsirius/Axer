@@ -1,4 +1,4 @@
-# Timeout Time
+#### Timeout Time
 LAYOUT_TIMEOUT_TIME = 3
 TB_NAVIGATE_TIMEOUT = 4
 TB_SELECT_TIMEOUT = 4
