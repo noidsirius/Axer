@@ -1,6 +1,3 @@
-import json
-from typing import List
-
 from GUI_utils import Node
 from json_util import JSONSerializable
 
@@ -9,11 +6,22 @@ class Command(JSONSerializable):
     def __init__(self, action: str = "NOP"):
         self.action = action
 
+    @classmethod
+    def create_from_dict(cls, json_command: dict):
+        return cls(json_command.get('action', "NOP"))
+
 
 class LocatableCommand(Command):
     def __init__(self, action: str, node: Node):
         super().__init__(action)
         self.target = node
+
+    @classmethod
+    def create_from_dict(cls, json_command: dict):
+        action = json_command.get('action', "NOP")
+        json_target_node = json_command.get('target', {})
+        target_node = Node.createNodeFromDict(json_target_node)
+        return cls(action, target_node)
 
 
 class InfoCommand(Command):
@@ -21,30 +29,58 @@ class InfoCommand(Command):
         super().__init__('info')
         self.question = question
 
+    @classmethod
+    def create_from_dict(cls, json_command: dict):
+        question = json_command.get('question', '')
+        return cls(question)
+
 
 class ClickCommand(LocatableCommand):
     def __init__(self, node: Node):
         super().__init__('click', node)
+
+    @classmethod
+    def create_from_dict(cls, json_command: dict):
+        json_target_node = json_command.get('target', {})
+        target_node = Node.createNodeFromDict(json_target_node)
+        return cls(target_node)
 
 
 class NavigateCommand(Command):
     def __init__(self, action: str):
         super().__init__(action)
 
+    @classmethod
+    def create_from_dict(cls, json_command: dict):
+        action = json_command.get('action', "NOP")
+        return cls(action)
+
 
 class NextCommand(NavigateCommand):
     def __init__(self):
         super().__init__('next')
+
+    @classmethod
+    def create_from_dict(cls, json_command: dict):
+        return cls()
 
 
 class PreviousCommand(NavigateCommand):
     def __init__(self):
         super().__init__('previous')
 
+    @classmethod
+    def create_from_dict(cls, json_command: dict):
+        return cls()
+
 
 class SelectCommand(NavigateCommand):
     def __init__(self):
         super().__init__('select')
+
+    @classmethod
+    def create_from_dict(cls, json_command: dict):
+        return cls()
 
 
 class CommandResponse(JSONSerializable):
@@ -110,3 +146,33 @@ class InfoCommandResponse(CommandResponse):
         kwargs = super().get_kwargs_from_response(response)
         kwargs['answer'] = Node.createNodeFromDict(response.get('result', {}))
         return kwargs
+
+
+def create_command_response_from_dict(command: Command, result: dict) -> CommandResponse:
+    if isinstance(command, LocatableCommand):
+        response = LocatableCommandResponse.create_from_response(result)
+    elif isinstance(command, NavigateCommand):
+        response = NavigateCommandResponse.create_from_response(result)
+    elif isinstance(command, InfoCommand):
+        response = InfoCommandResponse.create_from_response(result)
+    else:
+        response = CommandResponse.create_from_response(result)
+    return response
+
+
+def create_command_from_dict(json_command: dict) -> Command:
+    if 'action' not in json_command:
+        return Command()
+    action = json_command['action']
+    if action == 'click':
+        return ClickCommand.create_from_dict(json_command)
+    elif action == 'info':
+        return InfoCommand.create_from_dict(json_command)
+    elif action == 'next':
+        return NextCommand.create_from_dict(json_command)
+    elif action == 'previous':
+        return PreviousCommand.create_from_dict(json_command)
+    elif action == 'select':
+        return SelectCommand.create_from_dict(json_command)
+    else:
+        return Command()
