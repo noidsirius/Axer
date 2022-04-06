@@ -154,6 +154,9 @@ class Node(JSONSerializable):
         self.covered = False
         self.is_ad = False
 
+    def is_none(self) -> bool:
+        return self.toJSONStr() == Node().toJSONStr()
+
     def area(self):
         return (self.bounds[2]-self.bounds[0]) * (self.bounds[3] - self.bounds[1])
 
