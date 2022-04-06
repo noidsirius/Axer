@@ -45,6 +45,7 @@ class ClickCommand(LocatableCommand):
         target_node = Node.createNodeFromDict(json_target_node)
         return cls(target_node)
 
+
 class NavigateCommand(Command):
     def __init__(self, action: str):
         super().__init__(action)

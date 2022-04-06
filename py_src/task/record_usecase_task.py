@@ -18,3 +18,6 @@ class RecordUsecaseTask(AppTask):
                                        device=self.device)
         await init_snapshot.setup(first_setup=True)
         # ---------- Recording the usecase ----------------
+        # TODO: Start Sugilite
+        # ----- Wait for user to stops
+        # TODO: Receive Sugilite's results
