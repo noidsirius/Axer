@@ -107,3 +107,30 @@ async def read_local_android_file(file_path: str,
     if remove_after_read:
         await remove_local_android_file(file_path, pkg_name, device_name=device_name)
     return content
+
+async def start_android_application(pkg_name:str,activity_name:str):
+    cmd=f"adb shell am start -n {pkg_name}/{pkg_name}.{activity_name}"
+    return_code,_,_=await run_bash(cmd)
+
+async def get_file_nums(dir:str) -> int:
+    cmd=f"adb shell ls sdcard/{dir} | adb shell grep . -c"
+    _,stdout,_=await run_bash(cmd)
+    return stdout
+
+async def get_most_recent_file(dir:str,prev_num:int,sleep_time:int)-> str:
+    cur_num=prev_num
+    while(cur_num==prev_num):
+        cur_num=await get_file_nums(dir)
+        await asyncio.sleep(sleep_time)
+    cmd=f"adb shell ls -t sdcard/{dir} | adb shell head -n1"
+    _,most_recent_name,_=await run_bash(cmd)
+    most_recent_name=most_recent_name.strip()
+    return most_recent_name
+
+async def download_recent_file(dir:str,file_name:str,destination:str):
+    cmd = f'adb pull sdcard/{dir}/"{file_name}" {destination}'
+    return_code,_,_=await run_bash(cmd)
+    return return_code
+
+
+
