@@ -16,7 +16,7 @@ class OversightStaticTask(SnapshotTask):
         super().__init__(snapshot)
 
     async def execute(self):
-        self.snapshot.address_book.initiate_audit_oversight_static()
+        self.snapshot.address_book.initiate_oversight_static_task()
         pkg_name = self.snapshot.address_book.app_name()  # TODO: It's not always correct
 
         nodes = NodesFactory() \

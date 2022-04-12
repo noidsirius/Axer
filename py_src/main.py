@@ -13,6 +13,7 @@ from snapshot import EmulatorSnapshot, DeviceSnapshot, Snapshot
 from task.app_task import TakeSnapshotTask
 from task.execute_usecase_task import ExecuteUsecaseTask
 from task.oversight_static_task import OversightStaticTask
+from task.process_screenshot_task import ProcessScreenshotTask
 from task.record_usecase_task import RecordUsecaseTask
 from task.talkback_explore_task import TalkBackExploreTask
 
@@ -42,7 +43,9 @@ async def execute_snapshot_task(args, address_book: AddressBook):
         elif args.snapshot_task == "oversight_static":
             logger.info("Snapshot Task: Oversight Static")
             await OversightStaticTask(snapshot).execute()
-
+        elif args.snapshot_task == "process_screenshot":
+            logger.info("Snapshot Task: Process Screenshot")
+            await ProcessScreenshotTask(snapshot).execute()
     except Exception as e:
         logger.error("Exception happened in analyzing the snapshot", exc_info=e)
 

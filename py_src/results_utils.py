@@ -35,6 +35,7 @@ class AddressBook:
     ## Audits
     TALKBACK_EXPLORE = "talkback_explore"
     OVERSIGHT_STATIC = "oversight_static"
+    PROCESS_SCREENSHOT = "process_screenshot"
 
     def __init__(self, snapshot_result_path: Union[Path, str]):
         if isinstance(snapshot_result_path, str):
@@ -50,6 +51,8 @@ class AddressBook:
         self.tb_explore_visited_nodes_gif = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("visited_nodes.gif")
         # ----------- Audit: oversight_static ---------------
         self.audit_path_map[AddressBook.OVERSIGHT_STATIC] = self.snapshot_result_path.joinpath("OversightStatic")
+        # ----------- Audit: oversight_static ---------------
+        self.audit_path_map[AddressBook.PROCESS_SCREENSHOT] = self.snapshot_result_path.joinpath("ProcessSnapshot")
         # ---------------------------------------------------
         navigate_modes = [AddressBook.BASE_MODE, "tb", "reg", "areg", "exp", "s_reg", "s_areg", "s_tb", "s_exp"]
         self.mode_path_map = {}
@@ -97,15 +100,20 @@ class AddressBook:
         with open(self.initiated_path, "w") as f:
             f.write("STRUCTURE\n")
 
-    def initiate_audit_talkback_explore(self):
+    def initiate_talkback_explore_task(self):
         if self.audit_path_map[AddressBook.TALKBACK_EXPLORE].exists():
-            shutil.rmtree(self.audit_path_map[AddressBook.TALKBACK_EXPLORE].absolute())
+            shutil.rmtree(self.audit_path_map[AddressBook.TALKBACK_EXPLORE].resolve())
         self.audit_path_map[AddressBook.TALKBACK_EXPLORE].mkdir()
 
-    def initiate_audit_oversight_static(self):
+    def initiate_oversight_static_task(self):
         if self.audit_path_map[AddressBook.OVERSIGHT_STATIC].exists():
-            shutil.rmtree(self.audit_path_map[AddressBook.OVERSIGHT_STATIC].absolute())
+            shutil.rmtree(self.audit_path_map[AddressBook.OVERSIGHT_STATIC].resolve())
         self.audit_path_map[AddressBook.OVERSIGHT_STATIC].mkdir()
+
+    def initiate_process_screenshot_task(self):
+        if self.audit_path_map[AddressBook.PROCESS_SCREENSHOT].exists():
+            shutil.rmtree(self.audit_path_map[AddressBook.PROCESS_SCREENSHOT].resolve())
+        self.audit_path_map[AddressBook.PROCESS_SCREENSHOT].mkdir()
 
     def result_path(self) -> str:
         return self.snapshot_result_path.parent.parent.name

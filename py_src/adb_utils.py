@@ -22,6 +22,14 @@ async def run_bash(cmd) -> (int, str, str):
     return proc.returncode, stdout.decode() if stdout else "", stderr.decode() if stderr else ""
 
 
+async def start_adb() -> None:
+    _ = await run_bash("adb start-server")
+
+
+async def kill_adb() -> None:
+    _ = await run_bash("adb kill-server")
+
+
 async def capture_layout(device_name: str = DEVICE_NAME) -> str:
     cmd = f"adb -s {device_name} exec-out uiautomator dump /dev/tty"
     _, stdout, _ = await run_bash(cmd)

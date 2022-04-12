@@ -318,46 +318,73 @@
                 <button class="nav-link" id="actions-tab" data-bs-toggle="tab" data-bs-target="#actions-container" type="button" role="tab" aria-controls="#actions-container" aria-selected="false">Actions</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="snapshots-tab" data-bs-toggle="tab" data-bs-target="#snapshots-container" type="button" role="tab" aria-controls="#snapshots-container" aria-selected="false">Snapshots</button>
+                <button class="nav-link active" id="snapshots-tab" data-bs-toggle="tab" data-bs-target="#snapshots-container" type="button" role="tab" aria-controls="#snapshots-container" aria-selected="true">Snapshots</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="blindsimmer-tab" data-bs-toggle="tab" data-bs-target="#blindsimmer-container" type="button" role="tab" aria-controls="#blindsimmer-container" aria-selected="true">BlindSimmer</button>
+                <button class="nav-link" id="blindsimmer-tab" data-bs-toggle="tab" data-bs-target="#blindsimmer-container" type="button" role="tab" aria-controls="#blindsimmer-container" aria-selected="false">BlindSimmer</button>
             </li>
         </ul>
         <div class="tab-content" id="myTabContent">
             <div class="tab-pane fade" id="actions-container" role="tabpanel" aria-labelledby="home-tab">
-                <div class="row">
-                    <table class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">Action</th>
-                            <th scope="col">{{ mode_to_repr['exp'] }}</th>
-                            <th scope="col">{{ mode_to_repr['tb'] }}</th>
-                            <th scope="col">{{ mode_to_repr['reg'] }}</th>
-                            <th scope="col">{{ mode_to_repr['areg'] }}</th>
-                            <th scope="col">Result</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for search_snapshot_result in results %}
-                            {% for step in search_snapshot_result.action_results %}
-                                {{ action_row(step, true) }}
-                            {% endfor %}
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+{#                <div class="row">#}
+{#                    <table class="table table-bordered">#}
+{#                        <thead>#}
+{#                        <tr>#}
+{#                            <th scope="col">#</th>#}
+{#                            <th scope="col">Action</th>#}
+{#                            <th scope="col">{{ mode_to_repr['exp'] }}</th>#}
+{#                            <th scope="col">{{ mode_to_repr['tb'] }}</th>#}
+{#                            <th scope="col">{{ mode_to_repr['reg'] }}</th>#}
+{#                            <th scope="col">{{ mode_to_repr['areg'] }}</th>#}
+{#                            <th scope="col">Result</th>#}
+{#                        </tr>#}
+{#                        </thead>#}
+{#                        <tbody>#}
+{#                        {% for search_snapshot_result in results %}#}
+{#                            {% for step in search_snapshot_result.action_results %}#}
+{#                                {{ action_row(step, true) }}#}
+{#                            {% endfor %}#}
+{#                        {% endfor %}#}
+{#                        </tbody>#}
+{#                    </table>#}
+{#                </div>#}
             </div>
-            <div class="tab-pane fade" id="snapshots-container" role="tabpanel" aria-labelledby="profile-tab">
-{#                {% for search_snapshot_result in results %}#}
-{#                    {{ snapshot_summary(search_snapshot_result.address_book, '') }}#}
-{#                {% endfor %}#}
-            </div>
-            <div class="tab-pane fade  show active" id="blindsimmer-container" role="tabpanel" aria-labelledby="profile-tab">
+            <div class="tab-pane fade show active" id="snapshots-container" role="tabpanel" aria-labelledby="profile-tab">
                 {% for search_snapshot_result in results %}
-                    {{ snapshot_bs_summary(search_snapshot_result.address_book) }}
+                    <div class="row">
+                        <div class="col">
+                            <a  class="enlarge">
+                                <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(search_snapshot_result.address_book.get_screenshot_path('base', 'INITIAL'),result_path)) }}" class="rounded d-block mx-auto"
+                                     style="width: 10rem;">
+                            </a>
+                            <hr>
+                            <p class="text-center">
+                                <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(search_snapshot_result.address_book.get_layout_path('base', 'INITIAL'), result_path)) }}">Layout</a>
+                            </p>
+                        </div>
+                        {% if search_snapshot_result.address_book.audit_path_map[search_snapshot_result.address_book.PROCESS_SCREENSHOT].exists() %}
+                            <div class="col">
+                                <a  class="enlarge">
+                                    <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(search_snapshot_result.address_book.audit_path_map[search_snapshot_result.address_book.PROCESS_SCREENSHOT].joinpath("INITIAL_OCR.png"),result_path)) }}" class="rounded d-block mx-auto"
+                                         style="width: 10rem;">
+                                </a>
+                                <hr>
+                                <p class="text-center">
+                                    <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(search_snapshot_result.address_book.audit_path_map[search_snapshot_result.address_book.PROCESS_SCREENSHOT].joinpath("INITIAL_OCR.json"), result_path)) }}">Components</a>
+                                </p>
+                            </div>
+
+
+                        {% endif %}
+
+                    </div>
+{#                    {{ snapshot_summary(search_snapshot_result.address_book, '') }}#}
                 {% endfor %}
+            </div>
+            <div class="tab-pane fade" id="blindsimmer-container" role="tabpanel" aria-labelledby="profile-tab">
+{#                {% for search_snapshot_result in results %}#}
+{#                    {{ snapshot_bs_summary(search_snapshot_result.address_book) }}#}
+{#                {% endfor %}#}
             </div>
         </div>
     </div>

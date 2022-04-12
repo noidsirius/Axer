@@ -27,7 +27,7 @@ class TalkBackExploreTask(SnapshotTask):
         is_next = True
         all_nodes = {node.xpath: node for node in self.snapshot.get_nodes()}
         visited_node_xpaths_counter = defaultdict(int)
-        self.snapshot.address_book.initiate_audit_talkback_explore()
+        self.snapshot.address_book.initiate_talkback_explore_task()
         annotate_elements(self.snapshot.initial_screenshot,
                           self.snapshot.address_book.tb_explore_all_nodes_screenshot,
                           list(all_nodes.values()))
