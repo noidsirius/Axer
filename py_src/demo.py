@@ -5,6 +5,7 @@ import logging
 import json
 import pathlib
 import sys
+from collections import defaultdict
 
 from ppadb.client_async import ClientAsync as AdbClient
 from padb_utils import ParallelADBLogger, save_screenshot
@@ -109,6 +110,32 @@ async def execute_latte_command(device, command: str, extra: str):
         for node in nodes:
             if node.covered:
                 logger.info(f"Covered Node: {node.covered}  {node.is_ad}")
+
+    if command == "os_empirical":
+        result_path = pathlib.Path(extra)
+        if not result_path.is_dir():
+            logger.error("The result path doesn't exist")
+            return
+        oac_names = []
+        for w in ['A', 'P']:
+            oac_names.extend([oac.name for oac in OAC if oac.name.startswith(w)])
+        oac_count = defaultdict(int)
+        for app_path in result_path.iterdir():
+            if not app_path.is_dir():
+                continue
+
+            for snapshot_path in app_path.iterdir():
+                if not snapshot_path.is_dir():
+                    continue
+                address_book = AddressBook(snapshot_path)
+                for oac in oac_names:
+                    oacs = address_book.get_oacs(oac=oac)
+                    oac_count[oac] += len(oacs)
+        for k, v in oac_count.items():
+            print(f"{k}: {v}")
+
+
+
 
     if command == "os_n2_rq1":
         result_path = pathlib.Path(extra)
