@@ -100,6 +100,7 @@ if __name__ == "__main__":
     parser.add_argument('--snapshot-task', type=str, required=False, help='Name of the task on the snapshot')
     parser.add_argument('--oversight', action='store_true', help='Evaluating Oversight')
     parser.add_argument('--emulator', action='store_true', help='Determines if the device is an emulator')
+    parser.add_argument('--windows', action='store_true', help='Determines if the host operating system is windows')
     parser.add_argument('--static', action='store_true', help='Do not use device')
     parser.add_argument('--initial-load', action='store_true', help='If the device is an emulator, loads the snapshot initially')
     parser.add_argument('--no-save-snapshot', action='store_true', help='If the device is an emulator, does not save any extra snapshot')
@@ -110,6 +111,8 @@ if __name__ == "__main__":
     parser.add_argument('--quiet', action='store_true')
     args = parser.parse_args()
     app_result_path = Path(args.output_path).joinpath(args.app_name)
+    if args.windows:
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
     if args.snapshot_task is not None:
         snapshot_result_paths = []
         if args.snapshot:

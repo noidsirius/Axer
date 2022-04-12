@@ -4,7 +4,6 @@ import xmlformatter
 from typing import Optional
 from consts import DEVICE_NAME
 
-
 logger = logging.getLogger(__name__)
 
 formatter = xmlformatter.Formatter(indent="1", indent_char="\t", encoding_output="UTF-8", preserve=["literal"])
@@ -77,7 +76,8 @@ async def is_android_activity_on_top(device_name: str = DEVICE_NAME) -> bool:
     return False
 
 
-async def local_android_file_exists(file_path: str, pkg_name: str = LATTE_PKG_NAME, device_name: str = DEVICE_NAME) -> bool:
+async def local_android_file_exists(file_path: str, pkg_name: str = LATTE_PKG_NAME,
+                                    device_name: str = DEVICE_NAME) -> bool:
     cmd = f"adb -s {device_name} exec-out run-as {pkg_name} ls files/{file_path}"
     _, stdout, _ = await run_bash(cmd)
     return "No such file or directory" not in stdout
@@ -108,29 +108,33 @@ async def read_local_android_file(file_path: str,
         await remove_local_android_file(file_path, pkg_name, device_name=device_name)
     return content
 
-async def start_android_application(pkg_name:str,activity_name:str):
-    cmd=f"adb shell am start -n {pkg_name}/{pkg_name}.{activity_name}"
-    return_code,_,_=await run_bash(cmd)
 
-async def get_file_nums(dir:str) -> int:
-    cmd=f"adb shell ls sdcard/{dir} | adb shell grep . -c"
-    _,stdout,_=await run_bash(cmd)
-    return stdout
+async def start_android_application(pkg_name: str, activity_name: str, device_name: str = DEVICE_NAME) -> bool:
+    cmd = f"adb -s {device_name} shell am start -n {pkg_name}/{pkg_name}.{activity_name}"
+    return_code, _, _ = await run_bash(cmd)
+    return return_code == 0
 
-async def get_most_recent_file(dir:str,prev_num:int,sleep_time:int)-> str:
-    cur_num=prev_num
-    while(cur_num==prev_num):
-        cur_num=await get_file_nums(dir)
+
+async def get_file_nums(dir_path: str, device_name: str = DEVICE_NAME) -> int:
+    cmd = f"adb -s {device_name} shell ls sdcard/{dir_path} | adb -s {device_name} shell grep . -c"
+    _, stdout, _ = await run_bash(cmd)
+    if stdout.isdigit():
+        return int(stdout)
+    return -1
+
+
+async def get_most_recent_file(dir_path: str, prev_num: int, sleep_time: int, device_name: str = DEVICE_NAME) -> str:
+    cur_num = prev_num
+    while (cur_num == prev_num):
+        cur_num = await get_file_nums(dir_path)
         await asyncio.sleep(sleep_time)
-    cmd=f"adb shell ls -t sdcard/{dir} | adb shell head -n1"
-    _,most_recent_name,_=await run_bash(cmd)
-    most_recent_name=most_recent_name.strip()
+    cmd = f"adb -s {device_name} shell ls -t sdcard/{dir_path} | adb -s {device_name} shell head -n1"
+    _, most_recent_name, _ = await run_bash(cmd)
+    most_recent_name = most_recent_name.strip()
     return most_recent_name
 
-async def download_recent_file(dir:str,file_name:str,destination:str):
-    cmd = f'adb pull sdcard/{dir}/"{file_name}" {destination}'
-    return_code,_,_=await run_bash(cmd)
+
+async def download_recent_file(dir_path: str, file_name: str, destination: str, device_name: str = DEVICE_NAME):
+    cmd = f'adb -s {device_name} pull sdcard/{dir_path}/"{file_name}" {destination}'
+    return_code, _, _ = await run_bash(cmd)
     return return_code
-
-
-

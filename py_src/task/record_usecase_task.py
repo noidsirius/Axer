@@ -23,15 +23,32 @@ class RecordUsecaseTask(AppTask):
 
         # ---------- Recording the usecase ----------------
         # TODO: Start Sugilite
-        dir="edu.cmu.hcii.sugilite/scripts"
-        await start_android_application("edu.cmu.hcii.sugilite","ui.main.SugiliteMainActivity")
+        dir_path = "edu.cmu.hcii.sugilite/scripts"
+        await start_android_application("edu.cmu.hcii.sugilite", "ui.main.SugiliteMainActivity")
 
         # ----- Wait for user to stops
         # TODO: Receive Sugilite's results
-        prev_num=await get_file_nums(dir)
-        most_recent_name=await get_most_recent_file(dir,prev_num,1)
+        prev_num = await get_file_nums(dir_path)
+        # Wait to have the most recent file
+        most_recent_name = await get_most_recent_file(dir_path, prev_num, 1)
         dest_dir = os.path.abspath(os.path.join(os.getcwd(), os.pardir)) + "\sugilite_script"
-        return_code=await download_recent_file(dir,most_recent_name,dest_dir)
+        return_code = await download_recent_file(dir_path, most_recent_name, dest_dir)
+
+        # ------------ TODO: needs to be implemented ----------
+        # sugilite_result_path = "..."
+        commands = []
+        # for each line in sugilite_result_path
+            # create a command
+                # A clickable command requires a Node
+                # create a Node from dictionary
+                # node_dict = {'class': '', 'text': ''}
+                # node = Node.createNodeFromDict(node_dict)
+                # command = ClickCommand(node)
+                # commands.append(command)
+        # Once the commands is filled write it to usecase path
+        with open(self.usecase_path, "w") as f:
+            for command in commands:
+                f.write(f"{command.toJSONStr()}\n")
 
 
 
@@ -40,8 +57,6 @@ async def start():
     await content.execute()
 
 
-
-if __name__=="__main__":
+if __name__ == "__main__":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
     asyncio.run(start())
-
