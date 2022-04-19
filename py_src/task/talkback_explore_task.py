@@ -3,7 +3,7 @@ from collections import defaultdict
 
 from GUI_utils import Node
 from command import InfoCommand, InfoCommandResponse, NextCommand, PreviousCommand, NavigateCommandResponse
-from consts import BLIND_MONKEY_TAG, EXPLORE_VISIT_LIMIT
+from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG, EXPLORE_VISIT_LIMIT
 from controller import TalkBackDirectionalController
 from json_util import unsafe_json_load
 from padb_utils import ParallelADBLogger
@@ -34,13 +34,16 @@ class TalkBackExploreTask(SnapshotTask):
         visited_nodes = []
         none_node_count = 0
         android_logs = ""
+        android_event_logs = ""
+        tags = [BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG]
         # --------------- Add the currently focused node to the visited nodes -----------------
         log_message_map, info_response = await padb_logger.execute_async_with_log(
             controller.execute(InfoCommand(question="a11y_focused")),
-            tags=[BLIND_MONKEY_TAG])
+            tags=tags)
         android_logs += f"--------- First Focused Node -----------\n" \
                         f"{log_message_map[BLIND_MONKEY_TAG]}\n" \
                         f"----------------------------------------\n"
+        android_event_logs += f"{log_message_map[BLIND_MONKEY_EVENTS_TAG]}\n"
         if info_response is not None and isinstance(info_response, InfoCommandResponse):
             node_dict = unsafe_json_load(info_response.answer)
             if node_dict is not None:
@@ -54,10 +57,11 @@ class TalkBackExploreTask(SnapshotTask):
             command = NextCommand() if is_next else PreviousCommand()
             log_message_map, navigate_response = await padb_logger.execute_async_with_log(
                 controller.execute(command),
-                tags=[BLIND_MONKEY_TAG])
+                tags=tags)
             android_logs += f"--------------- Navigate ---------------\n" \
                             f"{log_message_map[BLIND_MONKEY_TAG]}\n" \
                             f"----------------------------------------\n"
+            android_event_logs += f"{log_message_map[BLIND_MONKEY_EVENTS_TAG]}\n"
             if navigate_response is None or not isinstance(navigate_response, NavigateCommandResponse):
                 logger.error("Terminate the exploration: Problem with navigation")
                 break
@@ -94,6 +98,9 @@ class TalkBackExploreTask(SnapshotTask):
                 f.write(f"{node.toJSONStr()}\n")
         with open(self.snapshot.address_book.tb_explore_android_log, "w") as f:
             f.write(android_logs)
+        with open(self.snapshot.address_book.tb_explore_android_events_log, "w") as f:
+            f.write(android_event_logs)
+
         # --------------- Post process -----------------------
         unique_visited_nodes = []
         for xpath in visited_node_xpaths_counter:

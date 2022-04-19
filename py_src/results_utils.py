@@ -46,6 +46,7 @@ class AddressBook:
         self.audit_path_map[AddressBook.TALKBACK_EXPLORE] = self.snapshot_result_path.joinpath("TalkBackExplore")
         self.tb_explore_all_nodes_screenshot = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("all_nodes.png")
         self.tb_explore_android_log = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("android.log")
+        self.tb_explore_android_events_log = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("android_events.log")
         self.tb_explore_visited_nodes_path = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("visited_nodes.jsonl")
         self.tb_explore_visited_nodes_screenshot = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("visited_nodes.png")
         self.tb_explore_visited_nodes_gif = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("visited_nodes.gif")

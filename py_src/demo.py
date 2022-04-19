@@ -130,7 +130,8 @@ async def execute_latte_command(device, command: str, extra: str):
                 address_book = AddressBook(snapshot_path)
                 for oac in oac_names:
                     oacs = address_book.get_oacs(oac=oac)
-                    oac_count[oac] += len(oacs)
+                    if len(oacs) > 0:
+                        oac_count[oac] += 1
         for k, v in oac_count.items():
             print(f"{k}: {v}")
 
