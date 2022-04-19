@@ -118,9 +118,10 @@ async def start_android_application(pkg_name: str, activity_name: str, device_na
 async def get_file_nums(dir_path: str, device_name: str = DEVICE_NAME) -> int:
     cmd = f"adb -s {device_name} shell ls sdcard/{dir_path} | adb -s {device_name} shell grep . -c"
     _, stdout, _ = await run_bash(cmd)
-    if stdout.isdigit():
-        return int(stdout)
-    return -1
+    return stdout
+    # if stdout.isdigit():
+    #     return int(stdout)
+    # return -1
 
 
 async def get_most_recent_file(dir_path: str, prev_num: int, sleep_time: int, device_name: str = DEVICE_NAME) -> str:
@@ -137,4 +138,4 @@ async def get_most_recent_file(dir_path: str, prev_num: int, sleep_time: int, de
 async def download_recent_file(dir_path: str, file_name: str, destination: str, device_name: str = DEVICE_NAME):
     cmd = f'adb -s {device_name} pull sdcard/{dir_path}/"{file_name}" {destination}'
     return_code, _, _ = await run_bash(cmd)
-    return return_code
+    return return_code==0

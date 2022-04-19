@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 import argparse
@@ -113,6 +114,7 @@ if __name__ == "__main__":
     app_result_path = Path(args.output_path).joinpath(args.app_name)
     if args.windows:
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        # asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     if args.snapshot_task is not None:
         snapshot_result_paths = []
         if args.snapshot:
@@ -135,15 +137,20 @@ if __name__ == "__main__":
             initialize_logger(log_path=log_path, quiet=args.quiet, debug=args.debug)
             logger.info(f"Executing {args.snapshot_task} for Snapshot '{snapshot_name}' in app '{args.app_name}'...")
             address_book = AddressBook(snapshot_result_path)
-            asyncio.run(execute_snapshot_task(args=args, address_book=address_book))
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(execute_snapshot_task(args=args, address_book=address_book))
+            # asyncio.run(execute_snapshot_task(args=args, address_book=address_book))
             logger.info(f"Done executing {args.snapshot_task} for Snapshot '{snapshot_name}' in app '{args.app_name}'")
     elif args.app_task is not None:
         if not app_result_path.exists() or not app_result_path.is_dir():
-            app_result_path.mkdir()
+            os.makedirs(app_result_path)
+            # app_result_path.mkdirs()
         log_path = app_result_path.joinpath(f"app_{args.app_task}.log")
         initialize_logger(log_path=log_path, quiet=args.quiet, debug=args.debug)
         logger.info(f"Executing {args.app_task} for app '{args.app_name}'...")
-        asyncio.run(execute_app_task(args=args, app_path=app_result_path))
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(execute_app_task(args=args, app_path=app_result_path))
+        # asyncio.run(execute_app_task(args=args, app_path=app_result_path))
         logger.info(f"Done executing {args.app_task}  in app '{args.app_name}'")
     else:
         print("Either app_task or snapshot_task should be provided!")

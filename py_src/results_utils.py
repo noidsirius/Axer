@@ -274,7 +274,7 @@ async def capture_current_state(address_book: AddressBook, device,
         log_map, layout = await padb_logger.execute_async_with_log(capture_layout())
         with open(address_book.get_log_path(mode, index, extension="layout"), mode='w') as f:
             f.write(log_map[BLIND_MONKEY_TAG])
-        with open(address_book.get_layout_path(mode, index), mode='w') as f:
+        with open(address_book.get_layout_path(mode, index), mode='w',encoding='utf-8') as f:
             f.write(layout)
 
     if log_message_map:
