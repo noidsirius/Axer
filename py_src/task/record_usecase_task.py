@@ -1,4 +1,3 @@
-import asyncio
 import os
 import re
 from GUI_utils import Node
@@ -13,6 +12,7 @@ class RecordUsecaseTask(AppTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.usecase_path = self.app_path.joinpath("usecase.jsonl")
+        self.sugilite_results_dir = self.app_path.joinpath("sugilite_script")
 
     async def execute(self):
         """
@@ -34,8 +34,9 @@ class RecordUsecaseTask(AppTask):
         prev_num = await get_file_nums(dir_path)
         # Wait to have the most recent file
         most_recent_name = await get_most_recent_file(dir_path, prev_num, 1)
-        dest_dir = os.getcwd() + "\sugilite_script"
-        return_code = await download_recent_file(dir_path, most_recent_name,dest_dir)
+        self.sugilite_results_dir.mkdir(exist_ok=True)
+        return_code = await download_recent_file(dir_path, most_recent_name, self.sugilite_results_dir.resolve())
+        logger.info(f"Sugilite files are downloaded!")
 
         # ------------ TODO: needs to be implemented ----------
         await self.generate_usecase()
@@ -43,8 +44,8 @@ class RecordUsecaseTask(AppTask):
     async def generate_usecase(self):
         sugilite_result_path = "sugilite_script"
         commands = []
-        for filename in os.listdir(sugilite_result_path):
-            with open(os.path.join(sugilite_result_path, filename), 'r') as f:
+        for file_path in self.sugilite_results_dir.iterdir():
+            with open(file_path, 'r') as f:
                 for line in f:
                     text=re.findall(r"\(hasText \"(.+?)\"\)",line)[0] if re.findall(r"\(hasText \"(.+?)\"\)",line) else ''
                     class_name=re.findall(r"\(HAS_CLASS_NAME (.+?)\)",line)[0] if re.findall(r"\(HAS_CLASS_NAME (.+?)\)",line) else ''
@@ -62,8 +63,9 @@ class RecordUsecaseTask(AppTask):
                     }
                     node=Node.createNodeFromDict(node_dict)
                     command=ClickCommand(node)
+                    logger.info(f"Command {command} is received from Sugilite!")
                     commands.append(command)
-            os.remove(os.path.join(sugilite_result_path, filename))
+            # os.remove(os.path.join(sugilite_result_path, file_path))
 
             # Once the commands is filled write it to usecase path
             with open(self.usecase_path, "w") as f:
