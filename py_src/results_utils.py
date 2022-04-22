@@ -2,6 +2,7 @@ import logging
 import asyncio
 import json
 import shutil
+from collections import defaultdict
 from enum import Enum
 from pathlib import Path
 from typing import Optional, Union, Dict, List
@@ -40,6 +41,7 @@ class AddressBook:
         for mode in navigate_modes:
             self.mode_path_map[mode] = self.snapshot_result_path.joinpath(mode.upper())
         self.ovsersight_path = self.snapshot_result_path.joinpath("OS")
+        self.oversight_tag = self.ovsersight_path.joinpath("tags.jsonl")
         self.atf_issues_path = self.mode_path_map['exp'].joinpath("atf_issues.jsonl")
         self.action_path = self.snapshot_result_path.joinpath("action.jsonl")
         self.all_element_screenshot = self.mode_path_map['exp'].joinpath("all_elements.png")
@@ -167,6 +169,13 @@ class AddressBook:
                     with open(self.get_log_path('s_areg', action['index'], extension=BLIND_MONKEY_EVENTS_TAG)) as f2:
                         if "TYPE_VIEW_CLICKED" in f2.read():
                             api_actions_xpaths[action['element']['xpath']] = action
+        oae_tags = defaultdict(list)
+        if self.oversight_tag.exists():
+            with open(self.oversight_tag) as f:
+                for line in f.readlines():
+                    obj = json.loads(line)
+                    if obj['oac'] == oac or oac == 'oacs':
+                        oae_tags[obj['xpath']].append(obj['tag'])
         for oac_node in oac_nodes:
             info = {}
             max_subseq_tb_element = None
@@ -194,9 +203,10 @@ class AddressBook:
                     api_node = Node.createNodeFromDict(api_actions_xpaths[api_xpath])
                     if not bounds_included(oac_node.bounds, api_node.bounds):
                         continue
-                    if min_subseq_api_action is None or len(min_subseq_api_action['xpath']) < len(tb_xpath):
+                    if min_subseq_api_action is None or len(min_subseq_api_action['xpath']) < len(api_xpath):
                         min_subseq_api_action = api_actions_xpaths[api_xpath]
             info['apia'] = min_subseq_api_action
+            info['tags'] = oae_tags[oac_node.xpath]
             oac_info_map[oac_node] = info
         return oac_info_map
 

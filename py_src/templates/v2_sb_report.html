@@ -1,5 +1,5 @@
 {% from "snapshot_macro.html" import snapshot_bs_summary with context %}
-{% from "oac_macro.html" import oac_row with context%}
+{% from "oac_macro.html" import oac_row, oac_tag_script with context%}
 {% extends "layout.html" %}
 {% block title %}
     Oversight Result of {{ name }} from app {{ app_name }}
@@ -21,4 +21,8 @@
             {% endfor %}
         </table>
     </div>
+{% endblock %}
+
+{% block script_content %}
+    {{ oac_tag_script() }}
 {% endblock %}

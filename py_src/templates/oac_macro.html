@@ -60,7 +60,7 @@
                         <th scope="col">TBR</th>
                         <th scope="col">TBA</th>
                         <th scope="col">APIA</th>
-                        <th scope="col">...</th>
+                        <th scope="col">Tags</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -99,7 +99,38 @@
                                     -
                                 {% endif %}
                             </td>
-                            <td>...</td>
+                            <td>
+                                {% if oac_name != 'oacs' %}
+                                <div class="row">
+                                    <div class="col-8">
+                                        <input type="text" class="oac-tag-value form-control">
+                                    </div>
+                                    <div class="col-4">
+                                        <button class="oac_tag btn btn-secondary">
+                                            Add Tag
+                                            <input type="hidden" class="snapshot-result-path" value="{{ address_book.result_path() }}">
+                                            <input type="hidden" class="snapshot-app" value="{{ address_book.app_name() }}">
+                                            <input type="hidden" class="snapshot-name" value="{{ address_book.snapshot_name() }}">
+                                            <input type="hidden" class="snapshot-oac" value="{{ oac_name }}">
+                                            <input type="hidden" class="snapshot-index" value="{{ loop.index0 }}">
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                <div class="m-3" >
+                                    Tags:
+                                    <div class="tag-container" style="display: block; overflow-x: auto; white-space:nowrap ">
+                                        {% for tag in info.tags %}
+                                            <span class="btn btn-light rounded-pill m-1" style="display: inline-block;">
+                                                {{ tag }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+
+
+                            </td>
                         </tr>
                     {% endfor %}
                     </tbody>
@@ -107,4 +138,45 @@
             </div>
         </td>
     </tr>
+{% endmacro %}
+{% macro oac_tag_script() %}
+    <script>
+        $('.oac_tag').on('click', function () {
+            let result_path = $(this).find('.snapshot-result-path').attr('value');
+            let app_name = $(this).find('.snapshot-app').attr('value');
+            let snapshot_name = $(this).find('.snapshot-name').attr('value');
+            let oac = $(this).find('.snapshot-oac').attr('value');
+            let index = $(this).find('.snapshot-index').attr('value');
+            let tag_input_element = $(this).parent().parent().find('.oac-tag-value');
+            let tag = tag_input_element.val();
+            let tag_container_element = $(this).parent().parent().parent().find('.tag-container');
+            if (tag) {
+                {#let path = "/v2/"+ result_path +"/app/"+ app_name + "/post_analysis";#}
+                let host_url = window.location.href.split("/v2/")[0]
+                let path = `${host_url}/v2/${result_path}/app/${app_name}/snapshot/${snapshot_name}/oac/${oac}/${index}/tag/${tag}`
+                $.getJSON(path, {},
+                    function(data) {
+                        if (data.result) {
+                            for(var t of tag.split(',')) {
+                                new_tag = `<span class="btn btn-light rounded-pill m-1" style="display: inline-block;">
+                                            ${t}
+                                        </span>`
+                                console.log("The tag container")
+                                console.log(tag_container_element)
+                                console.log("The new element: " + new_tag)
+                                tag_container_element.append(new_tag)
+                                tag_input_element.val("");
+                            }
+                        }
+                        else{
+                            alert("There is a problem with tagging!")
+                        }
+                    });
+            }
+            else
+            {
+                alert("Empty tag");
+            }
+        });
+    </script>
 {% endmacro %}

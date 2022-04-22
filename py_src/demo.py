@@ -126,7 +126,7 @@ async def execute_latte_command(device, command: str, extra: str):
         com.ammy.applock.apk
         com.gsmobile.applock.apk
         me.ibrahimsn.applock.apk
-        MISSING.apk
+        com.cd.applock.fingerprint.password.locker.apk
         com.saeed.applock.apk
         com.applocklite.fingerprint.apk
         com.mms.applock.apphidder.apk
@@ -145,6 +145,16 @@ async def execute_latte_command(device, command: str, extra: str):
         daldev.android.gradehelper.apk
         """.split("\n") if len(x) > 0]
         other_pkgs = [".".join(x.strip().split(".")[:-1]) for x in """
+        com.airbnb.android.apk
+        com.carfax.mycarfax.apk
+        com.expedia.bookings.apk
+        com.houzz.app.apk
+        com.mcdonalds.app.apk
+        com.meditationmoments.meditationmoments.apk
+        com.mt.mtxx.mtxx.apk
+        com.popularapp.thirtydayfitnesschallenge.apk
+        com.theathletic.apk
+        com.weawow.apk
         """.split("\n") if len(x) > 0]
         oac_names = {}
         for w in ['A', 'P']:
