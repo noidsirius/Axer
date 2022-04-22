@@ -165,8 +165,8 @@ class Node:
                 return len(self.xml_element.findall('.//node[@visible="true"]')) == 0
         return False
 
-    def is_belonged(self, pkg_name: str) -> bool:
-        return self.pkg_name != pkg_name
+    def belongs(self, pkg_name: str) -> bool:
+        return self.pkg_name == pkg_name
 
     def is_out_of_bounds(self, screen_bounds: Tuple[int, int, int, int]) -> bool:
         [min_x, min_y, max_x, max_y] = screen_bounds

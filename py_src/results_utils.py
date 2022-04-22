@@ -19,16 +19,32 @@ logger = logging.getLogger(__name__)
 
 
 class OAC(Enum):  # Overly Accessible Condition
-    P1_BELONGS = 1
-    P2_OUT_OF_BOUNDS = 2
-    P3_COVERED = 3
-    P4_ZERO_AREA = 4
-    P5_AINVISIBLE = 5
+    P1_OUT_OF_BOUNDS = 1
+    P2_COVERED = 2
+    P3_ZERO_AREA = 3
+    P4_AINVISIBLE = 4
+    P5_BELONGS = 5
+    P6_INVALID_BOUNDS = 6
     A1_PINVISIBLE = 101
     A2_CONDITIONAL_DISABLED = 102
-    A3_INCONSISTENT_ABILITIES = 103
-    A4_CAMOUFLAGED = 104
+    A3_CAMOUFLAGED = 104
     O_AD = -1
+    O_P12 = -2
+    O_P13 = -3
+    O_P14 = -4
+    O_P15 = -5
+    O_P23 = -6
+    O_P24 = -7
+    O_P25 = -8
+    O_P34 = -9
+    O_P35 = -10
+    O_P45 = -11
+    O_P16 = -12
+    O_P26 = -13
+    O_P36 = -14
+    O_P46 = -15
+    O_P56 = -16
+
 
 
 class AddressBook:
@@ -148,6 +164,9 @@ class AddressBook:
             with open(self.visited_elements_path) as f:
                 for res in f.readlines():
                     element = json.loads(res)['element']
+                    node = Node.createNodeFromDict(element)
+                    if node.area() >= 0.8 * (1080*2340): # TODO: CONSTANT...
+                        continue
                     tb_reachable_xpaths[element['xpath']] = element
         tb_actions_xpaths = {}
         if self.action_path.exists():
@@ -182,8 +201,8 @@ class AddressBook:
             for tb_xpath in tb_reachable_xpaths:
                 if oac_node.xpath.startswith(tb_xpath):
                     tb_node = Node.createNodeFromDict(tb_reachable_xpaths[tb_xpath])
-                    if not bounds_included(tb_node.bounds, oac_node.bounds):
-                        continue
+                    # if not bounds_included(tb_node.bounds, oac_node.bounds):
+                    #     continue
                     if max_subseq_tb_element is None or len(max_subseq_tb_element['xpath']) < len(tb_xpath):
                         max_subseq_tb_element = tb_reachable_xpaths[tb_xpath]
             info['tbr'] = max_subseq_tb_element
@@ -192,18 +211,18 @@ class AddressBook:
                 for tb_xpath in tb_actions_xpaths:
                     if tb_xpath.startswith(oac_node.xpath):
                         tb_node = Node.createNodeFromDict(tb_actions_xpaths[tb_xpath])
-                        if not bounds_included(oac_node.bounds, tb_node.bounds):
-                            continue
-                        if min_subseq_tb_action is None or len(min_subseq_tb_action['xpath']) < len(tb_xpath):
+                        # if not bounds_included(oac_node.bounds, tb_node.bounds):
+                        #     continue
+                        if min_subseq_tb_action is None or len(min_subseq_tb_action['element']['xpath']) < len(tb_xpath):
                             min_subseq_tb_action = tb_actions_xpaths[tb_xpath]
             info['tba'] = min_subseq_tb_action
             min_subseq_api_action = None
             for api_xpath in api_actions_xpaths:
                 if api_xpath.startswith(oac_node.xpath):
                     api_node = Node.createNodeFromDict(api_actions_xpaths[api_xpath])
-                    if not bounds_included(oac_node.bounds, api_node.bounds):
-                        continue
-                    if min_subseq_api_action is None or len(min_subseq_api_action['xpath']) < len(api_xpath):
+                    # if not bounds_included(oac_node.bounds, api_node.bounds):
+                    #     continue
+                    if min_subseq_api_action is None or len(min_subseq_api_action['element']['xpath']) < len(api_xpath):
                         min_subseq_api_action = api_actions_xpaths[api_xpath]
             info['apia'] = min_subseq_api_action
             info['tags'] = oae_tags[oac_node.xpath]

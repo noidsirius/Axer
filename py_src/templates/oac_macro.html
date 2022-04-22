@@ -47,6 +47,21 @@
         </td>
         <td>
             <div class="row m-4">
+                <div class="row">
+                    <div class="col-8">
+                        <input type="text" class="oac-tag-value form-control">
+                    </div>
+                    <div class="col-4">
+                        <button class="oac_tag btn btn-secondary">
+                            Add Tag
+                            <input type="hidden" class="snapshot-result-path" value="{{ address_book.result_path() }}">
+                            <input type="hidden" class="snapshot-app" value="{{ address_book.app_name() }}">
+                            <input type="hidden" class="snapshot-name" value="{{ address_book.snapshot_name() }}">
+                            <input type="hidden" class="snapshot-oac" value="{{ oac_name }}">
+                            <input type="hidden" class="snapshot-index" value="-1">
+                        </button>
+                    </div>
+                </div>
                 <table class="table table-bordered">
                     <thead>
                     <tr>
@@ -57,9 +72,9 @@
                         <th scope="col">Enabled</th>
                         <th scope="col">Visible</th>
                         <th scope="col">Bounds</th>
-                        <th scope="col">TBR</th>
-                        <th scope="col">TBA</th>
-                        <th scope="col">APIA</th>
+                        <th scope="col">TB Reachable</th>
+                        <th scope="col">TB Actionable</th>
+                        <th scope="col">API Actionable</th>
                         <th scope="col">Tags</th>
                     </tr>
                     </thead>
@@ -101,21 +116,21 @@
                             </td>
                             <td>
                                 {% if oac_name != 'oacs' %}
-                                <div class="row">
-                                    <div class="col-8">
-                                        <input type="text" class="oac-tag-value form-control">
+                                    <div class="row">
+                                        <div class="col-8">
+                                            <input type="text" class="oac-tag-value form-control">
+                                        </div>
+                                        <div class="col-4">
+                                            <button class="oac_tag btn btn-secondary">
+                                                Add Tag
+                                                <input type="hidden" class="snapshot-result-path" value="{{ address_book.result_path() }}">
+                                                <input type="hidden" class="snapshot-app" value="{{ address_book.app_name() }}">
+                                                <input type="hidden" class="snapshot-name" value="{{ address_book.snapshot_name() }}">
+                                                <input type="hidden" class="snapshot-oac" value="{{ oac_name }}">
+                                                <input type="hidden" class="snapshot-index" value="{{ loop.index0 }}">
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="col-4">
-                                        <button class="oac_tag btn btn-secondary">
-                                            Add Tag
-                                            <input type="hidden" class="snapshot-result-path" value="{{ address_book.result_path() }}">
-                                            <input type="hidden" class="snapshot-app" value="{{ address_book.app_name() }}">
-                                            <input type="hidden" class="snapshot-name" value="{{ address_book.snapshot_name() }}">
-                                            <input type="hidden" class="snapshot-oac" value="{{ oac_name }}">
-                                            <input type="hidden" class="snapshot-index" value="{{ loop.index0 }}">
-                                        </button>
-                                    </div>
-                                </div>
                                 {% endif %}
                                 <div class="m-3" >
                                     Tags:

@@ -456,12 +456,17 @@ def tag_oac(result_path, app_name, snapshot_name, oac, index, tag):
     address_book = AddressBook(snapshot_path)
     oaes = address_book.get_oacs(oac)
     index = int(index)
-    if len(oaes) <= index:
-        return jsonify(result=False)
-    xpath = oaes[index].xpath
-    with open(address_book.oversight_tag, 'a', encoding="utf-8") as f:
-        for t in tags:
-            f.write(json.dumps({'xpath': xpath, 'oac': oac, 'tag': t.strip()}) + "\n")
+    xpaths = []
+    if index == -1:
+        xpaths = [oae.xpath for oae in oaes]
+    else:
+        if len(oaes) <= index:
+            return jsonify(result=False)
+        xpaths = [oaes[index].xpath]
+    for xpath in xpaths:
+        with open(address_book.oversight_tag, 'a', encoding="utf-8") as f:
+            for t in tags:
+                f.write(json.dumps({'xpath': xpath, 'oac': oac, 'tag': t.strip()}) + "\n")
     return jsonify(result=True)
 
 

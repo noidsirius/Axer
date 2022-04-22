@@ -32,29 +32,38 @@ def statice_analyze(layout_path: Union[str, Path],
     screen_bounds = nodes[0].bounds
 
     oa_conditions = {
-        OAC.P1_BELONGS: lambda node: node.is_belonged(pkg_name),
-        OAC.P2_OUT_OF_BOUNDS: lambda node: node.is_out_of_bounds(screen_bounds),
-        OAC.P3_COVERED: lambda node: node.covered and not node.is_out_of_bounds(screen_bounds),
-        OAC.P4_ZERO_AREA: lambda node: node.area() == 0,
-        OAC.P5_AINVISIBLE: lambda node: not node.visible and
-                                        not node.is_out_of_bounds(screen_bounds) and
-                                        node.area() != 0,
+        OAC.P1_OUT_OF_BOUNDS: lambda node: node.is_out_of_bounds(screen_bounds) and node.is_valid_bounds(),
+        OAC.P2_COVERED: lambda node: node.covered,
+        OAC.P3_ZERO_AREA: lambda node: node.area() == 0,
+        OAC.P4_AINVISIBLE: lambda node: not node.visible,
+        OAC.P5_BELONGS: lambda node: not node.belongs(pkg_name),
+        OAC.P6_INVALID_BOUNDS: lambda node: node.bounds[2] < node.bounds[0] or node.bounds[3] < node.bounds[1],
         OAC.A2_CONDITIONAL_DISABLED: lambda node: not node.enabled,
-        OAC.A3_INCONSISTENT_ABILITIES: lambda node: not node.clickable and "16" in node.a11y_actions,
-        OAC.A4_CAMOUFLAGED: lambda node: (node.text == node.content_desc == "") and
+        OAC.A3_CAMOUFLAGED: lambda node: (node.text == node.content_desc == "") and
                                          node.class_name == "android.widget.TextView" and
                                          node.visible and
                                          not node.is_out_of_bounds(screen_bounds) and
-                                         not node.area() == 0,
+                                         node.is_valid_bounds(),
         OAC.O_AD: lambda node: node.is_ad
     }
     oa_conditions[OAC.A1_PINVISIBLE] = lambda node: any(oa_conditions[oac](node) for oac in OAC if oac.name.startswith("P"))
+    P_Map = {}
+    for i in range(1, 7):
+        P_Map[i] = [oac for oac in OAC if oac.name.startswith(f"P{str(i)}")][0]
+    OAC_MAP = {}
+    for oac in OAC:
+        OAC_MAP[oac.name] = oac
+    for i in range(1, 7):
+        for j in range(i+1, 7):
+            key = f"O_P{i}{j}"
+            oac = OAC_MAP[key]
+            oa_conditions[oac] = lambda node, i=i, j=j: oa_conditions[P_Map[i]](node) and oa_conditions[P_Map[j]](node)
 
     node_to_oac_map = defaultdict(list)
     oac_count = {}
     for key, query in oa_conditions.items():
         queries = [query]
-        if key.name.startswith("P"):
+        if key.name.startswith("P") or key.name.startswith("O_P"):
             queries.append(lambda node: not node.is_ad and node.potentially_data())
         elif key.name.startswith("A"):
             queries.append(lambda node: not node.is_ad and node.potentially_function())
