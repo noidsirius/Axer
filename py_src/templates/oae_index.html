@@ -1,0 +1,50 @@
+{% from "app_macro.html" import app_snapshots, app_post_analysis_script with context %}
+{% extends "layout.html" %}
+{% block head_content %}
+    <style>
+        .table tr.app-row {
+            cursor: pointer;
+        }
+    </style>
+{% endblock %}
+{% block title %}
+    List of apps
+{% endblock %}
+{% block content %}
+    <div class="row">
+        <table class="table  table-bordered" style="border-collapse:collapse;">
+            <thead>
+            <tr class="table-primary">
+                <th>App</th>
+                <th>Snapshot</th>
+                <th>#P Smell</th>
+                <th>P Precision</th>
+                <th>#A Smell</th>
+                <th>A Precision</th>
+                <th>#Smell</th>
+                <th>Total Precision</th>
+                <th>Missing Tag</th>
+                <th>...</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for row in rows %}
+                <tr >
+                    <td> {{  row.app_name}}</td>
+                    <td> {{row.snapshot_name}}</td>
+                    <td> {{row.p_smells}}</td>
+                    <td> {{row.p_precision}}</td>
+                    <td> {{row.a_smells}}</td>
+                    <td> {{row.a_precision}}</td>
+                    <td> {{row.t_smells}}</td>
+                    <td> {{row.t_precision}}</td>
+                    <td> {{row.missing_tag}}</td>
+                    <th>
+                        <a href="{{ url_for('report_sb_v2', result_path=result_path, app_name=row.app_name, snapshot_name=row.snapshot_name) }}">link</a
+                    </th>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
