@@ -174,8 +174,8 @@ class Node(JSONSerializable):
                 return len(self.xml_element.findall('.//node[@visible="true"]')) == 0
         return False
 
-    def is_belonged(self, pkg_name: str) -> bool:
-        return self.pkg_name != pkg_name
+    def belongs(self, pkg_name: str) -> bool:
+        return self.pkg_name == pkg_name
 
     def is_out_of_bounds(self, screen_bounds: Tuple[int, int, int, int]) -> bool:
         [min_x, min_y, max_x, max_y] = screen_bounds
@@ -188,18 +188,20 @@ class Node(JSONSerializable):
         return self.text or \
                self.content_desc
 
-
     def potentially_function(self):
         return self.clickable or \
                self.long_clickable or \
                set(self.a11y_actions).intersection({"16", "32"})
 
-    def practically_equal(self, other: 'Node') -> bool:
+    def practically_equal(self, other: 'Node', excluded_attrs: List[str] = None) -> bool:
         """
         Determines if two nodes are practically equal.
         Some attributes are excluded since they can be flaky or depend on TalkBack's state
         """
-        excluded_attrs = ['focused', 'bounds', 'index', 'drawing_order', 'a11y_actions', 'index']
+        if excluded_attrs is None:
+            excluded_attrs = []
+        # TODO: not sure if it should be added or be configurable
+        excluded_attrs.extend(['focused', 'bounds', 'index', 'drawing_order', 'a11y_actions'])
         return self.toJSONStr(excluded_attrs) == other.toJSONStr(excluded_attrs)
 
     def toJSONStr(self, excluded_attributes: List[str] = None) -> str:
@@ -366,12 +368,16 @@ class NodesFactory:
                 nodes.extend(dfs(child_node, child_to_extra_map[child_node]))
             return nodes
 
-        layout_utf8 = self.layout.encode('utf-8')
-        parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
-        root_xml = etree.fromstring(layout_utf8, parser).find('node')
-        root_node = Node.createNodeFromXmlElement(root_xml)
-        root_node.xpath = f"/{root_node.class_name}"
-        return dfs(root_node, {})
+        try:
+            layout_utf8 = self.layout.encode('utf-8')
+            parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
+            dummy_root_xml = etree.fromstring(layout_utf8, parser)
+            dummy_root_node = Node.createNodeFromXmlElement(dummy_root_xml)
+            dummy_root_node.xpath = f""
+            return dfs(dummy_root_node, {})[1:]
+        except Exception as e:
+            logger.error(f"Exception in building Nodes from Layout: {e}")
+        return []
 
 
 def get_xpath_from_xml_element(xml_element):

@@ -1,6 +1,7 @@
 import logging
 import asyncio
 import xmlformatter
+import random
 from typing import Optional
 from consts import DEVICE_NAME
 
@@ -32,14 +33,18 @@ async def kill_adb() -> None:
 
 async def capture_layout(device_name: str = DEVICE_NAME) -> str:
     cmd = f"adb -s {device_name} exec-out uiautomator dump /dev/tty"
-    _, stdout, _ = await run_bash(cmd)
-    layout = stdout.replace("UI hierchary dumped to: /dev/tty", "")
-    try:
-        layout = formatter.format_string(layout).decode("utf-8")
-    except Exception as e:
-        logger.error(f"Exception during capturing layout: {e}")
-        import random
-        layout = f"PROBLEM_WITH_XML {random.random()}"
+    layout = f"PROBLEM_WITH_XML EMPTY {random.random()}"
+    for i in range(3):
+        result, stdout, stderr = await run_bash(cmd)
+        layout = stdout.replace("UI hierchary dumped to: /dev/tty", "")
+        try:
+            layout = formatter.format_string(layout).decode("utf-8")
+            break
+        except Exception as e:
+            logger.error(f"Exception during capturing layout: {e}")
+            layout = f"PROBLEM_WITH_XML {random.random()}"
+        logger.debug(f"Try capture layout with ADB: {i+1}")
+        await asyncio.sleep(1)
     return layout
 
 

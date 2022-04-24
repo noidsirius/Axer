@@ -10,7 +10,7 @@ from ppadb.client_async import ClientAsync as AdbClient
 from results_utils import AddressBook
 from logger_utils import ColoredFormatter
 from snapshot import EmulatorSnapshot, DeviceSnapshot, Snapshot
-from task.app_task import TakeSnapshotTask
+from task.app_task import TakeSnapshotTask, StoatSaveSnapshotTask
 from task.execute_usecase_task import ExecuteUsecaseTask
 from task.oversight_static_task import OversightStaticTask
 from task.process_screenshot_task import ProcessScreenshotTask
@@ -62,6 +62,13 @@ async def execute_app_task(args, app_path: Path):
         if args.app_task == "take_snapshot":
             logger.info("App Task: Take a snapshot")
             await TakeSnapshotTask(app_path=app_path, device=device).execute()
+        elif args.app_task == "stoat_save_snapshot":
+            logger.info("App Task: Save an Emulator Snapshot")
+            if not args.emulator or args.no_save_snapshot:
+                logger.error("The device should be an emulator")
+                return
+            await StoatSaveSnapshotTask(app_path=app_path, device=device).execute()
+
         elif args.app_task == "record_usecase":
             logger.info("App Task: Record a use case")
             await RecordUsecaseTask(app_path=app_path, device=device).execute()

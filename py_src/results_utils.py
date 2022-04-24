@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional, Union, Dict, List
 
 from GUI_utils import Node, bounds_included
-from adb_utils import get_current_activity_name, get_windows, get_activities
+from adb_utils import get_current_activity_name, get_windows, get_activities, capture_layout as adb_capture_layout
 from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG
 from latte_executor_utils import ExecutionResult, latte_capture_layout as capture_layout
 from padb_utils import ParallelADBLogger, save_screenshot
@@ -127,6 +127,9 @@ class AddressBook:
 
     def app_name(self) -> str:
         return self.snapshot_result_path.parent.name
+
+    def package_name(self) -> str:
+        return self.app_name().split('(')[0]
 
     def snapshot_name(self) -> str:
         return self.snapshot_result_path.name
@@ -270,7 +273,8 @@ async def capture_current_state(address_book: AddressBook, device,
                                 index: Union[int, str],
                                 has_layout=True,
                                 dumpsys: bool = False,
-                                log_message_map: Optional[dict] = None) -> str:
+                                log_message_map: Optional[dict] = None,
+                                use_adb_layout: bool = False) -> str:
     await asyncio.sleep(3)
     await save_screenshot(device, address_book.get_screenshot_path(mode, index))
     activity_name = await get_current_activity_name()
@@ -279,10 +283,13 @@ async def capture_current_state(address_book: AddressBook, device,
 
     layout = ""
     if has_layout:
-        padb_logger = ParallelADBLogger(device)
-        log_map, layout = await padb_logger.execute_async_with_log(capture_layout())
-        with open(address_book.get_log_path(mode, index, extension="layout"), mode='w') as f:
-            f.write(log_map[BLIND_MONKEY_TAG])
+        if use_adb_layout:
+            layout = await adb_capture_layout()
+        else:
+            padb_logger = ParallelADBLogger(device)
+            log_map, layout = await padb_logger.execute_async_with_log(capture_layout())
+            with open(address_book.get_log_path(mode, index, extension="layout"), mode='w') as f:
+                f.write(log_map[BLIND_MONKEY_TAG])
         with open(address_book.get_layout_path(mode, index), mode='w') as f:
             f.write(layout)
 
