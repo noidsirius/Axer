@@ -1,6 +1,6 @@
 #!/bin/bash
 FLAG=1
-RESULT_PATH=$(realpath ../pop1_results)
+RESULT_PATH=$(realpath ../pop2_results)
 LAST_APK_FILE="com.abb.grinding"
 for APK_FILE in  ../BM_APKs/pop_apks/*.apk; do
 	if [ "$(basename "$APK_FILE")" = "$LAST_APK_FILE.apk" ]; then

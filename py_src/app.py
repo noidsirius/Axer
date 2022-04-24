@@ -14,161 +14,17 @@ from json2html import json2html
 from flask import Flask, request, jsonify, send_from_directory, render_template, make_response
 
 from consts import BLIND_MONKEY_EVENTS_TAG
+from snapshot_search import SnapshotSearchManager, SnapshotSearchQuery
 
 sys.path.append(str(pathlib.Path(__file__).parent.resolve()))
 from results_utils import AddressBook, OAC
 from post_analysis import do_post_analysis, get_post_analysis, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, \
     XML_PROBLEM \
     , DIFFERENT_BEHAVIOR, UNREACHABLE, POST_ANALYSIS_PREFIX
-from search import get_search_manager, SearchQuery
+from action_search import get_search_manager, SearchQuery
 
 logger = logging.getLogger(__name__)
 flask_app = Flask(__name__, static_url_path='', )
-
-# ---------------------------- For Legacy Results ---------------------
-# ---------------------------- TODO: Will Be removed once the old results are analyzed ---------------------
-RESULT_STATIC_URI = '/old_result_jan_12/'
-RESULT_PATH = pathlib.Path("../old_result_jan_12")
-
-
-# RESULT_PATH = pathlib.Path("../old_result_jan_12")
-
-
-@flask_app.route(f'{RESULT_STATIC_URI}<path:path>')
-def send_result_static(path):
-    return send_from_directory(RESULT_PATH, path)
-
-
-@flask_app.route("/")
-def report_index():
-    app_list = defaultdict(list)
-    for snapshot_result_path in RESULT_PATH.iterdir():
-        snapshot_name = snapshot_result_path.name
-        if snapshot_result_path.is_dir() and '_' in snapshot_name:
-            app_name = ("_".join(snapshot_name.split('_')[:-1])).replace('.', '_')
-            address_book = AddressBook(snapshot_result_path)
-            # snapshot = Snapshot(snapshot_name, address_book)
-            different_behaviors, directional_unreachable \
-                , unlocatable, different_behaviors_directional_unreachable, pending = old_report_issues(address_book)
-            snapshot_info = {}
-            snapshot_info['id'] = snapshot_name
-            snapshot_info['different_behavior'] = "(pending)" if pending else len(different_behaviors) + len(
-                different_behaviors_directional_unreachable)
-            snapshot_info['unreachable'] = "(pending)" if pending else len(unlocatable) + len(directional_unreachable)
-            snapshot_info['last_update'] = datetime.datetime.fromtimestamp(
-                address_book.snapshot_result_path.stat().st_mtime)
-            app_list[app_name].append(snapshot_info)
-    apps = []
-    for app in app_list:
-        app_info = {}
-        app_info['name'] = app.replace(' ', '_')
-        app_info['snapshots'] = app_list[app]
-        app_info['different_behavior'] = sum(
-            [0] + [s['different_behavior'] for s in app_list[app] if str(s['different_behavior']).isdecimal()])
-        app_info['unreachable'] = sum(
-            [0] + [s['unreachable'] for s in app_list[app] if str(s['unreachable']).isdecimal()])
-        app_info['last_update'] = max(s['last_update'] for s in app_list[app])
-        apps.append(app_info)
-    apps.sort(key=lambda a: a['last_update'], reverse=True)
-    return render_template('index.html', apps=apps)
-
-
-# @app.route("/snapshot/diff/<name>/<index>", defaults={'stb': 'False'})
-@flask_app.route("/snapshot/diff/<name>/<index>")
-def xml_diff(name, index):
-    explore_path = RESULT_PATH.joinpath(name)
-    # xml_name = f"M_{index}.xml" if stb == 'True' else f"{index}.xml"
-    xml_name = f"{index}.xml"
-    tb_xml_path = explore_path.joinpath("TB").joinpath(xml_name)
-    reg_xml_path = explore_path.joinpath("REG").joinpath(xml_name)
-    cmd = f"diff --unified {tb_xml_path} {reg_xml_path}"
-    diff_string = subprocess.run(cmd.split(), stdout=subprocess.PIPE).stdout.decode('utf-8')
-    return render_template('xml_diff.html', diff_string=[diff_string])
-
-
-@flask_app.route("/snapshot/report/<name>")
-def report(name):
-    result_path = RESULT_PATH.joinpath(name)
-    if not result_path.exists():
-        return f"Snapshot {name} does not exist!"
-    explore_path = result_path.joinpath("explore.json")
-    tb_steps = []
-    errors = []
-    if not explore_path.exists():
-        errors.append("Explore result doesn't exist!")
-    else:
-        with open(explore_path, encoding="utf-8") as f:
-            explore_json = json.load(f)
-        for index in explore_json:
-            step = {}
-            step['index'] = index
-            step['action'] = explore_json[index]['command']
-            step['init_img'] = RESULT_STATIC_URI + os.path.relpath(
-                result_path.joinpath("EXP").joinpath(f"{index}_edited.png").absolute(), RESULT_PATH)
-            step['tb_img'] = RESULT_STATIC_URI + os.path.relpath(
-                result_path.joinpath("TB").joinpath(f"{index}.png").absolute(),
-                RESULT_PATH)
-            step['reg_img'] = RESULT_STATIC_URI + os.path.relpath(
-                result_path.joinpath("REG").joinpath(f"{index}.png").absolute(),
-                RESULT_PATH)
-            step['tb_result'] = explore_json[index]['tb_result']
-            step['reg_result'] = explore_json[index]['reg_result']
-            xml_name = f"{index}.xml"
-            tb_xml_path = result_path.joinpath("TB").joinpath(xml_name)
-            reg_xml_path = result_path.joinpath("REG").joinpath(xml_name)
-            xml_problem = False
-            with open(tb_xml_path, "r", encoding="utf-8") as f:
-                tb_xml = f.read()
-                if "PROBLEM_WITH_XML" in tb_xml:
-                    xml_problem = True
-            with open(reg_xml_path, "r", encoding="utf-8") as f:
-                reg_xml = f.read()
-                if "PROBLEM_WITH_XML" in reg_xml:
-                    xml_problem = True
-            step['status'] = 1 if (tb_xml == reg_xml) else 0
-            step['status_message'] = "Accessible"
-            if step['status'] == 0:
-                if "FAILED" in step['tb_result'][0]:
-                    step['status_message'] = "TalkBack Failed"
-                    step['status'] = 2
-                elif "FAILED" in step['reg_result'][0]:
-                    step['status_message'] = "Regular Failed"
-                    step['status'] = 2
-                elif xml_problem:
-                    step['status_message'] = "Problem with XML"
-                    step['status'] = 2
-                else:
-                    step['status_message'] = "Different Behavior"
-
-            tb_steps.append(step)
-    stb_result_path = result_path.joinpath("stb_result.json")
-    stb_steps = []
-    if not stb_result_path.exists():
-        errors.append("Sighted TalkBack result doesn't exist!")
-    else:
-        with open(stb_result_path, encoding="utf-8") as f:
-            stb_json = json.load(f)
-        for xpath in stb_json:
-            step = {}
-            index = stb_json[xpath]['index']
-            step['index'] = index
-            step['action'] = stb_json[xpath]['command']
-            step['init_img'] = RESULT_STATIC_URI + os.path.relpath(
-                result_path.joinpath("EXP").joinpath(f"I_{index}_RS.png").absolute(), RESULT_PATH)
-            step['tb_img'] = RESULT_STATIC_URI + os.path.relpath(
-                result_path.joinpath("TB").joinpath(f"M_{index}.png").absolute(),
-                RESULT_PATH)
-            step['reg_img'] = RESULT_STATIC_URI + os.path.relpath(
-                result_path.joinpath("REG").joinpath(f"M_{index}.png").absolute(),
-                RESULT_PATH)
-            step['status'] = stb_json[xpath].get('same', False)
-            step['stb_result'] = stb_json[xpath].get('stb_result', '')
-            step['reg_result'] = stb_json[xpath].get('reg_result', '')
-            stb_steps.append(step)
-    return render_template('report.html', tb_steps=tb_steps, name=name, stb_steps=stb_steps, errors=errors)
-
-
-# ---------------------------- End Legacy Results ---------------------
 
 mode_to_repr = defaultdict(lambda: 'UNKNOWN',
                            {
@@ -378,6 +234,11 @@ def send_result_static_v2(path: str):
     return send_from_directory(path.parent.resolve(), path.name)
 
 
+@flask_app.route("/")
+def homepage():
+    return render_template('homepage.html', result_path="EMPTY_results")
+
+
 @flask_app.route("/v2/<result_path_str>/")
 def report_index_v2(result_path_str: str):
     result_path = pathlib.Path(fix_path(result_path_str))
@@ -405,6 +266,44 @@ def report_app_v2(result_path: str, app_name: str):
                              for snapshot_path in app_result_dir.iterdir()
                              if snapshot_path.is_dir()]}
     return render_template('v2_app.html', app=app, result_path=result_path_str)
+
+
+@flask_app.route("/v2/<result_path_str>/snapshot_search", methods=['GET', 'POST'])
+def snapshot_search(result_path_str: str):
+    app_name_field = request.args.get('appName', 'All')
+    xml_search_mode = request.args.get('xmlSearchMode', 'ALL')
+    xml_search_attrs = request.args.getlist('xmlSearchAttr[]')
+    xml_search_fields = request.args.getlist('xmlSearchQuery[]')
+    if len(xml_search_fields) == 0 or len(xml_search_fields) != len(xml_search_attrs):
+        xml_search_fields = [None]*5
+        xml_search_attrs = ['ALL']*5
+    snapshot_limit_field = request.args.get('snapshot_limit_field', '10')
+    if not snapshot_limit_field.isdecimal():
+        snapshot_limit_field = 1000
+    snapshot_limit_field = int(snapshot_limit_field)
+    result_path = pathlib.Path(fix_path(result_path_str))
+    if not (result_path.is_dir() and result_path.exists()):
+        return "The result path is incorrect!"
+    search_query = SnapshotSearchQuery().set_valid_app(app_name_field)
+
+    search_query.contains_node(attrs=xml_search_attrs, queries=xml_search_fields)
+
+    search_results = SnapshotSearchManager(result_path).search(search_query=search_query)
+    app_names = ['All']
+    for app_path in result_path.iterdir():
+        if not app_path.is_dir():
+            continue
+        app_names.append(app_path.name)
+
+    return render_template('snapshot_search.html',
+                           result_path=result_path_str,
+                           results=search_results,
+                           snapshot_limit_field=snapshot_limit_field,
+                           xml_search_fields=xml_search_fields,
+                           xml_search_mode=xml_search_mode,
+                           xml_search_attrs=xml_search_attrs,
+                           app_name_field=app_name_field,
+                           app_names=app_names)
 
 
 @flask_app.route("/v2/<result_path_str>/search", methods=['GET', 'POST'])
