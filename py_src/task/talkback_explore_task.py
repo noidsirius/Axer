@@ -1,3 +1,4 @@
+import json
 import logging
 from collections import defaultdict
 
@@ -7,18 +8,36 @@ from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG, EXPLORE_VISIT_LIMI
 from controller import TalkBackDirectionalController
 from json_util import unsafe_json_load
 from padb_utils import ParallelADBLogger
+from results_utils import capture_current_state, AddressBook
 from snapshot import DeviceSnapshot, EmulatorSnapshot
 from task.snapshot_task import SnapshotTask
-from utils import annotate_elements
+from utils import annotate_elements, create_gif
 
 logger = logging.getLogger(__name__)
 
 
+def is_window_changed(log_message_map):
+    try:
+        window_changed = False
+        for line in log_message_map[BLIND_MONKEY_EVENTS_TAG].split("\n"):
+            if 'WindowContentChange:' in line:
+                change_part = line.split('WindowContentChange:')[1].strip()
+                change_part = json.loads(change_part)
+                if change_part['changedWindowId'] == change_part['activeWindowId']:
+                    window_changed = True
+                    break
+        return window_changed
+    except Exception as e:
+        logger.error(f"Error in checking if the window is changed!:  {e}")
+        return False
+
+
 class TalkBackExploreTask(SnapshotTask):
-    def __init__(self, snapshot: DeviceSnapshot):
+    def __init__(self, snapshot: DeviceSnapshot, check_both_directions: bool = False):
         if not isinstance(snapshot, DeviceSnapshot):
             raise Exception("TalkBack exploration requires a DeviceSnapshot!")
         super().__init__(snapshot)
+        self.check_both_directions = check_both_directions
 
     async def execute(self):
         controller = TalkBackDirectionalController()
@@ -32,6 +51,10 @@ class TalkBackExploreTask(SnapshotTask):
                           self.snapshot.address_book.tb_explore_all_nodes_screenshot,
                           list(all_nodes.values()))
         visited_nodes = []
+
+        screenshot_to_visited_nodes = defaultdict(list)
+        last_screenshot = self.snapshot.initial_screenshot.resolve()
+        screenshots = [last_screenshot]
         none_node_count = 0
         android_logs = ""
         android_event_logs = ""
@@ -51,8 +74,8 @@ class TalkBackExploreTask(SnapshotTask):
                 if len(focused_node.xpath) > 0:
                     visited_nodes.append(focused_node)
                     visited_node_xpaths_counter[focused_node.xpath] += 1
+                    screenshot_to_visited_nodes[last_screenshot].append(focused_node)
         # -------------------------------------------------------------------------------------
-
         while True:
             command = NextCommand() if is_next else PreviousCommand()
             log_message_map, navigate_response = await padb_logger.execute_async_with_log(
@@ -62,6 +85,18 @@ class TalkBackExploreTask(SnapshotTask):
                             f"{log_message_map[BLIND_MONKEY_TAG]}\n" \
                             f"----------------------------------------\n"
             android_event_logs += f"{log_message_map[BLIND_MONKEY_EVENTS_TAG]}\n"
+            # Check if the UI has changed
+            if is_window_changed(log_message_map):
+                logger.info("Window Content Has Changed")
+                await capture_current_state(self.snapshot.address_book,
+                                                             self.snapshot.device,
+                                                             mode=AddressBook.BASE_MODE,
+                                                             index=len(screenshots),
+                                                             dumpsys=True,
+                                                             has_layout=True)
+                last_screenshot = self.snapshot.address_book.get_screenshot_path(AddressBook.BASE_MODE, len(screenshots))
+                last_screenshot = last_screenshot.resolve()
+                screenshots.append(last_screenshot)
             if navigate_response is None or not isinstance(navigate_response, NavigateCommandResponse):
                 logger.error("Terminate the exploration: Problem with navigation")
                 break
@@ -75,18 +110,20 @@ class TalkBackExploreTask(SnapshotTask):
                     break
             visited_nodes.append(node)
             visited_node_xpaths_counter[node.xpath] += 1
+            screenshot_to_visited_nodes[last_screenshot].append(node)
             logger.debug(f"Node {node.xpath} is visited {visited_node_xpaths_counter[node.xpath]} times!")
             if visited_node_xpaths_counter[node.xpath] > EXPLORE_VISIT_LIMIT:
-                if is_next:
-                    logger.info("Change navigation direction!")
-                    android_logs += f"----------- Change Direction -----------\n"
-                    is_next = False
-                    for k in visited_node_xpaths_counter:
-                        visited_node_xpaths_counter[k] = max(0, visited_node_xpaths_counter[k] - 1)
-                    if isinstance(self.snapshot, EmulatorSnapshot):
-                        await self.snapshot.reload()
-                        await controller.setup()
-                    continue
+                if self.check_both_directions:
+                    if is_next:
+                        logger.info("Change navigation direction!")
+                        android_logs += f"----------- Change Direction -----------\n"
+                        is_next = False
+                        for k in visited_node_xpaths_counter:
+                            visited_node_xpaths_counter[k] = max(0, visited_node_xpaths_counter[k] - 1)
+                        if isinstance(self.snapshot, EmulatorSnapshot):
+                            await self.snapshot.reload()
+                            await controller.setup()
+                        continue
                 logger.info(
                     f"Terminate the exploration: "
                     f"The XPath {node.xpath} is visited more than {EXPLORE_VISIT_LIMIT} times.")
@@ -109,8 +146,8 @@ class TalkBackExploreTask(SnapshotTask):
         annotate_elements(self.snapshot.initial_screenshot,
                           self.snapshot.address_book.tb_explore_visited_nodes_screenshot,
                           unique_visited_nodes)
-        annotate_elements(self.snapshot.initial_screenshot,
-                          self.snapshot.address_book.tb_explore_visited_nodes_gif,
-                          visited_nodes)
+        create_gif(source_images=screenshots,
+                   target_gif=self.snapshot.address_book.tb_explore_visited_nodes_gif,
+                   image_to_nodes=screenshot_to_visited_nodes)
         logger.info("The Talkback Exploration audit is finished!")
 

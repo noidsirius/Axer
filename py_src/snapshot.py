@@ -9,7 +9,6 @@ from GUI_utils import NodesFactory, Node
 from a11y_service import A11yServiceManager
 from adb_utils import save_snapshot, load_snapshot
 from consts import DEVICE_NAME, ADB_HOST, ADB_PORT
-from controller import TalkBackDirectionalController
 from results_utils import AddressBook, capture_current_state
 
 logger = logging.getLogger(__name__)
