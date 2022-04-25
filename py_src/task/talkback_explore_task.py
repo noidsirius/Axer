@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from GUI_utils import Node
 from command import InfoCommand, InfoCommandResponse, NextCommand, PreviousCommand, NavigateCommandResponse
-from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG, EXPLORE_VISIT_LIMIT
+from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG, EXPLORE_VISIT_LIMIT, MAX_DIRECTIONAL_NAVIGATION
 from controller import TalkBackDirectionalController
 from json_util import unsafe_json_load
 from padb_utils import ParallelADBLogger
@@ -77,7 +77,9 @@ class TalkBackExploreTask(SnapshotTask):
                     visited_node_xpaths_counter[focused_node.xpath] += 1
                     screenshot_to_visited_nodes[last_screenshot].append(focused_node)
         # -------------------------------------------------------------------------------------
-        while True:
+        counter = 0
+        while counter < MAX_DIRECTIONAL_NAVIGATION:
+            counter += 1
             command = NextCommand() if is_next else PreviousCommand()
             log_message_map, navigate_response = await padb_logger.execute_async_with_log(
                 controller.execute(command),
@@ -130,6 +132,8 @@ class TalkBackExploreTask(SnapshotTask):
                     f"The XPath {node.xpath} is visited more than {EXPLORE_VISIT_LIMIT} times.")
                 break
             # TODO: another stopping criteria: if all leaves have been visited!
+        if counter >= MAX_DIRECTIONAL_NAVIGATION:
+            logger.info("Reached maximum number of navigations in TB Directional Exploration")
         # --------------- Write essential results -----------------
         with open(self.snapshot.address_book.tb_explore_visited_nodes_path, "w") as f:
             for node in visited_nodes:

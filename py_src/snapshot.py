@@ -109,7 +109,7 @@ class DeviceSnapshot(Snapshot):
             device = asyncio.run(client.device(DEVICE_NAME))
         self.device = device
 
-    async def setup(self, first_setup: bool = True, dumpsys: bool = True, use_service: bool = False, **kwargs):
+    async def setup(self, first_setup: bool = True, dumpsys: bool = True, use_service: bool = True, **kwargs):
         initial_layout = initial_screenshot = None
         if first_setup:
             if use_service:
