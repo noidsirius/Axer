@@ -40,9 +40,10 @@ class TalkBackExploreTask(SnapshotTask):
         self.check_both_directions = check_both_directions
 
     async def execute(self):
+        snapshot: DeviceSnapshot = self.snapshot
         controller = TalkBackDirectionalController()
         await controller.setup()
-        padb_logger = ParallelADBLogger(self.snapshot.device)
+        padb_logger = ParallelADBLogger(snapshot.device)
         is_next = True
         all_nodes = {node.xpath: node for node in self.snapshot.get_nodes()}
         visited_node_xpaths_counter = defaultdict(int)

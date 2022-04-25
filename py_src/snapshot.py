@@ -22,6 +22,7 @@ class Snapshot:
         self.initial_layout = None
         self.initial_screenshot = None
         self.nodes = []
+        self.xpath_to_node = {}
 
     async def setup(self,
                     layout: str = None,
@@ -47,6 +48,10 @@ class Snapshot:
             .with_xpath_pass() \
             .with_ad_detection() \
             .build()
+
+        for node in self.nodes:
+            self.xpath_to_node[node.xpath] = node
+
         with open(self.address_book.snapshot_result_path.joinpath("nodes.jsonl"), "w") as f:
             for node in self.nodes:
                 f.write(f"{node.toJSONStr()}\n")
@@ -83,7 +88,7 @@ class Snapshot:
             print(f"Nodes do not match! {other_snapshot.address_book.snapshot_name()} {len(my_nodes)} != {len(other_nodes)}")
             return False
         excluded_attributes = ['xpath', 'text', 'content_desc', 'naf', 'checked', 'visible']
-        excluded_attributes.extend(['focused', 'bounds', 'index', 'drawing_order', 'a11y_actions'])
+        excluded_attributes.extend(['focused', 'bounds', 'index', 'drawing_order', 'a11y_actions', 'selected'])
         for my_node, other_node in zip(my_nodes, other_nodes):
             if not my_node.practically_equal(other_node, excluded_attrs=excluded_attributes):
                 logger.debug(f"These two nodes do not match in {other_snapshot.address_book.snapshot_name()}\n"

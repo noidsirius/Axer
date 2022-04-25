@@ -488,13 +488,13 @@ def get_actions_from_layout(layout: str,
         visible_query = lambda node: node.visible
         action_queries.append(visible_query)
 
-    important_nodes = get_nodes(layout, filter_query=lambda node: all(q(node) for q in action_queries))
+    actionable_nodes = get_nodes(layout, filter_query=lambda node: all(q(node) for q in action_queries))
     visited_resource_ids = set()
-    refined_list = []
-    for node in important_nodes:
+    unique_resource_actionable_nodes = []
+    for node in actionable_nodes:
         if node.resource_id:
             if node.resource_id in visited_resource_ids:
                 continue
             visited_resource_ids.add(node.resource_id)
-        refined_list.append(node)
-    return refined_list
+        unique_resource_actionable_nodes.append(node)
+    return unique_resource_actionable_nodes

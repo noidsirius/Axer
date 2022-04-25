@@ -12,6 +12,7 @@ from logger_utils import ColoredFormatter
 from snapshot import EmulatorSnapshot, DeviceSnapshot, Snapshot
 from task.app_task import TakeSnapshotTask, StoatSaveSnapshotTask
 from task.execute_usecase_task import ExecuteUsecaseTask
+from task.extract_actions_task import ExtractActionsTask
 from task.oversight_static_task import OversightStaticTask
 from task.process_screenshot_task import ProcessScreenshotTask
 from task.record_usecase_task import RecordUsecaseTask
@@ -40,6 +41,9 @@ async def execute_snapshot_task(args, address_book: AddressBook):
         if args.snapshot_task == "talkback_explore":
             logger.info("Snapshot Task: TalkBack Explore")
             await TalkBackExploreTask(snapshot).execute()
+        elif args.snapshot_task == "extract_actions":
+            logger.info("Snapshot Task: Extract Actions")
+            await ExtractActionsTask(snapshot).execute()
         elif args.snapshot_task == "oversight_static":
             logger.info("Snapshot Task: Oversight Static")
             await OversightStaticTask(snapshot).execute()

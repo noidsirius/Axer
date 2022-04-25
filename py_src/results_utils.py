@@ -36,6 +36,7 @@ class AddressBook:
     TALKBACK_EXPLORE = "talkback_explore"
     OVERSIGHT_STATIC = "oversight_static"
     PROCESS_SCREENSHOT = "process_screenshot"
+    EXTRACT_ACTIONS = "extract_actions"
 
     def __init__(self, snapshot_result_path: Union[Path, str]):
         if isinstance(snapshot_result_path, str):
@@ -52,8 +53,18 @@ class AddressBook:
         self.tb_explore_visited_nodes_gif = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("visited_nodes.gif")
         # ----------- Audit: oversight_static ---------------
         self.audit_path_map[AddressBook.OVERSIGHT_STATIC] = self.snapshot_result_path.joinpath("OversightStatic")
-        # ----------- Audit: oversight_static ---------------
+        # ----------- Audit: Process Snapshot (OCR) ---------------
         self.audit_path_map[AddressBook.PROCESS_SCREENSHOT] = self.snapshot_result_path.joinpath("ProcessSnapshot")
+        # ----------- Audit: Extract Actions ---------------
+        self.audit_path_map[AddressBook.EXTRACT_ACTIONS] = self.snapshot_result_path.joinpath("ExtractActions")
+        self.extract_actions_all_actionable_nodes_screenshot = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath("actionable_nodes.png")
+        self.extract_actions_all_actionable_nodes_path = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath("actionable_nodes.jsonl")
+        self.extract_actions_unique_resource_actionable_nodes_screenshot = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath("unique_resource_actionable_nodes.png")
+        self.extract_actions_unique_resource_actionable_nodes_path = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath("unique_resource_actionable_nodes.jsonl")
+        self.extract_actions_not_important_a11y_actionable_nodes_screenshot = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath("na11y_actionable_nodes.png")
+        self.extract_actions_not_important_a11y_actionable_nodes_path = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath("na11y_actionable_nodes.jsonl")
+        self.extract_actions_tb_reachable_actionable_nodes_screenshot = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath("tb_reachable_actionable_nodes.png")
+        self.extract_actions_tb_reachable_actionable_nodes_path = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath("tb_reachable_actionable_nodes.jsonl")
         # ---------------------------------------------------
         navigate_modes = [AddressBook.BASE_MODE, "tb", "reg", "areg", "exp", "s_reg", "s_areg", "s_tb", "s_exp"]
         self.mode_path_map = {}
@@ -105,6 +116,11 @@ class AddressBook:
         if self.audit_path_map[AddressBook.TALKBACK_EXPLORE].exists():
             shutil.rmtree(self.audit_path_map[AddressBook.TALKBACK_EXPLORE].resolve())
         self.audit_path_map[AddressBook.TALKBACK_EXPLORE].mkdir()
+
+    def initiate_extract_actions_task(self):
+        if self.audit_path_map[AddressBook.EXTRACT_ACTIONS].exists():
+            shutil.rmtree(self.audit_path_map[AddressBook.EXTRACT_ACTIONS].resolve())
+        self.audit_path_map[AddressBook.EXTRACT_ACTIONS].mkdir()
 
     def initiate_oversight_static_task(self):
         if self.audit_path_map[AddressBook.OVERSIGHT_STATIC].exists():
