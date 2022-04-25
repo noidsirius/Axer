@@ -84,11 +84,11 @@
     {% if address_book.audit_path_map[address_book.TALKBACK_EXPLORE].exists() %}
         {{ snapshot_image_card("All Elements",
                                  static_path_fixer(address_book.tb_explore_all_nodes_screenshot, result_path),
-                                 "Layout",
-                url_for('send_result_static_v2', path=static_path_fixer(address_book.get_layout_path('base', 'INITIAL'), result_path)), 2) }}
+                                 None,
+                None, 2) }}
         {{ snapshot_image_card("Visited Elements",
                                  static_path_fixer(address_book.tb_explore_visited_nodes_screenshot, result_path),
-                                 "Details",
+                                 "Nodes",
                 url_for('send_result_static_v2', path=static_path_fixer(address_book.tb_explore_visited_nodes_path, result_path)), 2) }}
         {{ snapshot_image_card("Visited Order",
                                      static_path_fixer(address_book.tb_explore_visited_nodes_gif, result_path),
@@ -127,6 +127,18 @@
                                  static_path_fixer(address_book.extract_actions_tb_reachable_actionable_nodes_screenshot, result_path),
                                  "Nodes",
                                 url_for('send_result_static_v2', path=static_path_fixer(address_book.extract_actions_tb_reachable_actionable_nodes_path, result_path)),
+                                 2)
+                }}
+        {{ snapshot_image_card("TB Unreachable actionables",
+                                 static_path_fixer(address_book.extract_actions_tb_unreachable_actionable_nodes_screenshot, result_path),
+                                 "Nodes",
+                                url_for('send_result_static_v2', path=static_path_fixer(address_book.extract_actions_tb_unreachable_actionable_nodes_path, result_path)),
+                                 2)
+                }}
+        {{ snapshot_image_card("Selected actionables",
+                                 static_path_fixer(address_book.extract_actions_selected_actionable_nodes_screenshot, result_path),
+                                 "Nodes",
+                                url_for('send_result_static_v2', path=static_path_fixer(address_book.extract_actions_selected_actionable_nodes_path, result_path)),
                                  2)
                 }}
     {% endif %}

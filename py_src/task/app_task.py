@@ -11,6 +11,7 @@ from snapshot import DeviceSnapshot, Snapshot
 
 logger = logging.getLogger(__name__)
 
+
 class AppTask:
     def __init__(self, app_path: Union[Path, str], device: DeviceAsync):
         if isinstance(app_path, str):
@@ -78,7 +79,7 @@ class StoatSaveSnapshotTask(AppTask):
             snapshot_name = f"{self.app_name()}.S_{last_index+1}"
             address_book = AddressBook(self.app_path.joinpath(snapshot_name))
             snapshot = tmp_snapshot.clone(address_book)
-            await asyncio.sleep(2)
+            await asyncio.sleep(5)
             await save_snapshot(snapshot_name)
             logger.info(f"The new snapshot is saved in {snapshot_name}!")
         await asyncio.sleep(1)

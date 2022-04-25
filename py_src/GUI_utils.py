@@ -124,9 +124,9 @@ class Node(JSONSerializable):
             a11y_actions = a11y_actions.split("-")
         self.index = index
         self.class_name = class_name
-        self.text = text
-        self.resource_id = resource_id
-        self.content_desc = content_desc
+        self.text = '' if text == 'null' else text
+        self.resource_id = '' if resource_id == 'null' else resource_id
+        self.content_desc = '' if content_desc == 'null' else content_desc
         self.visible = visible
         self.clickable = clickable
         self.long_clickable = long_clickable
@@ -143,7 +143,7 @@ class Node(JSONSerializable):
         self.bounds = bounds
         self.drawing_order = drawing_order
         self.a11y_actions = a11y_actions
-        self.pkg_name = pkg_name
+        self.pkg_name = '' if pkg_name == 'null' else pkg_name
         self.xpath = xpath
         # --- Latte ----
         # TODO: Move it to another class

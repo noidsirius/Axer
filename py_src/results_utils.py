@@ -45,26 +45,47 @@ class AddressBook:
         self.audit_path_map = {}
         # ----------- Audit: talkback_explore ---------------
         self.audit_path_map[AddressBook.TALKBACK_EXPLORE] = self.snapshot_result_path.joinpath("TalkBackExplore")
-        self.tb_explore_all_nodes_screenshot = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("all_nodes.png")
+        self.tb_explore_all_nodes_screenshot = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath(
+            "all_nodes.png")
         self.tb_explore_android_log = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("android.log")
-        self.tb_explore_android_events_log = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("android_events.log")
-        self.tb_explore_visited_nodes_path = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("visited_nodes.jsonl")
-        self.tb_explore_visited_nodes_screenshot = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("visited_nodes.png")
-        self.tb_explore_visited_nodes_gif = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath("visited_nodes.gif")
+        self.tb_explore_android_events_log = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath(
+            "android_events.log")
+        self.tb_explore_visited_nodes_path = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath(
+            "visited_nodes.jsonl")
+        self.tb_explore_visited_nodes_screenshot = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath(
+            "visited_nodes.png")
+        self.tb_explore_visited_nodes_gif = self.audit_path_map[AddressBook.TALKBACK_EXPLORE].joinpath(
+            "visited_nodes.gif")
         # ----------- Audit: oversight_static ---------------
         self.audit_path_map[AddressBook.OVERSIGHT_STATIC] = self.snapshot_result_path.joinpath("OversightStatic")
         # ----------- Audit: Process Snapshot (OCR) ---------------
         self.audit_path_map[AddressBook.PROCESS_SCREENSHOT] = self.snapshot_result_path.joinpath("ProcessSnapshot")
         # ----------- Audit: Extract Actions ---------------
         self.audit_path_map[AddressBook.EXTRACT_ACTIONS] = self.snapshot_result_path.joinpath("ExtractActions")
-        self.extract_actions_all_actionable_nodes_screenshot = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath("actionable_nodes.png")
-        self.extract_actions_all_actionable_nodes_path = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath("actionable_nodes.jsonl")
-        self.extract_actions_unique_resource_actionable_nodes_screenshot = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath("unique_resource_actionable_nodes.png")
-        self.extract_actions_unique_resource_actionable_nodes_path = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath("unique_resource_actionable_nodes.jsonl")
-        self.extract_actions_not_important_a11y_actionable_nodes_screenshot = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath("na11y_actionable_nodes.png")
-        self.extract_actions_not_important_a11y_actionable_nodes_path = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath("na11y_actionable_nodes.jsonl")
-        self.extract_actions_tb_reachable_actionable_nodes_screenshot = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath("tb_reachable_actionable_nodes.png")
-        self.extract_actions_tb_reachable_actionable_nodes_path = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath("tb_reachable_actionable_nodes.jsonl")
+        self.extract_actions_all_actionable_nodes_screenshot = self.audit_path_map[
+            AddressBook.EXTRACT_ACTIONS].joinpath("actionable_nodes.png")
+        self.extract_actions_all_actionable_nodes_path = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath(
+            "actionable_nodes.jsonl")
+        self.extract_actions_unique_resource_actionable_nodes_screenshot = self.audit_path_map[
+            AddressBook.EXTRACT_ACTIONS].joinpath("unique_resource_actionable_nodes.png")
+        self.extract_actions_unique_resource_actionable_nodes_path = self.audit_path_map[
+            AddressBook.EXTRACT_ACTIONS].joinpath("unique_resource_actionable_nodes.jsonl")
+        self.extract_actions_not_important_a11y_actionable_nodes_screenshot = self.audit_path_map[
+            AddressBook.EXTRACT_ACTIONS].joinpath("na11y_actionable_nodes.png")
+        self.extract_actions_not_important_a11y_actionable_nodes_path = self.audit_path_map[
+            AddressBook.EXTRACT_ACTIONS].joinpath("na11y_actionable_nodes.jsonl")
+        self.extract_actions_tb_reachable_actionable_nodes_screenshot = self.audit_path_map[
+            AddressBook.EXTRACT_ACTIONS].joinpath("tb_reachable_actionable_nodes.png")
+        self.extract_actions_tb_reachable_actionable_nodes_path = self.audit_path_map[
+            AddressBook.EXTRACT_ACTIONS].joinpath("tb_reachable_actionable_nodes.jsonl")
+        self.extract_actions_tb_unreachable_actionable_nodes_screenshot = self.audit_path_map[
+            AddressBook.EXTRACT_ACTIONS].joinpath("tb_unreachable_actionable_nodes.png")
+        self.extract_actions_tb_unreachable_actionable_nodes_path = self.audit_path_map[
+            AddressBook.EXTRACT_ACTIONS].joinpath("tb_unreachable_actionable_nodes.jsonl")
+        self.extract_actions_selected_actionable_nodes_screenshot = self.audit_path_map[
+            AddressBook.EXTRACT_ACTIONS].joinpath("selected_actionable_nodes.png")
+        self.extract_actions_selected_actionable_nodes_path = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath(
+            "selected_actionable_nodes.jsonl")
         # ---------------------------------------------------
         navigate_modes = [AddressBook.BASE_MODE, "tb", "reg", "areg", "exp", "s_reg", "s_areg", "s_tb", "s_exp"]
         self.mode_path_map = {}
@@ -164,7 +185,7 @@ class AddressBook:
 
     def get_log_path(self, mode: str, index: int, extension: str = None, should_exists: bool = False):
         file_name = f"{index}_{extension}.log" if (
-                    extension is not None and extension != BLIND_MONKEY_TAG) else f"{index}.log"
+                extension is not None and extension != BLIND_MONKEY_TAG) else f"{index}.log"
         return self._get_path(mode, file_name, should_exists)
 
     def get_instrumented_log_path(self, mode: str, index: int, should_exists: bool = False):
@@ -321,7 +342,6 @@ async def capture_current_state(address_book: AddressBook, device,
         activities = await get_activities()
         with open(address_book.get_log_path(mode, index, extension="ACTIVITIES"), mode='w') as f:
             f.write(activities + "\n")
-
 
     return layout  # TODO: Remove it
 
