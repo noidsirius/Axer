@@ -136,6 +136,6 @@ async def get_most_recent_file(dir_path: str, prev_num: int, sleep_time: int, de
 
 
 async def download_recent_file(dir_path: str, file_name: str, destination: str, device_name: str = DEVICE_NAME):
-    cmd = f'adb -s {device_name} pull sdcard/{dir_path}/"{file_name}" {destination}'
+    cmd = f'adb -s {device_name} pull sdcard/{dir_path}/"{file_name}" "{destination}"'
     return_code, _, _ = await run_bash(cmd)
     return return_code==0
