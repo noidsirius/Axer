@@ -1,4 +1,4 @@
-{% from "utils_macro.html" import xml_diff_modal, xml_diff_script, image_modal, image_script with context %}
+{% from "utils_macro.html" import nodes_diff_modal, nodes_diff_script, xml_diff_modal, xml_diff_script, image_modal, image_script with context %}
 <!doctype html>
 <html lang="en">
 <head>
@@ -59,6 +59,7 @@
 </main>
 {{ xml_diff_modal() }}
 {{ image_modal() }}
+{{ nodes_diff_modal() }}
 <footer class="footer mt-auto py-3 bg-light">
     <div class="container">
         <span class="text-muted">Blind Monkey</span>
@@ -87,6 +88,7 @@
 </script>
 {{ xml_diff_script() }}
 {{ image_script() }}
+{{ nodes_diff_script() }}
 {% block script_content %}{% endblock %}
 </body>
 </html>

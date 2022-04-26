@@ -4,9 +4,9 @@ import json
 import shutil
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Union, Dict, List
+from typing import Optional, Union, Dict, List, Tuple
 
-from GUI_utils import Node, bounds_included
+from GUI_utils import Node, bounds_included, is_in_same_state_with_layout_path
 from adb_utils import get_current_activity_name, get_windows, get_activities, capture_layout as adb_capture_layout
 from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG
 from latte_executor_utils import ExecutionResult, latte_capture_layout as capture_layout
@@ -29,6 +29,134 @@ class OAC(Enum):  # Overly Accessible Condition
     O_AD = -1
 
 
+class Actionables(Enum):  # Overly Accessible Condition
+    All = 1
+    UniqueResource = 2
+    TBReachable = 3
+    TBUnreachable = 4
+    NA11y = 5
+    Selected = 6
+
+
+def extract_events(event_log_message: str) -> List[Tuple[str, Node]]:
+    events = []
+    for line in event_log_message.split("\n"):
+        if "Event: TYPE_" in line:
+            try:
+                right_part = line[line.find("TYPE_"):]
+                event_name = right_part[:right_part.find(" ")]
+
+                node = json.loads(right_part[right_part.find(" "):].strip())
+                if node is not None:
+                    if 'Element' in node:
+                        node = Node.createNodeFromDict(node['Element'])
+                    else:
+                        logger.warning(f"Problem with analyzing event with node: '{line}'")
+                        node = None
+                events.append((event_name, node))
+            except Exception as e:
+                logger.warning(f"Problem in analyzing event: '{e}'")
+    return events
+
+
+def did_talkback_perform_click(events: List[Tuple[str, Node]]) -> bool:
+    state = 0
+    for event_name, node in reversed(events):
+        if state == 0 and event_name == "TYPE_TOUCH_INTERACTION_END":
+            state = 1
+        elif state == 1:
+            if event_name == "TYPE_TOUCH_INTERACTION_START":
+                state = 2
+            elif event_name in ["TYPE_TOUCH_EXPLORATION_GESTURE_END", "TYPE_TOUCH_EXPLORATION_GESTURE_START"]:
+                break
+        elif state == 2 and event_name == "TYPE_TOUCH_INTERACTION_END":
+            state = 3
+        elif state == 3 and event_name == "TYPE_TOUCH_EXPLORATION_GESTURE_END":
+            state = 4
+        elif state == 4 and event_name == "TYPE_TOUCH_EXPLORATION_GESTURE_START":
+            state = 5
+        elif state == 5 and event_name == "TYPE_TOUCH_INTERACTION_START":
+            state = 6
+        elif state == 6:
+            break
+    return state == 6
+
+
+def get_clicked_element(events: List[Tuple[str, Node]]) -> Node:
+    for event_name, node in reversed(events):
+        if event_name == "TYPE_VIEW_CLICKED":
+            if node.toJSONStr() == Node().toJSONStr():
+                return None
+            return node
+    return None
+
+
+class WebHelper:
+    def __init__(self, address_book: 'AddressBook'):
+        self.address_book = address_book
+
+    def get_action_count(self) -> int:
+        if not self.address_book.perform_actions_results_path.exists():
+            return 0
+        with open(self.address_book.perform_actions_results_path) as f:
+            return len(f.readlines())
+
+    def get_action(self, action_index: int) -> dict:
+        if not self.address_book.perform_actions_results_path.exists():
+            return None
+        with open(self.address_book.perform_actions_results_path) as f:
+            for line in f.readlines():
+                result = json.loads(line.strip())
+                if result['index'] == action_index:
+                    return result
+        return None
+
+    def is_same_layout(self, mode1, index1, mode2, index2):
+        layout_path1 = self.address_book.get_layout_path(mode1, index1)
+        layout_path2 = self.address_book.get_layout_path(mode2, index2)
+        return is_in_same_state_with_layout_path(layout_path1, layout_path2)
+
+    def get_events_info(self, mode, index) -> dict:
+        event_log_path = self.address_book.get_log_path(mode, index, extension=BLIND_MONKEY_EVENTS_TAG)
+        with open(event_log_path) as f:
+            event_logs = f.read()
+        events = extract_events(event_logs)
+        result = {
+            'did_tb_click': did_talkback_perform_click(events),
+            'clicked_node': get_clicked_element(events)
+        }
+        return result
+
+    def summarized_events(self, index: int) -> dict:
+        mode_result = {}
+        modes = ['tb_touch', 'touch', 'a11y_api']
+        for mode in modes:
+            if index == 2:
+                logger.error(f"Here {mode}")
+            mode_result[mode] = self.get_events_info(mode, index)
+        summary = {
+            'did_tb_click': mode_result['tb_touch']['did_tb_click'],
+            'no_click_at_all': all(mode_result[mode]['clicked_node'] is None for mode in modes)
+        }
+        same_clicked = True
+        for i, mode in enumerate(modes):
+            summary[f"{mode}_clicked_node"] = None if mode_result[mode]['clicked_node'] is None else mode_result[mode]['clicked_node'].toJSONStr()
+            for m2 in modes[i+1:]:
+                same_clicked_in_modes = False
+                if mode_result[mode]['clicked_node'] is None:
+                    same_clicked_in_modes = mode_result[m2]['clicked_node'] is None
+                elif mode_result[m2]['clicked_node'] is None:
+                    same_clicked_in_modes = False
+                else:
+                    same_clicked_in_modes = mode_result[mode]['clicked_node'].xpath == mode_result[m2]['clicked_node'].xpath
+                same_clicked = same_clicked and same_clicked_in_modes
+                summary[f"same_clicked_{mode}_{m2}"] = same_clicked_in_modes
+                summary[f"same_clicked_{m2}_{mode}"] = same_clicked_in_modes
+        summary["same_clicked"] = same_clicked
+        return summary
+
+
+
 class AddressBook:
     BASE_MODE = "base"
     INITIAL = "INITIAL"
@@ -37,10 +165,15 @@ class AddressBook:
     OVERSIGHT_STATIC = "oversight_static"
     PROCESS_SCREENSHOT = "process_screenshot"
     EXTRACT_ACTIONS = "extract_actions"
+    PERFORM_ACTIONS = "perform_actions"
 
     def __init__(self, snapshot_result_path: Union[Path, str]):
         if isinstance(snapshot_result_path, str):
             snapshot_result_path = Path(snapshot_result_path)
+        # ---- For Web Visualization ------
+        self.whelper = WebHelper(self)
+        #--------------
+
         self.snapshot_result_path = snapshot_result_path
         self.audit_path_map = {}
         # ----------- Audit: talkback_explore ---------------
@@ -62,55 +195,51 @@ class AddressBook:
         self.audit_path_map[AddressBook.PROCESS_SCREENSHOT] = self.snapshot_result_path.joinpath("ProcessSnapshot")
         # ----------- Audit: Extract Actions ---------------
         self.audit_path_map[AddressBook.EXTRACT_ACTIONS] = self.snapshot_result_path.joinpath("ExtractActions")
-        self.extract_actions_all_actionable_nodes_screenshot = self.audit_path_map[
-            AddressBook.EXTRACT_ACTIONS].joinpath("actionable_nodes.png")
-        self.extract_actions_all_actionable_nodes_path = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath(
-            "actionable_nodes.jsonl")
-        self.extract_actions_unique_resource_actionable_nodes_screenshot = self.audit_path_map[
-            AddressBook.EXTRACT_ACTIONS].joinpath("unique_resource_actionable_nodes.png")
-        self.extract_actions_unique_resource_actionable_nodes_path = self.audit_path_map[
-            AddressBook.EXTRACT_ACTIONS].joinpath("unique_resource_actionable_nodes.jsonl")
-        self.extract_actions_not_important_a11y_actionable_nodes_screenshot = self.audit_path_map[
-            AddressBook.EXTRACT_ACTIONS].joinpath("na11y_actionable_nodes.png")
-        self.extract_actions_not_important_a11y_actionable_nodes_path = self.audit_path_map[
-            AddressBook.EXTRACT_ACTIONS].joinpath("na11y_actionable_nodes.jsonl")
-        self.extract_actions_tb_reachable_actionable_nodes_screenshot = self.audit_path_map[
-            AddressBook.EXTRACT_ACTIONS].joinpath("tb_reachable_actionable_nodes.png")
-        self.extract_actions_tb_reachable_actionable_nodes_path = self.audit_path_map[
-            AddressBook.EXTRACT_ACTIONS].joinpath("tb_reachable_actionable_nodes.jsonl")
-        self.extract_actions_tb_unreachable_actionable_nodes_screenshot = self.audit_path_map[
-            AddressBook.EXTRACT_ACTIONS].joinpath("tb_unreachable_actionable_nodes.png")
-        self.extract_actions_tb_unreachable_actionable_nodes_path = self.audit_path_map[
-            AddressBook.EXTRACT_ACTIONS].joinpath("tb_unreachable_actionable_nodes.jsonl")
-        self.extract_actions_selected_actionable_nodes_screenshot = self.audit_path_map[
-            AddressBook.EXTRACT_ACTIONS].joinpath("selected_actionable_nodes.png")
-        self.extract_actions_selected_actionable_nodes_path = self.audit_path_map[AddressBook.EXTRACT_ACTIONS].joinpath(
-            "selected_actionable_nodes.jsonl")
+        self.extract_actions_modes = {Actionables.All: 'all_actionables',
+                                      Actionables.UniqueResource: 'unique_resource_actionables',
+                                      Actionables.NA11y: 'na11y_actionables',
+                                      Actionables.TBReachable: 'tb_reachable_actionables',
+                                      Actionables.TBUnreachable: 'tb_unreachable_actionables',
+                                      Actionables.Selected: 'selected_actionables',
+                                      }
+        self.extract_actions_nodes = {}
+        self.extract_actions_screenshots = {}
+        for mode, value in self.extract_actions_modes.items():
+            self.extract_actions_nodes[mode] = self.audit_path_map[
+                AddressBook.EXTRACT_ACTIONS].joinpath(f"{value}.jsonl")
+            self.extract_actions_screenshots[mode] = self.audit_path_map[
+                AddressBook.EXTRACT_ACTIONS].joinpath(f"{value}.png")
+        # ----------- Audit: perform_actions ---------------
+        self.audit_path_map[AddressBook.PERFORM_ACTIONS] = self.snapshot_result_path.joinpath("PerformActions")
+        self.perform_actions_results_path = self.audit_path_map[AddressBook.PERFORM_ACTIONS].joinpath("results.jsonl")
+        self.perform_actions_atf_issues_path = self.audit_path_map[AddressBook.PERFORM_ACTIONS].joinpath("atf_elements.jsonl")
+        self.perform_actions_atf_issues_screenshot = self.audit_path_map[AddressBook.PERFORM_ACTIONS].joinpath("atf_elements.png")
         # ---------------------------------------------------
-        navigate_modes = [AddressBook.BASE_MODE, "tb", "reg", "areg", "exp", "s_reg", "s_areg", "s_tb", "s_exp"]
+        # TODO: Needs to find a more elegant solution
+        navigate_modes = [AddressBook.BASE_MODE, "tb_touch", "touch", "a11y_api"]
         self.mode_path_map = {}
         for mode in navigate_modes:
-            self.mode_path_map[mode] = self.snapshot_result_path.joinpath(mode.upper())
+            self.mode_path_map[mode] = self.snapshot_result_path.joinpath(mode)
         self.initiated_path = self.snapshot_result_path.joinpath("initiated.txt")
         self.ovsersight_path = self.snapshot_result_path.joinpath("OS")
-        self.atf_issues_path = self.mode_path_map['exp'].joinpath("atf_issues.jsonl")
+        # self.atf_issues_path = self.mode_path_map['exp'].joinpath("atf_issues.jsonl")
         self.action_path = self.snapshot_result_path.joinpath("action.jsonl")
-        self.all_element_screenshot = self.mode_path_map['exp'].joinpath("all_elements.png")
-        self.atf_issues_screenshot = self.mode_path_map['exp'].joinpath("atf_elements.png")
-        self.all_action_screenshot = self.mode_path_map['exp'].joinpath("all_actions.png")
-        self.valid_action_screenshot = self.mode_path_map['exp'].joinpath("valid_actions.png")
-        self.redundant_action_screenshot = self.mode_path_map['exp'].joinpath("redundant_actions.png")
-        self.visited_action_screenshot = self.mode_path_map['exp'].joinpath("visited_actions.png")
-        self.visited_elements_screenshot = self.mode_path_map['exp'].joinpath("visited_elements.png")
-        self.visited_elements_gif = self.mode_path_map['exp'].joinpath("visited_elements.gif")
+        # self.all_element_screenshot = self.mode_path_map['exp'].joinpath("all_elements.png")
+        # self.atf_issues_screenshot = self.mode_path_map['exp'].joinpath("atf_elements.png")
+        # self.all_action_screenshot = self.mode_path_map['exp'].joinpath("all_actions.png")
+        # self.valid_action_screenshot = self.mode_path_map['exp'].joinpath("valid_actions.png")
+        # self.redundant_action_screenshot = self.mode_path_map['exp'].joinpath("redundant_actions.png")
+        # self.visited_action_screenshot = self.mode_path_map['exp'].joinpath("visited_actions.png")
+        # self.visited_elements_screenshot = self.mode_path_map['exp'].joinpath("visited_elements.png")
+        # self.visited_elements_gif = self.mode_path_map['exp'].joinpath("visited_elements.gif")
         self.finished_path = self.snapshot_result_path.joinpath("finished.flag")
-        self.last_explore_log_path = self.snapshot_result_path.joinpath("last_explore.log")
+        # self.last_explore_log_path = self.snapshot_result_path.joinpath("last_explore.log")
         self.visited_elements_path = self.snapshot_result_path.joinpath("visited.jsonl")
-        self.valid_elements_path = self.snapshot_result_path.joinpath("valid_elements.jsonl")
-        self.tags_path = self.snapshot_result_path.joinpath("tags.jsonl")
-        self.s_possible_action_path = self.snapshot_result_path.joinpath("s_possible_action.jsonl")
+        # self.valid_elements_path = self.snapshot_result_path.joinpath("valid_elements.jsonl")
+        # self.tags_path = self.snapshot_result_path.joinpath("tags.jsonl")
+        # self.s_possible_action_path = self.snapshot_result_path.joinpath("s_possible_action.jsonl")
         self.s_action_path = self.snapshot_result_path.joinpath("s_action.jsonl")
-        self.s_action_screenshot = self.mode_path_map['s_exp'].joinpath("all_actions.png")
+        # self.s_action_screenshot = self.mode_path_map['s_exp'].joinpath("all_actions.png")
 
     def initiate(self, recreate: bool = False):
         if not recreate:
@@ -142,6 +271,18 @@ class AddressBook:
         if self.audit_path_map[AddressBook.EXTRACT_ACTIONS].exists():
             shutil.rmtree(self.audit_path_map[AddressBook.EXTRACT_ACTIONS].resolve())
         self.audit_path_map[AddressBook.EXTRACT_ACTIONS].mkdir()
+
+    def initiate_perform_actions_task(self):
+        if self.audit_path_map[AddressBook.PERFORM_ACTIONS].exists():
+            shutil.rmtree(self.audit_path_map[AddressBook.PERFORM_ACTIONS].resolve())
+        self.audit_path_map[AddressBook.PERFORM_ACTIONS].mkdir()
+        self.perform_actions_results_path.touch()
+        modes = ["tb_touch", "touch", "a11y_api"]
+        for mode in modes:
+            path = self.mode_path_map[mode]
+            if path.exists():
+                shutil.rmtree(path.resolve())
+            path.mkdir()
 
     def initiate_oversight_static_task(self):
         if self.audit_path_map[AddressBook.OVERSIGHT_STATIC].exists():
@@ -179,7 +320,7 @@ class AddressBook:
         return self._get_path(mode, file_name, should_exists)
 
     def get_layout_path(self, mode: str, index: int, should_exists: bool = False):
-        if mode == 's_exp':
+        if mode == 's_exp' or mode == AddressBook.BASE_MODE:
             index = 'INITIAL'
         return self._get_path(mode, f"{index}.xml", should_exists)
 

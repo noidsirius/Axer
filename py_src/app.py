@@ -28,10 +28,10 @@ flask_app = Flask(__name__, static_url_path='', )
 
 mode_to_repr = defaultdict(lambda: 'UNKNOWN',
                            {
-                               'exp': 'Initial',
-                               'tb': 'TalkBack',
-                               'areg': 'A11y API',
-                               'reg': 'Touch'
+                               'base': 'Initial',
+                               'tb_touch': 'TalkBack',
+                               'a11y_api': 'A11y API',
+                               'touch': 'Touch'
                            })
 
 

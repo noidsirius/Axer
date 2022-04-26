@@ -1,3 +1,4 @@
+{% from "utils_macro.html" import xml_diff_button with context %}
 {% from "action_macro.html" import action_row with context %}
 {% macro snapshot_action(step) %}
     {{ action_row(step) }}
@@ -25,7 +26,27 @@
     </div>
 {% endmacro %}
 
-{% macro snapshot_image_card(name, screenshot_path, footer_name, footer_link, size) %}
+{% macro link_set(name_to_link_map, use_hr) %}
+    {% for name, link in name_to_link_map.items() %}
+        {% if loop.index0 > 0 %}
+            {% if use_hr %}
+                <hr>
+            {% else %}
+
+            {% endif %}
+        {% endif %}
+        {% if link %}
+            <a class=""
+               href="{{ link }}"> {{ name }}</a>
+        {% else %}
+            <span>{{ name }}</span>
+        {% endif %}
+
+    {% endfor %}
+{% endmacro %}
+
+
+{% macro snapshot_image_card(name, screenshot_path, name_to_link_map, size) %}
     <div class="col{{ "" if not size else "-{}".format(size) }} p-1">
         <div class="card">
             <div class="card-header">
@@ -36,15 +57,15 @@
                     <a class="enlarge">
                         <img src="{{ url_for('send_result_static_v2', path=screenshot_path) }}"
                              class="rounded d-block mx-auto"
-                             style="width: 10rem;">
+                             style="width: 100%;">
                     </a>
                 </div>
             </div>
-            {% if footer_link %}
+            {% if name_to_link_map %}
                 <div class="card-footer">
                     <div class="mb-3">
                         <p class="text-center">
-                            <a href="{{ footer_link }}">{{ footer_name }}</a>
+                            {{ link_set(name_to_link_map, None) }}
                         </p>
                     </div>
                 </div>
@@ -52,7 +73,6 @@
         </div>
     </div>
 {% endmacro %}
-
 
 {% macro snapshot_links_card(title, name_to_link_map, size) %}
     <div class="col{{ "" if not size else "-{}".format(size) }} p-1">
@@ -62,11 +82,7 @@
             </div>
             <div class="card-body">
                 <div class="mb-3">
-                    {% for name, link in name_to_link_map.items() %}
-                        <a class="row m-3"
-                           href="{{ link }}"> {{ name }}</a>
-                        <hr>
-                    {% endfor %}
+                    {{ link_set(name_to_link_map, true) }}
                 </div>
             </div>
         </div>
@@ -75,74 +91,228 @@
 
 {% macro base_cards(address_book) %}
     {{ snapshot_image_card("Initial Layout", static_path_fixer(address_book.get_screenshot_path('base', 'INITIAL'), result_path),
-                            "Layout",
-                            url_for('send_result_static_v2', path=static_path_fixer(address_book.get_layout_path('base', 'INITIAL'), result_path)),
-                            2) }}
+                            {"Layout": url_for('send_result_static_v2', path=static_path_fixer(address_book.get_layout_path('base', 'INITIAL'), result_path))},
+                            1) }}
 {% endmacro %}
 
 {% macro tb_explore_cards(address_book) %}
     {% if address_book.audit_path_map[address_book.TALKBACK_EXPLORE].exists() %}
         {{ snapshot_image_card("All Elements",
                                  static_path_fixer(address_book.tb_explore_all_nodes_screenshot, result_path),
-                                 None,
-                None, 2) }}
+                                 None, 1) }}
         {{ snapshot_image_card("Visited Elements",
                                  static_path_fixer(address_book.tb_explore_visited_nodes_screenshot, result_path),
-                                 "Nodes",
-                url_for('send_result_static_v2', path=static_path_fixer(address_book.tb_explore_visited_nodes_path, result_path)), 2) }}
+                                 {"Nodes":url_for('send_result_static_v2', path=static_path_fixer(address_book.tb_explore_visited_nodes_path, result_path))},
+                                 1) }}
         {{ snapshot_image_card("Visited Order",
                                      static_path_fixer(address_book.tb_explore_visited_nodes_gif, result_path),
-                                     None, None, 2) }}
-    {{ snapshot_links_card("TalkBack Explore",{
+                                     None, 1) }}
+        {{ snapshot_links_card("TalkBack Explore",{
             "Log": url_for('send_result_static_v2', path=static_path_fixer(address_book.get_bm_log_path(extension="talkback_explore"), result_path)),
             "Android Logs": url_for('send_result_static_v2', path=static_path_fixer(address_book.tb_explore_android_log, result_path)),
             "Events": url_for('send_result_static_v2', path=static_path_fixer(address_book.tb_explore_android_events_log, result_path))
-        }, 2)
-    }}
+        }, 1) }}
     {% endif %}
 
 {% endmacro %}
 
 {% macro extracted_actions_cards(address_book) %}
     {% if address_book.audit_path_map[address_book.EXTRACT_ACTIONS].exists() %}
-        {{ snapshot_image_card("All actionables",
-                                 static_path_fixer(address_book.extract_actions_all_actionable_nodes_screenshot, result_path),
-                                 "Nodes",
-                                url_for('send_result_static_v2', path=static_path_fixer(address_book.extract_actions_all_actionable_nodes_path, result_path)),
-                                 2)
-        }}
-        {{ snapshot_image_card("Unique Resource-Id actionables",
-                                 static_path_fixer(address_book.extract_actions_unique_resource_actionable_nodes_screenshot, result_path),
-                                 "Nodes",
-                                url_for('send_result_static_v2', path=static_path_fixer(address_book.extract_actions_unique_resource_actionable_nodes_path, result_path)),
-                                 2)
-                }}
-        {{ snapshot_image_card("Not A11y Important actionables",
-                                 static_path_fixer(address_book.extract_actions_not_important_a11y_actionable_nodes_screenshot, result_path),
-                                 "Nodes",
-                                url_for('send_result_static_v2', path=static_path_fixer(address_book.extract_actions_not_important_a11y_actionable_nodes_path, result_path)),
-                                 2)
-                }}
-        {{ snapshot_image_card("TB Reachable actionables",
-                                 static_path_fixer(address_book.extract_actions_tb_reachable_actionable_nodes_screenshot, result_path),
-                                 "Nodes",
-                                url_for('send_result_static_v2', path=static_path_fixer(address_book.extract_actions_tb_reachable_actionable_nodes_path, result_path)),
-                                 2)
-                }}
-        {{ snapshot_image_card("TB Unreachable actionables",
-                                 static_path_fixer(address_book.extract_actions_tb_unreachable_actionable_nodes_screenshot, result_path),
-                                 "Nodes",
-                                url_for('send_result_static_v2', path=static_path_fixer(address_book.extract_actions_tb_unreachable_actionable_nodes_path, result_path)),
-                                 2)
-                }}
-        {{ snapshot_image_card("Selected actionables",
-                                 static_path_fixer(address_book.extract_actions_selected_actionable_nodes_screenshot, result_path),
-                                 "Nodes",
-                                url_for('send_result_static_v2', path=static_path_fixer(address_book.extract_actions_selected_actionable_nodes_path, result_path)),
-                                 2)
-                }}
+        {% for mode, value in address_book.extract_actions_modes.items() %}
+            {{ snapshot_image_card(value.replace("_", " ").capitalize(),
+                                     static_path_fixer(address_book.extract_actions_screenshots[mode], result_path),
+                                     {"Nodes": url_for('send_result_static_v2', path=static_path_fixer(address_book.extract_actions_nodes[mode], result_path))},
+                                     1) }}
+        {% endfor %}
     {% endif %}
 
+{% endmacro %}
+
+{% macro action_info_card(action_result) %}
+    <div class="col-2 p-1">
+        <div class="card">
+            <div class="card-header">
+                Action Info
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    {% if action_result %}
+                        <table class="table">
+                            <tr>
+                                <td class="text-end">Index</td>
+                                <td class="text-start"> {{ action_result.index }}</td>
+                            </tr>
+                            {% for attr in ['class_name', 'resource_id', 'text', 'content_desc', 'xpath', 'bounds'] %}
+                                <tr>
+                                    <td class="text-end">{{ attr }}</td>
+                                    <td class="text-start text-truncate" style="max-width: 10em;">
+                                <span data-bs-toggle="tooltip" data-bs-placement="top"
+                                      title="{{ action_result.node[attr] }}">
+                                    <a class="btn copyer">
+                                            {{ action_result.node[attr] }}
+                                            <input type="hidden" class="text-to-copy"
+                                                   value="{{ action_result.node[attr] }}">
+                                        </a>
+                                </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            <tr>
+                                <td class="text-end">Node</td>
+                                <td class="text-start text-truncate" style="max-width: 10em;">
+                                <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ action_result.node }}">
+                                    <a class="btn copyer">
+                                            {{ action_result.node }}
+                                            <input type="hidden" class="text-to-copy"
+                                                   value="{{ action_result.node }}">
+                                        </a>
+                                </span>
+                                </td>
+                            </tr>
+                        </table>
+                    {% else %}
+                        No Info
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endmacro %}
+
+{% macro post_analysis_card(address_book, action_result) %}
+    <div class="col-3 p-1">
+        <div class="card">
+            <div class="card-header">
+                Post Analysis
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    {% for left_mode in ['base', 'tb_touch', 'touch', 'a11y_api'] %}
+                        {% set outer_loop = loop %}
+                        {% for right_mode in ['base', 'tb_touch', 'touch', 'a11y_api'] %}
+                            {% if outer_loop.index < loop.index %}
+                                <div class="col-4 d-flex justify-content-center">
+                                    {{ xml_diff_button(address_book.result_path(),
+                                    address_book.app_name(),
+                                    address_book.snapshot_name(),
+                                    action_result.index,
+                                    False,
+                                    left_mode, right_mode,
+                                    address_book.whelper.is_same_layout(left_mode, action_result.index, right_mode, action_result.index)) }}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+                <div class="row mb-3">
+                    {% set summary = address_book.whelper.summarized_events(action_result.index) %}
+                    <table class="table">
+                        {% set qa = [
+                                ("Locate By TB Touch:", action_result["tb_touch_failed"] == None),
+                                ("Did TB Click:", summary["did_tb_click"]),
+                                ("Any click in all controllers:", not summary["no_click_at_all"]),
+                                 ("Same click result:", summary["same_clicked"])
+                                ] %}
+                        {% for question, answer in qa %}
+                            <tr>
+                                <td class="text-end">{{ question }}</td>
+                                <td class="text-start {{ 'text-danger' if (not answer) }}">
+                                    {{ answer }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+
+                    {% if not summary["same_clicked"] %}
+                        <div class="row">
+                            <div class="col-3 d-flex justify-content-center">
+                                Clicked Node Comparison
+                            </div>
+                            {% for left_mode in ['tb_touch', 'touch', 'a11y_api'] %}
+                                {% set outer_loop = loop %}
+                                {% for right_mode in ['tb_touch', 'touch', 'a11y_api'] %}
+                                    {% if outer_loop.index < loop.index %}
+                                        {% set is_equal = summary["same_clicked_"+left_mode+"_"+right_mode] %}
+                                        <div class="col-3 d-flex justify-content-center">
+                                            <span class="show-node-diff btn
+                                            {{ 'btn-light' if (is_equal) else 'btn-danger' }}
+                                        rounded-pill m-1 fs-6" style="display: inline-block;">
+                                            {{ mode_to_repr[left_mode] }}
+                                            {{ '=' if is_equal  else '≠' }}
+                                            {{ mode_to_repr[right_mode] }}
+                                                <input type="hidden" class="left_node" value="{{ summary[left_mode+'_clicked_node'] }}">
+                                                <input type="hidden" class="right_node" value="{{ summary[right_mode+'_clicked_node'] }}">
+                                            </span>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro action_result_row(address_book, action_index) %}
+    <div class="row">
+        {% set action_result = address_book.whelper.get_action(action_index) %}
+        {% if action_result %}
+            {{ action_info_card(action_result) }}
+            {{ snapshot_image_card("Initial",
+                                             static_path_fixer(address_book.audit_path_map[address_book.PERFORM_ACTIONS].joinpath(
+                    "{}.png".format(action_index)), result_path),
+                                             {"Layout": url_for('send_result_static_v2', path=static_path_fixer(address_book.get_layout_path('base', 'INITIAL'), result_path))},
+                                             1) }}
+            {% for mode in ["tb_touch", "touch", "a11y_api"] %}
+                {% set action_result_name = (mode if mode != "tb_touch" else "tb")+"_action_result" %}
+                {{ snapshot_image_card(mode.replace("_"," ").capitalize(),
+                                             static_path_fixer(address_book.get_screenshot_path(mode,action_index), result_path),
+                                             {
+                                              "State: {}".format(action_result[action_result_name].state): "",
+                                              "Layout": url_for('send_result_static_v2', path=static_path_fixer(address_book.get_layout_path(mode, action_index), result_path)),
+                                              "Log": url_for('send_result_static_v2', path=static_path_fixer(address_book.get_log_path(mode, action_index), result_path)),
+                                              "Events": url_for('send_result_static_v2', path=static_path_fixer(address_book.get_log_path(mode, action_index,extension="LATTE_A11Y_EVENT_TAG"), result_path))
+                                             },
+                                             1) }}
+            {% endfor %}
+            {{ post_analysis_card(address_book, action_result) }}
+        {% else %}
+            <h3>
+                Action is None!
+            </h3>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{% macro action_results(address_book) %}
+    {% set action_count = address_book.whelper.get_action_count() %}
+    {% if action_count == 0 %}
+        <h3>
+            No Actions
+        </h3>
+    {% else %}
+        <hr>
+        <h3>
+            Action Results
+        </h3>
+        <h6>
+            <a class="m-3"
+               href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.perform_actions_results_path, result_path)) }}">
+                Details</a>
+            -
+            <a class="m-3"
+               href="{{ url_for('send_result_static_v2', path=static_path_fixer(address_book.get_bm_log_path(extension="perform_actions"), result_path)) }}">
+                Logs</a>
+
+        </h6>
+        {% for i in range(action_count) %}
+            {{ action_result_row(address_book, i) }}
+        {% endfor %}
+    {% endif %}
 {% endmacro %}
 
 {% macro snapshot_row(address_book) %}
@@ -150,6 +320,9 @@
         {{ base_cards(address_book) }}
         {{ tb_explore_cards(address_book) }}
         {{ extracted_actions_cards(address_book) }}
+    </div>
+    <div class="row">
+        {{ action_results(address_book) }}
     </div>
 {% endmacro %}
 

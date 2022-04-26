@@ -159,11 +159,11 @@ class Node(JSONSerializable):
         return self.toJSONStr() == Node().toJSONStr()
 
     def area(self):
-        return (self.bounds[2]-self.bounds[0]) * (self.bounds[3] - self.bounds[1])
+        return (self.bounds[2] - self.bounds[0]) * (self.bounds[3] - self.bounds[1])
 
     def is_valid_bounds(self):
         return self.area() > 0 and \
-               (self.bounds[2]-self.bounds[0]) > 0 and \
+               (self.bounds[2] - self.bounds[0]) > 0 and \
                (self.bounds[3] - self.bounds[1]) > 0
 
     def is_practically_invisible(self):
@@ -217,13 +217,7 @@ class Node(JSONSerializable):
         return super().toJSON(excluded_attributes)
 
     def __str__(self):
-        a = {"index": self.index, "class": self.class_name, "text": self.text,
-             "bounds": "[{},{}][{},{}]".format(self.bounds[0], self.bounds[1], self.bounds[2], self.bounds[3]),
-             "clickable": self.clickable, "enabled": self.enabled, "content-desc": self.content_desc,
-             "focusable": self.focusable, "importantForAccessibility": self.important_for_accessibility,
-             "covered": self.covered, "drawing_order": self.drawing_order, "resource-id": self.resource_id,
-             "actionList": self.a11y_actions}
-        return json.dumps(a)
+        return self.toJSONStr(excluded_attributes=['xpath'])
 
 
 class NodesFactory:
@@ -234,6 +228,7 @@ class NodesFactory:
         extra attribute (a dictionary to contain exclusive information for passes), the children, and
         a map from each child node to its extra attribute.
     """
+
     def __init__(self):
         self.layout = None
         self.passes = []
@@ -251,6 +246,7 @@ class NodesFactory:
         """
         Creates xpath attribute for Nodes
         """
+
         def create_xpath(node: Node,
                          extra: Dict,
                          children_nodes: List[Node],
@@ -266,6 +262,7 @@ class NodesFactory:
                     child_node.xpath = "{}/{}[{}]".format(node.xpath,
                                                           child_node.class_name,
                                                           class_counter[child_node.class_name])
+
         self.passes.append(create_xpath)
         return self
 
@@ -273,16 +270,17 @@ class NodesFactory:
         """
             Detecting Ad nodes
         """
+
         def detect_ad(node: Node,
-                         extra: Dict,
-                         children_nodes: List[Node],
-                         child_to_extras_map: Dict[Node, Dict]) -> None:
+                      extra: Dict,
+                      children_nodes: List[Node],
+                      child_to_extras_map: Dict[Node, Dict]) -> None:
             resource_id = node.resource_id
             remaining = "" if len(resource_id.split("/")) < 1 else "/".join(resource_id.split("/")[1:])
             if resource_id.endswith("_ad") \
-                or resource_id.endswith("_ads") \
-                or '_ad_' in resource_id \
-                or resource_id.endswith("Ads") \
+                    or resource_id.endswith("_ads") \
+                    or '_ad_' in resource_id \
+                    or resource_id.endswith("Ads") \
                     or remaining.startswith('ad_') \
                     or remaining.startswith('ads'):
                 node.is_ad = True
@@ -380,6 +378,60 @@ class NodesFactory:
         return []
 
 
+def is_in_same_state_with_nodes(nodes1: List[Node], nodes2: List[Node], extra_excluded_attributes: List[str] = None,
+                                package_name: str = None) -> bool:
+    filter_queries = [lambda node: not node.is_ad]
+    if package_name:
+        filter_queries.append(lambda node: node.belongs(package_name))
+    nodes1 = [x for x in nodes1 if all(query(x) for query in filter_queries)]
+    nodes2 = [x for x in nodes2 if all(query(x) for query in filter_queries)]
+    if len(nodes1) == 0 or len(nodes2) == 0:
+        return False
+    if len(nodes1) != len(nodes2):
+        return False
+    excluded_attributes = ['xpath', 'naf', 'focused', 'bounds', 'index', 'drawing_order',
+                           'a11y_actions']
+    if extra_excluded_attributes is not None:
+        excluded_attributes.extend(extra_excluded_attributes)
+    for node1, node2 in zip(nodes1, nodes2):
+        if not node1.practically_equal(node2, excluded_attrs=excluded_attributes):
+            return False
+    return True
+
+
+def is_in_same_state_layout(layout1: str, layout2: str, extra_excluded_attributes: List[str] = None,
+                            package_name: str = None) -> bool:
+    nodes1 = NodesFactory() \
+        .with_layout(layout1) \
+        .with_xpath_pass() \
+        .with_ad_detection() \
+        .build()
+    nodes2 = NodesFactory() \
+        .with_layout(layout2) \
+        .with_xpath_pass() \
+        .with_ad_detection() \
+        .build()
+    return is_in_same_state_with_nodes(nodes1, nodes2, extra_excluded_attributes=extra_excluded_attributes,
+                                       package_name=package_name)
+
+
+def is_in_same_state_with_layout_path(layout_path1: Union[Path, str], layout_path2: Union[Path, str],
+                                      extra_excluded_attributes: List[str] = None,
+                                      package_name: str = None) -> bool:
+    nodes1 = NodesFactory() \
+        .with_layout_path(layout_path1) \
+        .with_xpath_pass() \
+        .with_ad_detection() \
+        .build()
+    nodes2 = NodesFactory() \
+        .with_layout_path(layout_path2) \
+        .with_xpath_pass() \
+        .with_ad_detection() \
+        .build()
+    return is_in_same_state_with_nodes(nodes1, nodes2, extra_excluded_attributes=extra_excluded_attributes,
+                                       package_name=package_name)
+
+
 def get_xpath_from_xml_element(xml_element):
     def __get_element_class(xml_element):
         # for XPATH we have to count only for nodes with same type!
@@ -403,7 +455,7 @@ def get_xpath_from_xml_element(xml_element):
 
 
 def get_element_from_xpath(layout: str, xpath: str) -> Union[etree.ElementTree, None]:
-    possible_nodes = get_nodes(layout, filter_query= lambda node: node.xpath == xpath)
+    possible_nodes = get_nodes(layout, filter_query=lambda node: node.xpath == xpath)
     if len(possible_nodes) != 1:
         return None
     return possible_nodes[0].xml_element

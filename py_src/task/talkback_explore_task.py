@@ -5,7 +5,7 @@ from collections import defaultdict
 from GUI_utils import Node
 from command import InfoCommand, InfoCommandResponse, NextCommand, PreviousCommand, NavigateCommandResponse
 from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG, EXPLORE_VISIT_LIMIT, MAX_DIRECTIONAL_NAVIGATION
-from controller import TalkBackDirectionalController
+from controller import TalkBackAPIController
 from json_util import unsafe_json_load
 from padb_utils import ParallelADBLogger
 from results_utils import capture_current_state, AddressBook
@@ -41,7 +41,7 @@ class TalkBackExploreTask(SnapshotTask):
 
     async def execute(self):
         snapshot: DeviceSnapshot = self.snapshot
-        controller = TalkBackDirectionalController()
+        controller = TalkBackAPIController()
         await controller.setup()
         padb_logger = ParallelADBLogger(snapshot.device)
         is_next = True

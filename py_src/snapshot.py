@@ -6,7 +6,7 @@ from typing import Union, Callable
 from ppadb.client_async import ClientAsync as AdbClient
 from ppadb.device_async import DeviceAsync
 
-from GUI_utils import NodesFactory, Node
+from GUI_utils import NodesFactory, Node, is_in_same_state_with_nodes
 from a11y_service import A11yServiceManager
 from adb_utils import save_snapshot, load_snapshot
 from consts import DEVICE_NAME, ADB_HOST, ADB_PORT
@@ -57,7 +57,7 @@ class Snapshot:
                 f.write(f"{node.toJSONStr()}\n")
 
     def clone(self, target_address_book: AddressBook) -> 'Snapshot':
-        shutil.copytree(self.address_book.snapshot_result_path, target_address_book.snapshot_result_path,)
+        shutil.copytree(self.address_book.snapshot_result_path, target_address_book.snapshot_result_path, )
         return Snapshot(target_address_book)
 
     def get_nodes(self, filter_query: Callable[[Node], bool] = None):
@@ -75,30 +75,10 @@ class Snapshot:
                          f"First Path: {self.address_book.snapshot_result_path}, "
                          f"Second Path: {other_snapshot.address_book.snapshot_result_path}")
             return False
-        # Exclude ads and non-package attributes
-        filter_query = lambda node: not node.is_ad and node.belongs(self.address_book.package_name())
-        my_nodes = self.get_nodes(filter_query=filter_query)
-        if my_nodes == 0:
-            logger.debug(f"All nodes excluded! {other_snapshot.address_book.snapshot_name()}")
-            print(f"All nodes excluded! {other_snapshot.address_book.snapshot_name()}")
-            return False
-        other_nodes = other_snapshot.get_nodes(filter_query=filter_query)
-        if len(my_nodes) != len(other_nodes):
-            logger.debug(f"Nodes do not match! {other_snapshot.address_book.snapshot_name()} {len(my_nodes)} != {len(other_nodes)}")
-            print(f"Nodes do not match! {other_snapshot.address_book.snapshot_name()} {len(my_nodes)} != {len(other_nodes)}")
-            return False
-        excluded_attributes = ['xpath', 'text', 'content_desc', 'naf', 'checked', 'visible']
-        excluded_attributes.extend(['focused', 'bounds', 'index', 'drawing_order', 'a11y_actions', 'selected'])
-        for my_node, other_node in zip(my_nodes, other_nodes):
-            if not my_node.practically_equal(other_node, excluded_attrs=excluded_attributes):
-                logger.debug(f"These two nodes do not match in {other_snapshot.address_book.snapshot_name()}\n"
-                             f"{my_node.toJSONStr(excluded_attributes=excluded_attributes)}\n"
-                             f"{other_node.toJSONStr(excluded_attributes=excluded_attributes)}\n")
-                print(f"These two nodes do not match in {other_snapshot.address_book.snapshot_name()}\n"
-                             f"{my_node.toJSONStr(excluded_attributes=excluded_attributes)}\n"
-                             f"{other_node.toJSONStr(excluded_attributes=excluded_attributes)}\n")
-                return False
-        return True
+        return is_in_same_state_with_nodes(self.nodes, other_snapshot.nodes,
+                                           extra_excluded_attributes=['checked', 'selected', 'text', 'content_desc',
+                                                                      'visible'],
+                                           package_name=self.address_book.package_name())
 
 
 class DeviceSnapshot(Snapshot):

@@ -56,7 +56,7 @@
                          right_mode,
                          is_equal = False) %}
     <span class="showdiff btn
-        {{ 'btn-light' if ((left_mode == 'exp') != is_equal) else 'btn-danger' }}
+        {{ 'btn-light' if ((left_mode == 'base') != is_equal) else 'btn-danger' }}
     rounded-pill m-1 fs-6" style="display: inline-block;">
         {{ mode_to_repr[left_mode]}}
         {{ '=' if is_equal  else '≠'}}
@@ -120,6 +120,35 @@
             $('.enlarge').on('click', function () {
                 $('.imagepreview').attr('src', $(this).find('img').attr('src'));
                 $('#imagemodal').modal('show');
+            });
+        });
+    </script>
+{% endmacro %}
+{% macro nodes_diff_modal() %}
+    <div class="modal fade" id="nodediffmodal" tabindex="-1" role="dialog" aria-labelledby="myNodeModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog  modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="row">
+                        <div class="col-6" id="left_node_page"></div>
+                        <div class="col-6" id="right_node_page"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+{% macro nodes_diff_script() %}
+    <script>
+        $(function () {
+            $('.show-node-diff').on('click', function () {
+                let left_node = $(this).find('.left_node').attr('value');
+                let right_node = $(this).find('.right_node').attr('value');
+                $('#left_node_page').html(left_node);
+                $('#right_node_page').html(right_node);
+                $('#nodediffmodal').modal('show');
             });
         });
     </script>

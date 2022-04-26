@@ -14,6 +14,7 @@ from task.app_task import TakeSnapshotTask, StoatSaveSnapshotTask
 from task.execute_usecase_task import ExecuteUsecaseTask
 from task.extract_actions_task import ExtractActionsTask
 from task.oversight_static_task import OversightStaticTask
+from task.perform_actions_task import PerformActionsTask
 from task.process_screenshot_task import ProcessScreenshotTask
 from task.record_usecase_task import RecordUsecaseTask
 from task.talkback_explore_task import TalkBackExploreTask
@@ -44,6 +45,9 @@ async def execute_snapshot_task(args, address_book: AddressBook):
         elif args.snapshot_task == "extract_actions":
             logger.info("Snapshot Task: Extract Actions")
             await ExtractActionsTask(snapshot).execute()
+        elif args.snapshot_task == "perform_actions":
+            logger.info("Snapshot Task: Perform Actions")
+            await PerformActionsTask(snapshot).execute()
         elif args.snapshot_task == "oversight_static":
             logger.info("Snapshot Task: Oversight Static")
             await OversightStaticTask(snapshot).execute()

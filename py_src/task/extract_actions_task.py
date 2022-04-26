@@ -2,6 +2,7 @@ import json
 import logging
 
 from GUI_utils import Node
+from results_utils import Actionables
 from snapshot import Snapshot
 from task.snapshot_task import SnapshotTask
 from utils import annotate_elements
@@ -28,10 +29,11 @@ class ExtractActionsTask(SnapshotTask):
             actionable_node_queries.append(lambda node: node.visible)
         if no_ad:
             actionable_node_queries.append(lambda node: not node.is_ad)
-
-        actionable_nodes = self.snapshot.get_nodes(
+        nodes_map = {}
+        for mode in self.snapshot.address_book.extract_actions_modes:
+            nodes_map[mode] = []
+        nodes_map[Actionables.All] = self.snapshot.get_nodes(
             filter_query=lambda node: all(q(node) for q in actionable_node_queries))
-        tb_reachable_actionable_nodes = []
         tb_reachable_nodes = {}
         if self.snapshot.address_book.tb_explore_visited_nodes_path.exists():
             with open(self.snapshot.address_book.tb_explore_visited_nodes_path) as f:
@@ -55,67 +57,37 @@ class ExtractActionsTask(SnapshotTask):
                         continue
                     tb_reachable_nodes[corresponding_node.xpath] = corresponding_node
                     if self.is_xpath_actionable(corresponding_node.xpath):
-                        tb_reachable_actionable_nodes.append(corresponding_node)
+                        nodes_map[Actionables.TBReachable].append(corresponding_node)
 
-        tb_unreachable_actionable_nodes = []
         visited_resource_ids = set()
-        unique_resource_actionable_nodes = []
-        na11y_actionable_nodes = []
-        for node in actionable_nodes:
+        for node in nodes_map[Actionables.All]:
             if node.xpath not in tb_reachable_nodes:
-                tb_unreachable_actionable_nodes.append(node)
+                nodes_map[Actionables.TBUnreachable].append(node)
             if not node.important_for_accessibility:
-                na11y_actionable_nodes.append(node)
+                nodes_map[Actionables.NA11y].append(node)
             if node.resource_id:
                 if node.resource_id in visited_resource_ids:
                     continue
                 visited_resource_ids.add(node.resource_id)
-            unique_resource_actionable_nodes.append(node)
+            nodes_map[Actionables.UniqueResource].append(node)
 
-        selected_actionable_nodes = []
-        for node in unique_resource_actionable_nodes:
-            selected_actionable_nodes.append(node)
-        for node in tb_reachable_actionable_nodes:
+        for node in nodes_map[Actionables.UniqueResource]:
+            nodes_map[Actionables.Selected].append(node)
+        for node in nodes_map[Actionables.TBReachable]:
             if node.visible:
-                selected_actionable_nodes.append(node)
+                nodes_map[Actionables.Selected].append(node)
 
-        with open(self.snapshot.address_book.extract_actions_all_actionable_nodes_path, "w") as f:
-            for node in actionable_nodes:
-                f.write(f"{node.toJSONStr()}\n")
-        with open(self.snapshot.address_book.extract_actions_unique_resource_actionable_nodes_path, "w") as f:
-            for node in unique_resource_actionable_nodes:
-                f.write(f"{node.toJSONStr()}\n")
-        with open(self.snapshot.address_book.extract_actions_not_important_a11y_actionable_nodes_path, "w") as f:
-            for node in na11y_actionable_nodes:
-                f.write(f"{node.toJSONStr()}\n")
-        with open(self.snapshot.address_book.extract_actions_tb_reachable_actionable_nodes_path, "w") as f:
-            for node in tb_reachable_actionable_nodes:
-                f.write(f"{node.toJSONStr()}\n")
-        with open(self.snapshot.address_book.extract_actions_tb_unreachable_actionable_nodes_path, "w") as f:
-            for node in tb_unreachable_actionable_nodes:
-                f.write(f"{node.toJSONStr()}\n")
-        with open(self.snapshot.address_book.extract_actions_selected_actionable_nodes_path, "w") as f:
-            for node in selected_actionable_nodes:
-                f.write(f"{node.toJSONStr()}\n")
-
-        annotate_elements(self.snapshot.initial_screenshot,
-                          self.snapshot.address_book.extract_actions_all_actionable_nodes_screenshot,
-                          actionable_nodes)
-        annotate_elements(self.snapshot.initial_screenshot,
-                          self.snapshot.address_book.extract_actions_unique_resource_actionable_nodes_screenshot,
-                          unique_resource_actionable_nodes)
-        annotate_elements(self.snapshot.initial_screenshot,
-                          self.snapshot.address_book.extract_actions_not_important_a11y_actionable_nodes_screenshot,
-                          na11y_actionable_nodes)
-        annotate_elements(self.snapshot.initial_screenshot,
-                          self.snapshot.address_book.extract_actions_tb_reachable_actionable_nodes_screenshot,
-                          tb_reachable_actionable_nodes)
-        annotate_elements(self.snapshot.initial_screenshot,
-                          self.snapshot.address_book.extract_actions_tb_unreachable_actionable_nodes_screenshot,
-                          tb_unreachable_actionable_nodes)
-        annotate_elements(self.snapshot.initial_screenshot,
-                          self.snapshot.address_book.extract_actions_selected_actionable_nodes_screenshot,
-                          selected_actionable_nodes)
+        for mode in self.snapshot.address_book.extract_actions_modes:
+            unique_node_map = {}
+            for node in nodes_map[mode]:
+                unique_node_map[node.xpath] = node
+            nodes = list(unique_node_map.values())
+            with open(self.snapshot.address_book.extract_actions_nodes[mode], "w") as f:
+                for node in nodes:
+                    f.write(f"{node.toJSONStr()}\n")
+            annotate_elements(self.snapshot.initial_screenshot,
+                              self.snapshot.address_book.extract_actions_screenshots[mode],
+                              nodes)
 
     def is_xpath_actionable(self, xpath: str) -> bool:
 
