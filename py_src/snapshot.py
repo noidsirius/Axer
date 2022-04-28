@@ -133,5 +133,5 @@ class EmulatorSnapshot(DeviceSnapshot):
             logger.error("There is no temporary snapshot saved!")
             return False
         result = await load_snapshot(self.tmp_snapshot, device_name=self.device.serial)
-        await asyncio.sleep(1)
+        await asyncio.sleep(3)
         return result

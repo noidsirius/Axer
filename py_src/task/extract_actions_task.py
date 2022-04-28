@@ -1,5 +1,7 @@
 import json
 import logging
+import re
+from collections import Counter, defaultdict
 
 from GUI_utils import Node
 from results_utils import Actionables
@@ -71,12 +73,30 @@ class ExtractActionsTask(SnapshotTask):
                 visited_resource_ids.add(node.resource_id)
             nodes_map[Actionables.UniqueResource].append(node)
 
+        pre_selected = []
         for node in nodes_map[Actionables.UniqueResource]:
-            nodes_map[Actionables.Selected].append(node)
+            pre_selected.append(node)
         for node in nodes_map[Actionables.TBReachable]:
-            if node.visible:
-                nodes_map[Actionables.Selected].append(node)
-
+            if not node.visible:
+                continue
+            if node.resource_id:
+                if node.resource_id in visited_resource_ids:
+                    continue
+                visited_resource_ids.add(node.resource_id)
+            pre_selected.append(node)
+        xpath_nums = r'\[\d+\]'
+        simplified_pre_selected = defaultdict(int)
+        for node in pre_selected:
+            simple_xpath = re.sub(xpath_nums, '', node.xpath)
+            simplified_pre_selected[simple_xpath] += 1
+        selected_simple_xpaths = defaultdict(int)
+        for node in pre_selected:
+            simple_xpath = re.sub(xpath_nums, '', node.xpath)
+            if simple_xpath in simplified_pre_selected and simplified_pre_selected[simple_xpath] > 5:
+                if simple_xpath in selected_simple_xpaths and selected_simple_xpaths[simple_xpath] > 3:
+                    continue
+            selected_simple_xpaths[simple_xpath] += 1
+            nodes_map[Actionables.Selected].append(node)
         for mode in self.snapshot.address_book.extract_actions_modes:
             unique_node_map = {}
             for node in nodes_map[mode]:

@@ -17,9 +17,10 @@ adb start-server
 sleep 2
 adb devices
 sleep 2
-gtimeout $SNAPSHOT_TIMEOUT python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --emulator --initial-load --no-save-snapshot --snapshot-task "talkback_explore"
-gtimeout 30 python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --static --snapshot-task "extract_actions"
-gtimeout $SNAPSHOT_TIMEOUT python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --emulator --initial-load --snapshot-task "perform_actions"
+#gtimeout $SNAPSHOT_TIMEOUT python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --emulator --initial-load --no-save-snapshot --snapshot-task "talkback_explore"
+#gtimeout 30 python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --static --snapshot-task "extract_actions"
+#gtimeout 30 python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --emulator --initial-load --snapshot-task "dummy"
+python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --emulator --initial-load --snapshot-task "perform_actions"
 adb kill-server
 TMP_SNAPSHOT=$SNAPSHOT"_TMP"
 adb emu avd snapshot delete "$TMP_SNAPSHOT"

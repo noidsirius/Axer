@@ -1,8 +1,8 @@
 #!/bin/bash
 FLAG=1
-RESULT_PATH=$(realpath ../GH_Selected_results)
-LAST_APK_FILE="com.cegid.cashmanager"
-for APK_FILE in  ../BM_APKs/gh_selected_apks/*.apk; do
+RESULT_PATH=$(realpath ../pop5_results)
+LAST_APK_FILE="com.microsoft.teams"
+for APK_FILE in  ../BM_APKs/pop_apks/*.apk; do
 	if [ "$(basename "$APK_FILE")" = "$LAST_APK_FILE.apk" ]; then
 		FLAG=1
 	fi
