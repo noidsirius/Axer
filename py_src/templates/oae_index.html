@@ -17,28 +17,30 @@
             <tr class="table-primary">
                 <th>App</th>
                 <th>Snapshot</th>
-                <th>#P Smell</th>
-                <th>P Precision</th>
-                <th>#A Smell</th>
-                <th>A Precision</th>
-                <th>#Smell</th>
-                <th>Total Precision</th>
-                <th>Missing Tag</th>
+                <th>#P Smell (TP)</th>
+                <th>#P TBR (TP)</th>
+                <th>#A Smell (TP)</th>
+                <th>#A TB Act (TP)</th>
+                <th>#A API Act (TP)</th>
+{#                <th>#Smell (TP)</th>#}
+                <th>Missing Smell Tag</th>
+                <th>Missing Verify Tag</th>
                 <th>...</th>
             </tr>
             </thead>
             <tbody>
             {% for row in rows %}
                 <tr >
-                    <td> {{  row.app_name}}</td>
+                    <td> {{ row.app_name}}</td>
                     <td> {{row.snapshot_name}}</td>
-                    <td> {{row.p_smells}}</td>
-                    <td> {{row.p_precision}}</td>
-                    <td> {{row.a_smells}}</td>
-                    <td> {{row.a_precision}}</td>
-                    <td> {{row.t_smells}}</td>
-                    <td> {{row.t_precision}}</td>
-                    <td> {{row.missing_tag}}</td>
+                    <td> {{row.result.p_smells}}({{row.result.p_tp}})</td>
+                    <td> {{row.result.p_tbrs}}({{row.result.p_tbrs_tp}})</td>
+                    <td> {{row.result.a_smells}}({{row.result.a_tp}})</td>
+                    <td> {{row.result.a_tbas}}({{row.result.a_tbas_tp}})</td>
+                    <td> {{row.result.a_apias}}({{row.result.a_apias_tp}})</td>
+{#                    <td> {{row.result.t_smells}}({{row.result.t_tp}})</td>#}
+                    <td> {{row.result.missing_smell_tag}}</td>
+                    <td> {{ row.result.missing_verify_tag }}</td>
                     <th>
                         <a href="{{ url_for('report_sb_v2', result_path=result_path, app_name=row.app_name, snapshot_name=row.snapshot_name) }}">link</a
                     </th>

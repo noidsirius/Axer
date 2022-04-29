@@ -229,6 +229,79 @@ class AddressBook:
             oac_info_map[oac_node] = info
         return oac_info_map
 
+    def get_oae_result(self):
+        result = {}
+        oac_names = {}
+        for w in ['A', 'P']:
+            oac_names[w] = {oac.name: oac for oac in OAC if oac.name.startswith(w)}
+        p_smells = set()
+        p_smells_tp = set()
+        p_smells_fp = set()
+        p_tbrs = set()
+        p_tbrs_tp = set()
+        p_tbrs_fp = set()
+        a_smells = set()
+        a_smells_tp = set()
+        a_smells_fp = set()
+        a_tbas = set()
+        a_tbas_tp = set()
+        a_tbas_fp = set()
+        a_apias = set()
+        a_apias_tp = set()
+        a_apias_fp = set()
+        if self.oversight_tag.exists():
+            with open(self.oversight_tag) as f:
+                for line in f.readlines():
+                    r = json.loads(line)
+                    if r['oac'].startswith('P'):
+                        if r['tag'].lower() == 'tp':
+                            p_smells_tp.add(r['xpath'])
+                        elif r['tag'].lower() == 'fp':
+                            p_smells_fp.add(r['xpath'])
+                        elif r['tag'].lower() == 'tbrt':
+                            p_tbrs_tp.add(r['xpath'])
+                        elif r['tag'].lower() == 'tbrf':
+                            p_tbrs_fp.add(r['xpath'])
+                    elif r['oac'].startswith('A'):
+                        if r['tag'].lower() == 'tp':
+                            a_smells_tp.add(r['xpath'])
+                        elif r['tag'].lower() == 'fp':
+                            a_smells_fp.add(r['xpath'])
+                        elif r['tag'].lower() == 'tbat':
+                            a_tbas_tp.add(r['xpath'])
+                        elif r['tag'].lower() == 'tbaf':
+                            a_tbas_fp.add(r['xpath'])
+                        elif r['tag'].lower() == 'apit':
+                            a_apias_tp.add(r['xpath'])
+                        elif r['tag'].lower() == 'apif':
+                            a_apias_fp.add(r['xpath'])
+        for oac in oac_names['P']:
+            for oae, info in self.get_oacs_with_info(oac).items():
+                p_smells.add(oae.xpath)
+                if info['tbr']:
+                    p_tbrs.add(oae.xpath)
+        for oac in oac_names['A']:
+            for oae, info in self.get_oacs_with_info(oac).items():
+                a_smells.add(oae.xpath)
+                if info['tba']:
+                    a_tbas.add(oae.xpath)
+                if info['apia']:
+                    a_apias.add(oae.xpath)
+        result['p_smells'] = len(p_smells)
+        result['p_tp'] = len(p_smells_tp)
+        result['p_tbrs'] = len(p_tbrs)
+        result['p_tbrs_tp'] = len(p_tbrs_tp)
+        result['a_smells'] = len(a_smells)
+        result['a_tp'] = len(a_smells_tp)
+        result['a_tbas'] = len(a_tbas)
+        result['a_tbas_tp'] = len(a_tbas_tp)
+        result['a_apias'] = len(a_apias)
+        result['a_apias_tp'] = len(a_apias_tp)
+        result['t_smells'] = len(p_smells.union(a_smells))
+        result['t_tp'] = len(p_smells_tp.union(a_smells_tp))
+        result['missing_smell_tag'] = result['t_smells'] - len(a_smells.union(p_smells).intersection(p_smells_tp.union(a_smells_tp.union(p_smells_fp.union(a_smells_fp)))))
+        result['missing_verify_tag'] = len(p_tbrs.union(a_tbas.union(a_apias))) - len(p_tbrs_tp.union(p_tbrs_fp).union(a_tbas_tp).union(a_tbas_fp).union(a_apias_tp).union(a_apias_fp))
+        return result
 
 class ResultWriter:
     def __init__(self, address_book: AddressBook):

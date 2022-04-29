@@ -254,43 +254,8 @@ def oae_index(result_path_str: str):
             row = {
                 'app_name': address_book.app_name(),
                 'snapshot_name': address_book.snapshot_name(),
+                'result': address_book.get_oae_result()
             }
-            oac_names = {}
-            for w in ['A', 'P']:
-                oac_names[w] = {oac.name: oac for oac in OAC if oac.name.startswith(w)}
-            p_smells = set()
-            p_smells_tp = set()
-            p_smells_fp = set()
-            a_smells = set()
-            a_smells_tp = set()
-            a_smells_fp = set()
-            if address_book.oversight_tag.exists():
-                with open(address_book.oversight_tag) as f:
-                    for line in f.readlines():
-                        r = json.loads(line)
-                        if r['oac'].startswith('P'):
-                            if r['tag'].lower() == 'tp':
-                                p_smells_tp.add(r['xpath'])
-                            elif r['tag'].lower() == 'fp':
-                                p_smells_fp.add(r['xpath'])
-                        elif r['oac'].startswith('A'):
-                            if r['tag'].lower() == 'tp':
-                                a_smells_tp.add(r['xpath'])
-                            elif r['tag'].lower() == 'fp':
-                                a_smells_fp.add(r['xpath'])
-            for oac in oac_names['P']:
-                for oae in address_book.get_oacs(oac):
-                    p_smells.add(oae.xpath)
-            for oac in oac_names['A']:
-                for oae in address_book.get_oacs(oac):
-                    a_smells.add(oae.xpath)
-            row['p_smells'] = len(p_smells)
-            row['p_precision'] = len(p_smells_tp) / len(p_smells) if len(p_smells) > 0 else "-"
-            row['a_smells'] = len(a_smells)
-            row['a_precision'] = len(a_smells_tp) / len(a_smells) if len(a_smells) > 0 else "-"
-            row['t_smells'] = len(p_smells.union(a_smells))
-            row['t_precision'] = len(p_smells_tp.union(a_smells_tp)) / row['t_smells'] if row['t_smells'] > 0 else "-"
-            row['missing_tag'] = row['t_smells'] - len(a_smells.union(p_smells).intersection(p_smells_tp.union(a_smells_tp.union(p_smells_fp.union(a_smells_fp)))))
             rows.append(row)
     return render_template('oae_index.html', rows=rows, result_path=result_path_str)
 

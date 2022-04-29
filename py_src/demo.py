@@ -122,7 +122,7 @@ async def execute_latte_command(device, command: str, extra: str):
         com.sp.protector.free.apk
         com.thinkyeah.smartlockfree.apk
         com.litetools.applockpro.apk
-        com.gamemalt.applocker.apk
+        com.nevways.applock.apk
         com.ammy.applock.apk
         com.gsmobile.applock.apk
         me.ibrahimsn.applock.apk
@@ -151,7 +151,7 @@ async def execute_latte_command(device, command: str, extra: str):
         com.houzz.app.apk
         com.mcdonalds.app.apk
         com.meditationmoments.meditationmoments.apk
-        com.mt.mtxx.mtxx.apk
+        MISSING
         com.popularapp.thirtydayfitnesschallenge.apk
         com.theathletic.apk
         com.weawow.apk
@@ -159,20 +159,18 @@ async def execute_latte_command(device, command: str, extra: str):
         oac_names = {}
         for w in ['A', 'P']:
             oac_names[w] = {oac.name: oac for oac in OAC if oac.name.startswith(w)}
-        header = "App & Snapshot & \#Nodes & \#P Smell & \#A Smell & Smell Reduction & Smell Precision & \#P TBR &  \#A TBA & \#A APIA & OAE Reduction & OAE Precision \\\\" \
+        header = "App & Snapshot & \#Nodes & \#P Smell (TP) & \#P TBR (TP) & \#A Smell (TP) & \#A TBAct (TP) & \#A APIAct (TP)\\\\" \
                  +"\hline" \
                  + "\n"
         print(header)
+        empty_row_lambda = lambda app_name: "\multirow{1}{*}{\\texttt{" + app_name[:15] + "}" + ("..." if len(app_name) > 15 else "") + "} "+ "& -" * 8 + "\\\\ \n" +"\hline \n"
         for app_names in [locker_pkgs, latte_pkgs, other_pkgs]:
             for app_name in app_names:
                 if not app_name:
                     continue
                 app_path = result_path.joinpath(app_name)
                 if not app_path.exists() or not app_path.is_dir():
-                    app_row = "\multirow{1}{*}{\\texttt{" + app_path.name[:15] + "}" + ("..." if len(app_path.name) > 15 else "") + "} "
-                    app_row += "& - & - & - & - & - & - & - & - & - & - & - \\\\ \n"
-                    app_row += "\hline \n"
-                    print(app_row)
+                    print(empty_row_lambda(app_path.name))
                     continue
                 snapshot_paths = []
                 for s_index, snapshot_path in enumerate(app_path.iterdir()):
@@ -181,10 +179,7 @@ async def execute_latte_command(device, command: str, extra: str):
                     snapshot_paths.append(snapshot_path)
                 snapshot_count = len(snapshot_paths)
                 if snapshot_count == 0:
-                    app_row = "\multirow{1}{*}{\\texttt{" + app_path.name[:15] + "}" + ("..." if len(app_path.name) > 15 else "") + "} "
-                    app_row += "& - & - & - & - & - & - & - & - & - & - & - \\\\ \n"
-                    app_row += "\hline \n"
-                    print(app_row)
+                    print(empty_row_lambda(app_path.name))
                     continue
                 app_row = "\multirow{" + str(snapshot_count) + "}{*}{\\texttt{" + app_path.name[:15] + "}" + ("..." if len(app_path.name) > 15 else "") + "} "
                 s_index = 0
@@ -193,8 +188,9 @@ async def execute_latte_command(device, command: str, extra: str):
                     app_row += f"& {s_index} "  # Scenario
                     address_book = AddressBook(snapshot_path)
                     with open(address_book.get_layout_path("exp", "INITIAL")) as f:
-                        number_of_nodes = f.read().count("</node>")
+                        number_of_nodes = f.read().count("<node")
                     app_row += f"& {number_of_nodes} "  # Nodes
+                    oae_result = address_book.get_oae_result()
                     smells = {'P': [], 'A': []}
                     all_smells = set()
                     all_ope = set()
@@ -205,18 +201,16 @@ async def execute_latte_command(device, command: str, extra: str):
                                 all_smells.add(oac_node.xpath)
                                 if info['tbr'] or info['tba'] or info['apia']:
                                     all_ope.add(oac_node.xpath)
-                    app_row += f"& {len(smells['P'])} "  # P Smell
-                    app_row += f"& {len(smells['A'])} "  # A Smell
-                    if number_of_nodes == 0:
-                        number_of_nodes = 1
-                    app_row += f"& {(len(all_smells) / number_of_nodes):.2f} "  # Smell Reduction
-                    app_row += "& - "  # Smell Precision
-                    oae_tbr = len([s for s in smells['P'] if s[1]['tbr'] is not None])
+
+                    oae_p_tbr = len([s for s in smells['P'] if s[1]['tbr'] is not None])
                     oae_tba = len([s for s in smells['A'] if s[1]['tba'] is not None])
                     oae_apia = len([s for s in smells['A'] if s[1]['apia'] is not None])
-                    app_row += f"& {oae_tbr} & {oae_tba} & {oae_apia} "  # TBR TBA APIA
-                    app_row += f"& {(len(all_ope) / number_of_nodes):.2f} "  # OAE Reduction
-                    app_row += "& - "  # OAE Precision
+                    if number_of_nodes == 0:
+                        number_of_nodes = 1
+                    app_row += f"& {len(smells['P'])}({oae_result['p_tp']}) "  # P Smell
+                    app_row += f"& {oae_p_tbr}({oae_result['p_tbrs_tp']}) "  # P TBR
+                    app_row += f"& {len(smells['A'])}({oae_result['a_tp']}) "  # A Smell
+                    app_row += f"& {oae_tba}({oae_result['a_tbas_tp']}) & {oae_apia}({oae_result['a_apias_tp']}) "  # TBA APIA
                     app_row += "\\\\ \n"
                 app_row += "\hline \n"
                 print(app_row)
