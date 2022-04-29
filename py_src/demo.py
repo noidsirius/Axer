@@ -21,6 +21,48 @@ from consts import TB_NAVIGATE_TIMEOUT, DEVICE_NAME, ADB_HOST, ADB_PORT, BLIND_M
 logger = logging.getLogger(__name__)
 
 
+locker_pkgs = [".".join(x.strip().split(".")[:-1]) for x in """
+        com.netqin.ps.apk
+        com.domobile.applockwatcher.apk
+        com.alpha.applock.apk
+        com.sp.protector.free.apk
+        com.thinkyeah.smartlockfree.apk
+        com.litetools.applockpro.apk
+        com.nevways.applock.apk
+        com.ammy.applock.apk
+        com.gsmobile.applock.apk
+        me.ibrahimsn.applock.apk
+        com.cd.applock.fingerprint.password.locker.apk
+        com.saeed.applock.apk
+        com.applocklite.fingerprint.apk
+        com.mms.applock.apphidder.apk
+        app.lock.hidedata.cleaner.filetransfer.apk
+        """.split("\n") if len(x) > 0]
+latte_pkgs = [".".join(x.strip().split(".")[:-1]) for x in """
+        com.c51.apk
+        com.fatsecret.android.apk
+        com.colpit.diamondcoming.isavemoney.apk
+        com.tripit.apk
+        com.contextlogic.geek.apk
+        com.yelp.android.apk
+        com.devhd.feedly.apk
+        com.ziprecruiter.android.release.apk
+        com.dictionary.apk
+        daldev.android.gradehelper.apk
+        """.split("\n") if len(x) > 0]
+other_pkgs = [".".join(x.strip().split(".")[:-1]) for x in """
+        com.airbnb.android.apk
+        com.carfax.mycarfax.apk
+        com.expedia.bookings.apk
+        com.houzz.app.apk
+        com.mcdonalds.app.apk
+        com.meditationmoments.meditationmoments.apk
+        MISSING
+        com.popularapp.thirtydayfitnesschallenge.apk
+        com.theathletic.apk
+        com.weawow.apk
+        """.split("\n") if len(x) > 0]
+
 @contextlib.contextmanager
 def smart__write_open(filename=None):
     if filename and filename != '-':
@@ -110,52 +152,67 @@ async def execute_latte_command(device, command: str, extra: str):
             if node.covered:
                 logger.info(f"Covered Node: {node.covered}  {node.is_ad}")
 
+    if command == "os_eval_questions":
+        result_path = pathlib.Path(extra)
+        if not result_path.is_dir():
+            logger.error("The result path doesn't exist")
+            return
+        app_with_1plus_p_smell = 0
+        app_with_1plus_a_smell = 0
+        app_with_1plus_smell = 0
+        app_with_1plus_ver_p_smell = 0
+        app_with_1plus_ver_a_smell = 0
+        app_with_1plus_ver_smell = 0
+        for app_names in [locker_pkgs, latte_pkgs, other_pkgs]:
+            for app_name in app_names:
+                if not app_name:
+                    continue
+                app_path = result_path.joinpath(app_name)
+                p_smell = 0
+                a_smell = 0
+                p_ver_smell = 0
+                a_ver_smell = 0
+                for s_index, snapshot_path in enumerate(app_path.iterdir()):
+                    if not snapshot_path.is_dir():
+                        continue
+                    address_book = AddressBook(snapshot_path)
+                    oae_result = address_book.get_oae_result()
+                    if oae_result['p_smells']:
+                        p_smell += 1
+                    if oae_result['p_tbrs']:
+                        p_ver_smell += 1
+                    if oae_result['a_smells']:
+                        a_smell += 1
+                    if oae_result['a_tbas'] or oae_result['a_apias']:
+                        a_ver_smell += 1
+                if p_smell > 0:
+                    app_with_1plus_p_smell += 1
+                    if a_smell > 0:
+                        app_with_1plus_smell += 1
+                if a_smell > 0:
+                    app_with_1plus_a_smell += 1
+                if p_ver_smell > 0:
+                    app_with_1plus_ver_p_smell += 1
+                    if a_ver_smell > 0:
+                        app_with_1plus_ver_smell += 1
+                if a_ver_smell > 0:
+                    app_with_1plus_ver_a_smell += 1
+        print(f"Apps with at least one P smell: {app_with_1plus_p_smell}")
+        print(f"Apps with at least one A smell: {app_with_1plus_a_smell}")
+        print(f"Apps with at least any smell: {app_with_1plus_smell}")
+        print(f"Apps with at least one verified P smell: {app_with_1plus_ver_p_smell}")
+        print(f"Apps with at least one verified A smell: {app_with_1plus_ver_p_smell}")
+        print(f"Apps with at least any verified smell: {app_with_1plus_ver_smell}")
+
+
+
+
     if command == "os_n2_rq1":
         result_path = pathlib.Path(extra)
         if not result_path.is_dir():
             logger.error("The result path doesn't exist")
             return
-        locker_pkgs = [".".join(x.strip().split(".")[:-1]) for x in """
-        com.netqin.ps.apk
-        com.domobile.applockwatcher.apk
-        com.alpha.applock.apk
-        com.sp.protector.free.apk
-        com.thinkyeah.smartlockfree.apk
-        com.litetools.applockpro.apk
-        com.nevways.applock.apk
-        com.ammy.applock.apk
-        com.gsmobile.applock.apk
-        me.ibrahimsn.applock.apk
-        com.cd.applock.fingerprint.password.locker.apk
-        com.saeed.applock.apk
-        com.applocklite.fingerprint.apk
-        com.mms.applock.apphidder.apk
-        app.lock.hidedata.cleaner.filetransfer.apk
-        """.split("\n") if len(x) > 0]
-        latte_pkgs = [".".join(x.strip().split(".")[:-1]) for x in """
-        com.c51.apk
-        com.fatsecret.android.apk
-        com.colpit.diamondcoming.isavemoney.apk
-        com.tripit.apk
-        com.contextlogic.geek.apk
-        com.yelp.android.apk
-        com.devhd.feedly.apk
-        com.ziprecruiter.android.release.apk
-        com.dictionary.apk
-        daldev.android.gradehelper.apk
-        """.split("\n") if len(x) > 0]
-        other_pkgs = [".".join(x.strip().split(".")[:-1]) for x in """
-        com.airbnb.android.apk
-        com.carfax.mycarfax.apk
-        com.expedia.bookings.apk
-        com.houzz.app.apk
-        com.mcdonalds.app.apk
-        com.meditationmoments.meditationmoments.apk
-        MISSING
-        com.popularapp.thirtydayfitnesschallenge.apk
-        com.theathletic.apk
-        com.weawow.apk
-        """.split("\n") if len(x) > 0]
+
         oac_names = {}
         for w in ['A', 'P']:
             oac_names[w] = {oac.name: oac for oac in OAC if oac.name.startswith(w)}
