@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+{% block head_content %}
+{% endblock %}
+{% block title %}
+    Summary of Groundhog experiments
+{% endblock %}
+{% block content %}
+    <div class="row">
+        <table class="table  table-bordered" style="border-collapse:collapse;">
+            <thead>
+            <tr class="table-primary">
+                <th>App</th>
+                <th>Snapshot</th>
+                <th>#Actions</th>
+                <th>#TB Dir. Loc. Issue</th>
+                <th>#TB Tou. Loc. Issue</th>
+                <th>#TB Act. Issue</th>
+                <th>#API Act. Issue</th>
+                <th>#ATF</th>
+                <th>...</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for address_book in address_books %}
+{#                {% set snapshot_summary = address_book.whelper.oracle() %}#}
+                <tr class="app-row table-active" >
+                    <td>{{ address_book.app_name() }}</td>
+                    <td>
+                        <a href="{{ url_for('report_v2', result_path=result_path, app_name=address_book.app_name(), snapshot_name=address_book.snapshot_name()) }}">
+                            {{ address_book.snapshot_name() }}
+                        </a>
+                        </td>
+                    <td>{{ address_book.whelper.get_action_count() }}</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+{#                    <td>{{ snapshot_summary["tb_dir_issue"] }}</td>#}
+{#                    <td>{{ snapshot_summary["tb_touch_issue"] }}</td>#}
+{#                    <td>{{ snapshot_summary["tb_act_issue"] }}</td>#}
+{#                    <td>{{ snapshot_summary["touch_act_issue"] }}</td>#}
+{#                    <td>{{ snapshot_summary["api_act_issue"] }}</td>#}
+                    <td>{{ address_book.whelper.get_atf_count() }}</td>
+                    <td>
+                        -
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
+

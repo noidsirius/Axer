@@ -2,6 +2,7 @@ import logging
 import asyncio
 import json
 import shutil
+from collections import defaultdict
 from enum import Enum
 from pathlib import Path
 from typing import Optional, Union, Dict, List, Tuple
@@ -62,6 +63,8 @@ def extract_events(event_log_message: str) -> List[Tuple[str, Node]]:
 def did_talkback_perform_click(events: List[Tuple[str, Node]]) -> bool:
     state = 0
     for event_name, node in reversed(events):
+        if event_name == "TYPE_VIEW_CLICKED":
+            state = 6
         if state == 0 and event_name == "TYPE_TOUCH_INTERACTION_END":
             state = 1
         elif state == 1:
@@ -101,6 +104,12 @@ class WebHelper:
         with open(self.address_book.perform_actions_results_path) as f:
             return len(f.readlines())
 
+    def get_atf_count(self) -> int:
+        if not self.address_book.perform_actions_atf_issues_path.exists():
+            return 0
+        with open(self.address_book.perform_actions_atf_issues_path) as f:
+            return len(f.readlines())
+
     def get_action(self, action_index: int) -> dict:
         if not self.address_book.perform_actions_results_path.exists():
             return None
@@ -134,9 +143,23 @@ class WebHelper:
             if index == 2:
                 logger.error(f"Here {mode}")
             mode_result[mode] = self.get_events_info(mode, index)
+        is_tb_reachable = False
+        action_result = self.get_action(index)
+        if action_result is None:
+            return None
+        node = Node.createNodeFromDict(action_result['node'])
+        if self.address_book.extract_actions_nodes[Actionables.TBReachable].exists():
+            with open(self.address_book.extract_actions_nodes[Actionables.TBReachable]) as f:
+                for line in f.readlines():
+                    l_node = Node.createNodeFromDict(json.loads(line))
+                    if node is not None and node.xpath and node.xpath == l_node.xpath:
+                        is_tb_reachable = True
+                        break
         summary = {
             'did_tb_click': mode_result['tb_touch']['did_tb_click'],
-            'no_click_at_all': all(mode_result[mode]['clicked_node'] is None for mode in modes)
+            'no_click_at_all': all(mode_result[mode]['clicked_node'] is None for mode in modes),
+            'is_tb_reachable': is_tb_reachable,
+            'is_tb_touchable': action_result["tb_touch_failed"] is None,
         }
         same_clicked = True
         for i, mode in enumerate(modes):
@@ -153,9 +176,33 @@ class WebHelper:
                 summary[f"same_clicked_{mode}_{m2}"] = same_clicked_in_modes
                 summary[f"same_clicked_{m2}_{mode}"] = same_clicked_in_modes
         summary["same_clicked"] = same_clicked
+        summary["tb_change_xml"] = not self.is_same_layout(AddressBook.BASE_MODE, index, 'tb_touch', index)
+        summary["touch_change_xml"] = not self.is_same_layout(AddressBook.BASE_MODE, index, 'touch', index)
+        summary["api_change_xml"] = not self.is_same_layout(AddressBook.BASE_MODE, index, 'a11y_api', index)
+        summary["any_change_xml"] = summary["tb_change_xml"] or summary["touch_change_xml"] or summary["api_change_xml"]
+        summary["possible_to_locate"] = (summary['is_tb_reachable'] or summary['is_tb_touchable'] or node.important_for_accessibility) and summary["api_change_xml"]
+        summary["tb_dir_issue"] = summary["possible_to_locate"] and not summary['is_tb_reachable']
+        summary["tb_touch_issue"] = summary["possible_to_locate"] and not summary['is_tb_touchable']
+        summary["tb_act_issue"] = summary["any_change_xml"] and not summary["tb_change_xml"] and mode_result['tb_touch']['did_tb_click']
+        summary["api_act_issue"] = summary["any_change_xml"] and not summary["api_change_xml"]
+        summary["touch_act_issue"] = summary["any_change_xml"] and not summary["touch_change_xml"]
         return summary
 
-
+    def oracle(self) -> dict:
+        if not self.address_book.perform_actions_results_path.exists():
+            return None
+        snapshot_summary = defaultdict(int)
+        with open(self.address_book.perform_actions_results_path) as f:
+            for line in f.readlines():
+                action = json.loads(line.strip())
+                index = action['index']
+                summary = self.summarized_events(index)
+                snapshot_summary["tb_dir_issue"] += 1 if summary["tb_dir_issue"] else 0
+                snapshot_summary["tb_touch_issue"] += 1 if summary["tb_touch_issue"] else 0
+                snapshot_summary["tb_act_issue"] += 1 if summary["tb_act_issue"] else 0
+                snapshot_summary["api_act_issue"] += 1 if summary["api_act_issue"] else 0
+                snapshot_summary["touch_act_issue"] += 1 if summary["touch_act_issue"] else 0
+        return snapshot_summary
 
 class AddressBook:
     BASE_MODE = "base"

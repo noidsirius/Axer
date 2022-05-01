@@ -181,6 +181,7 @@
 {% endmacro %}
 
 {% macro post_analysis_card(address_book, action_result) %}
+    {% set summary = address_book.whelper.summarized_events(action_result.index) %}
     <div class="col-3 p-1">
         <div class="card">
             <div class="card-header">
@@ -206,13 +207,13 @@
                     {% endfor %}
                 </div>
                 <div class="row mb-3">
-                    {% set summary = address_book.whelper.summarized_events(action_result.index) %}
                     <table class="table">
                         {% set qa = [
-                                ("Locate By TB Touch:", action_result["tb_touch_failed"] == None),
+                                ("Locate by TB Direction:", summary["is_tb_reachable"]),
+                                ("Locate By TB Touch:", summary["is_tb_touchable"]),
                                 ("Did TB Click:", summary["did_tb_click"]),
                                 ("Any click in all controllers:", not summary["no_click_at_all"]),
-                                 ("Same click result:", summary["same_clicked"])
+                                ("Same click result:", summary["same_clicked"])
                                 ] %}
                         {% for question, answer in qa %}
                             <tr>
@@ -236,7 +237,7 @@
                                         {% set is_equal = summary["same_clicked_"+left_mode+"_"+right_mode] %}
                                         <div class="col-3 d-flex justify-content-center">
                                             <span class="show-node-diff btn
-                                            {{ 'btn-light' if (is_equal) else 'btn-danger' }}
+                                            {{ 'btn-light' if (is_equal) else 'btn-warning' }}
                                         rounded-pill m-1 fs-6" style="display: inline-block;">
                                             {{ mode_to_repr[left_mode] }}
                                             {{ '=' if is_equal  else '≠' }}
@@ -250,6 +251,28 @@
                             {% endfor %}
                         </div>
                     {% endif %}
+
+                </div>
+                <div class="row mb-3">
+                    <h4>
+                        Issues:
+                    </h4>
+                    {% set qa = [
+                                ("TB Dir Loc", summary["tb_dir_issue"]),
+                                ("TB Touch Loc", summary["tb_touch_issue"]),
+                                ("TB Act", summary["tb_act_issue"]),
+                                ("Touch Act", summary["touch_act_issue"]),
+                                ("API Act", summary["api_act_issue"]),
+                                ] %}
+                    {% for name, issue in qa %}
+                        <div class="col-2">
+                            <span class="show-node-diff btn
+                                                {{ 'btn-danger' if (issue) else 'btn-light' }}
+                                            rounded-pill m-1 fs-6" style="display: inline-block;">
+                                {{ name }}
+                            </span>
+                        </div>
+                    {% endfor %}
 
                 </div>
             </div>
@@ -320,6 +343,12 @@
         {{ base_cards(address_book) }}
         {{ tb_explore_cards(address_book) }}
         {{ extracted_actions_cards(address_book) }}
+        {% if address_book.perform_actions_atf_issues_screenshot.exists() %}
+            {{ snapshot_image_card("ATF",
+                                             static_path_fixer(address_book.perform_actions_atf_issues_screenshot, result_path),
+                                             {"Details": url_for('send_result_static_v2', path=static_path_fixer(address_book.perform_actions_atf_issues_path, result_path))},
+                                             1) }}
+        {% endif %}
     </div>
     <div class="row">
         {{ action_results(address_book) }}

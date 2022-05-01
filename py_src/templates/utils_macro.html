@@ -56,7 +56,7 @@
                          right_mode,
                          is_equal = False) %}
     <span class="showdiff btn
-        {{ 'btn-light' if ((left_mode == 'base') != is_equal) else 'btn-danger' }}
+        {{ 'btn-light' if ((left_mode == 'base') != is_equal) else 'btn-warning' }}
     rounded-pill m-1 fs-6" style="display: inline-block;">
         {{ mode_to_repr[left_mode]}}
         {{ '=' if is_equal  else '≠'}}

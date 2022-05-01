@@ -10,20 +10,27 @@ OVERSIGHT=""
 MODE=${3:-""}
 APP_NAME=${SNAPSHOT%%.S_*}
 echo "Snapshot $SNAPSHOT in App $APP_NAME"
-# gtimeout $SNAPSHOT_TIMEOUT python main.py --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --debug $DIRECTIONAL_ACTION_LIMIT $POINT_ACTION_LIMIT $OVERSIGHT $MODE
+
 adb kill-server
 sleep 3
 adb start-server
 sleep 2
 adb devices
 sleep 2
-#gtimeout $SNAPSHOT_TIMEOUT python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --emulator --initial-load --no-save-snapshot --snapshot-task "talkback_explore"
-#gtimeout 30 python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --static --snapshot-task "extract_actions"
-#gtimeout 30 python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --emulator --initial-load --snapshot-task "dummy"
+python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --emulator --initial-load --no-save-snapshot --snapshot-task "talkback_explore"
+python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --emulator --initial-load --no-save-snapshot --snapshot-task "dummy"
+python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --static --snapshot-task "extract_actions"
+adb kill-server
+sleep 3
+adb start-server
+sleep 2
+adb devices
+sleep 2
 python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --emulator --initial-load --snapshot-task "perform_actions"
 adb kill-server
 TMP_SNAPSHOT=$SNAPSHOT"_TMP"
 adb emu avd snapshot delete "$TMP_SNAPSHOT"
 rm -rf ~/.android/avd/Pixel_Stoat.avd/snapshots/"$TMP_SNAPSHOT"
 echo "REMOVE $TMP_SNAPSHOT"
+osascript -e 'display notification "Finished" sound name "Sound Name"'
 

@@ -239,6 +239,21 @@ def homepage():
     return render_template('homepage.html', result_path="EMPTY_results")
 
 
+@flask_app.route("/v2/<result_path_str>/gh_summary")
+def gh_summary(result_path_str: str):
+    result_path = pathlib.Path(fix_path(result_path_str))
+    if not (result_path.is_dir() and result_path.exists()):
+        return "The result path is inccorrect!"
+    address_books = []
+    for app_path in result_path.iterdir():
+        if not app_path.is_dir():
+            continue
+        for snapshot_path in app_path.iterdir():
+            if snapshot_path.is_dir():
+                address_books.append(AddressBook(snapshot_path))
+    return render_template('gh_summary.html', address_books=address_books, result_path=result_path_str)
+
+
 @flask_app.route("/v2/<result_path_str>/")
 def report_index_v2(result_path_str: str):
     result_path = pathlib.Path(fix_path(result_path_str))

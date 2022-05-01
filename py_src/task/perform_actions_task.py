@@ -44,7 +44,7 @@ class PerformActionsTask(SnapshotTask):
         tags = [BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG]
         for index, node in enumerate(selected_actionable_nodes):
             command = ClickCommand(node)
-            logger.info(f"Action {index}: Clicking on node {node.xpath}!")
+            logger.info(f"Action {index}/({len(selected_actionable_nodes)-1}): Clicking on node {node.xpath}!")
             action_results = {}
             for controller_mode in ['tb_touch', 'a11y_api', 'touch']:
                 logger.info(f"Reloading the snapshot for controller {controller_mode}")
