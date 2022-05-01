@@ -1,6 +1,6 @@
-{% from "action_macro.html" import action_row, action_tag_script with context %}
+{% from "action_macro.html" import action_row with context %}
 {% from "utils_macro.html" import compare_layout_form with context %}
-{% from "snapshot_macro.html" import action_result_row, snapshot_summary, snapshot_bs_summary with context %}
+{% from "snapshot_macro.html" import action_tag_script, action_result_row, snapshot_summary, snapshot_bs_summary with context %}
 {% extends "layout.html" %}
 {% block title %}
     Search
@@ -28,14 +28,14 @@
                                         <select class="form-select" name="actionSearchAttr[]" aria-label="Action Search Attribute">
                                             {% for item in [('ALL', 'All'),
                                                     ('text','Text'),
-                                                    ('content-desc','ContentDescription'),
+                                                    ('content_desc','ContentDescription'),
                                                     ('class','ClassName'),
                                                     ('clickable','Clickable'),
                                                     ('checkable','Checkable'),
                                                     ('visible','Visible'),
                                                     ('enabled','Enabled'),
                                                     ('clickable_span','ClickableSpan'),
-                                                    ('resource-id','ResourceId'),
+                                                    ('resource_id','ResourceId'),
                                                     ('a11y_actions','A11y Actions'),
                                                     ('invalid','Invalid'),
                                                     ('context_clickable','Context Clickable'),
@@ -228,14 +228,14 @@
                                             <select class="form-select" name="xmlSearchAttr[]" aria-label="XML Search Attribute">
                                                 {% for item in [('ALL', 'All'),
                                                     ('text','Text'),
-                                                    ('content-desc','ContentDescription'),
+                                                    ('content_desc','ContentDescription'),
                                                     ('class','ClassName'),
                                                     ('clickable','Clickable'),
                                                     ('checkable','Checkable'),
                                                     ('visible','Visible'),
                                                     ('enabled','Enabled'),
                                                     ('clickableSpan','ClickableSpan'),
-                                                    ('resource-id','ResourceId'),
+                                                    ('resource_id','ResourceId'),
                                                     ('actionList','A11y Actions'),
                                                     ('invalid','Invalid'),
                                                     ('contextClickable','Context Clickable'),

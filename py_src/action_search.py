@@ -64,15 +64,10 @@ class SearchActionQuery:
         include_tags = [x for x in include_tags if x]
         exclude_tags = [x for x in exclude_tags if x]
 
-        def tag_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
+        def tag_satisfies(address_book: AddressBook, action_result: ActionResult) -> bool:
             if not address_book.tags_path.exists():
                 return len(exclude_tags) >= 0 and len(include_tags) == 0
-            action_tags = []
-            with open(address_book.tags_path, encoding="utf-8") as f:
-                for line in f.readlines():
-                    tag_info = json.loads(line)
-                    if tag_info['index'] == action['index'] and tag_info['is_sighted'] == is_sighted:
-                        action_tags.append(tag_info['tag'])
+            action_tags = address_book.whelper.get_tags(action_result.index)
 
             for tag in include_tags:
                 if tag not in action_tags:

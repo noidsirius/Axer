@@ -250,8 +250,10 @@
                                             {{ mode_to_repr[left_mode] }}
                                             {{ '=' if is_equal  else '≠' }}
                                             {{ mode_to_repr[right_mode] }}
-                                                <input type="hidden" class="left_node" value="{{ summary[left_mode+'_clicked_node'] }}">
-                                                <input type="hidden" class="right_node" value="{{ summary[right_mode+'_clicked_node'] }}">
+                                                <input type="hidden" class="left_node"
+                                                       value="{{ summary[left_mode+'_clicked_node'] }}">
+                                                <input type="hidden" class="right_node"
+                                                       value="{{ summary[right_mode+'_clicked_node'] }}">
                                             </span>
                                         </div>
                                     {% endif %}
@@ -288,6 +290,60 @@
     </div>
 {% endmacro %}
 
+{% macro tag_card(address_book, action_index) %}
+    <div class="col-2 p-1">
+        <div class="card">
+            <div class="card-header">
+                Tags
+            </div>
+            <div class="card-body">
+
+                <div class="row">
+                    <div class="col-8">
+                        <input type="text" class="action-tag-value form-control">
+                    </div>
+                    <div class="col-4">
+                        <button class="action_tag btn btn-secondary">
+                            Add Tag
+                            <input type="hidden" class="snapshot-result-path" value="{{ address_book.result_path() }}">
+                            <input type="hidden" class="snapshot-app" value="{{ address_book.app_name() }}">
+                            <input type="hidden" class="snapshot-name" value="{{ address_book.snapshot_name() }}">
+                            <input type="hidden" class="snapshot-index" value="{{ action_index }}">
+                        </button>
+                    </div>
+                </div>
+                <div class="m-3">
+                    Tags:
+                    <div class="tag-container" style="display: block; overflow-x: auto; white-space:nowrap ">
+                        {% for tag in address_book.whelper.get_tags(action_index) %}
+                            <span class="btn btn-light rounded-pill m-1" style="display: inline-block;">
+                                {{ tag }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {#    {% if 'v' not in action_result.tags %}#}
+    {#        <div class="row">#}
+    {#            <div class="col-4">#}
+    {#                <button class="action_tag btn btn-outline-primary">#}
+    {#                    Visited?#}
+    {#                    <input type="hidden" class="snapshot-result-path" value="{{ action_result.snapshot_info.result_path }}">#}
+    {#                    <input type="hidden" class="snapshot-app" value="{{ action_result.snapshot_info.app_name }}">#}
+    {#                    <input type="hidden" class="snapshot-name" value="{{ action_result.snapshot_info.snapshot_name }}">#}
+    {#                    <input type="hidden" class="snapshot-index" value="{{ action_result.index }}">#}
+    {#                    <input type="hidden" class="snapshot-sighted" value="{{ 'sighted' if action_result.is_sighted else 'unsighted' }}">#}
+    {#                </button>#}
+    {#            </div>#}
+    {#            <div class="col-8">#}
+    {#                <input type="hidden" class="action-tag-value form-control" value="v">#}
+    {#            </div>#}
+    {#        </div>#}
+    {#    {% endif %}#}
+{% endmacro %}
+
 {% macro action_result_row(address_book, action_index) %}
     <div class="row">
         {% set action_result = address_book.whelper.get_action(action_index) %}
@@ -311,6 +367,7 @@
                                              1) }}
             {% endfor %}
             {{ post_analysis_card(address_book, action_result) }}
+            {{ tag_card(address_book, action_index) }}
         {% else %}
             <h3>
                 Action is None!
@@ -357,6 +414,8 @@
                                              {"Details": url_for('send_result_static_v2', path=static_path_fixer(address_book.perform_actions_atf_issues_path, result_path))},
                                              1) }}
         {% endif %}
+        {{  tag_card(address_book, -1) }}
+
     </div>
     <div class="row">
         {{ action_results(address_book) }}
@@ -607,4 +666,44 @@
             </tbody>
         </table>
     </div>
+{% endmacro %}
+
+{% macro action_tag_script() %}
+    <script>
+        $('.action_tag').on('click', function () {
+            let result_path = $(this).find('.snapshot-result-path').attr('value');
+            let app_name = $(this).find('.snapshot-app').attr('value');
+            let snapshot_name = $(this).find('.snapshot-name').attr('value');
+            let index = $(this).find('.snapshot-index').attr('value');
+            let tag_input_element = $(this).parent().parent().find('.action-tag-value');
+            let tag = tag_input_element.val();
+            let tag_container_element = $(this).parent().parent().parent().find('.tag-container');
+            if (index == -1)
+                tag_container_element = $('.tag-container');
+            if (tag) {
+                {#let path = "/v2/"+ result_path +"/app/"+ app_name + "/post_analysis";#}
+                let host_url = window.location.href.split("/v2/")[0]
+                let path = `${host_url}/v2/${result_path}/app/${app_name}/snapshot/${snapshot_name}/action/${index}/tag/${tag}`
+                $.getJSON(path, {},
+                    function (data) {
+                        if (data.result) {
+                            for (var t of tag.split(',')) {
+                                new_tag = `<span class="btn btn-light rounded-pill m-1" style="display: inline-block;">
+                                            ${t}
+                                        </span>`
+                                console.log("The tag container")
+                                console.log(tag_container_element)
+                                console.log("The new element: " + new_tag)
+                                tag_container_element.append(new_tag)
+                                tag_input_element.val("");
+                            }
+                        } else {
+                            alert("There is a problem with tagging!")
+                        }
+                    });
+            } else {
+                alert("Empty tag");
+            }
+        });
+    </script>
 {% endmacro %}

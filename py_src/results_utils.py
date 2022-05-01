@@ -182,11 +182,15 @@ class WebHelper:
         return result
 
     def summarized_events(self, index: int) -> dict:
+        if self.address_book.perform_actions_summary.exists():
+            with open(self.address_book.perform_actions_summary) as f:
+                for line in f.readlines():
+                    json_part = json.loads(line)
+                    if json_part['index'] == index:
+                        return json_part['summary']
         mode_result = {}
         modes = ['tb_touch', 'touch', 'a11y_api']
         for mode in modes:
-            if index == 2:
-                logger.error(f"Here {mode}")
             mode_result[mode] = self.get_events_info(mode, index)
         is_tb_reachable = False
         action_result = self.get_action(index)
@@ -235,6 +239,9 @@ class WebHelper:
                                   mode_result['tb_touch']['did_tb_click']
         summary["api_act_issue"] = summary["any_change_xml"] and not summary["api_change_xml"]
         summary["touch_act_issue"] = summary["any_change_xml"] and not summary["touch_change_xml"]
+        with open(self.address_book.perform_actions_summary, "a") as f:
+            s = {'index': index, 'summary': summary}
+            f.write(f"{json.dumps(s)}\n")
         return summary
 
     def oracle(self) -> dict:
@@ -260,6 +267,26 @@ class WebHelper:
             .with_ad_detection() \
             .build()
         return [node for node in nodes if node.clickable_span and not node.clickable and node.text]
+
+    def get_tags(self, action_index: int) -> List[str]:
+        if not self.address_book.tags_path.exists():
+            return []
+        tags = set()
+        with open(self.address_book.tags_path) as f:
+            for line in f.readlines():
+                json_part = json.loads(line)
+                if json_part['index'] == action_index or action_index == -1:
+                    tags.add(json_part['tag'])
+        return list(tags)
+
+    def add_tag(self, action_index: int, tags: List[str]):
+        indices = [action_index]
+        if action_index == -1:
+            indices = list(range(self.get_action_count()))
+        with open(self.address_book.tags_path, 'a', encoding="utf-8") as f:
+            for index in indices:
+                for t in tags:
+                    f.write(json.dumps({'index': index, 'tag': t.strip()}) + "\n")
 
 
 class AddressBook:
@@ -322,6 +349,8 @@ class AddressBook:
             "atf_elements.jsonl")
         self.perform_actions_atf_issues_screenshot = self.audit_path_map[AddressBook.PERFORM_ACTIONS].joinpath(
             "atf_elements.png")
+        self.perform_actions_summary = self.audit_path_map[AddressBook.PERFORM_ACTIONS].joinpath(
+            "summary_of_actions_v1.jsonl")
         # ---------------------------------------------------
         # TODO: Needs to find a more elegant solution
         navigate_modes = [AddressBook.BASE_MODE, "tb_touch", "touch", "a11y_api"]
@@ -344,7 +373,7 @@ class AddressBook:
         # self.last_explore_log_path = self.snapshot_result_path.joinpath("last_explore.log")
         self.visited_elements_path = self.snapshot_result_path.joinpath("visited.jsonl")
         # self.valid_elements_path = self.snapshot_result_path.joinpath("valid_elements.jsonl")
-        # self.tags_path = self.snapshot_result_path.joinpath("tags.jsonl")
+        self.tags_path = self.snapshot_result_path.joinpath("tags.jsonl")
         # self.s_possible_action_path = self.snapshot_result_path.joinpath("s_possible_action.jsonl")
         self.s_action_path = self.snapshot_result_path.joinpath("s_action.jsonl")
         # self.s_action_screenshot = self.mode_path_map['s_exp'].joinpath("all_actions.png")

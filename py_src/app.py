@@ -385,8 +385,8 @@ def search_v2(result_path_str: str):
     #     if value and value != 'Any':
     #         search_query.contains_action_xml_attr(action_attr, value)
 
-    # if len(include_tags) > 0 or len(exclude_tags) > 0:
-    #     search_query.contains_tags(include_tags, exclude_tags)
+    if len(include_tags) > 0 or len(exclude_tags) > 0:
+        search_query.contains_tags(include_tags, exclude_tags)
     if tb_result_field:
         search_query.executor_result('tb', tb_result_field)
     if touch_result_field:
@@ -470,19 +470,16 @@ def post_analysis(result_path, app_name):
     return jsonify(result=f"{snapshot_count} snapshots of {app_name} are analyzed!")
 
 
-@flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/action/<index>/<is_sighted>/tag/<tag>")
-def tag_action(result_path, app_name, snapshot_name, index, is_sighted, tag):
+@flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/action/<index>/tag/<tag>")
+def tag_action(result_path, app_name, snapshot_name, index, tag):
     result_path = pathlib.Path(fix_path(result_path)).resolve()
     snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)
     if not snapshot_path.is_dir():
         return jsonify(result=False)
     tags = tag.split(',')
     address_book = AddressBook(snapshot_path)
-    is_sighted = is_sighted == 'sighted'
     index = int(index)
-    with open(address_book.tags_path, 'a', encoding="utf-8") as f:
-        for t in tags:
-            f.write(json.dumps({'index': index, 'is_sighted': is_sighted, 'tag': t.strip()}) + "\n")
+    address_book.whelper.add_tag(index, tags)
     return jsonify(result=True)
 
 
