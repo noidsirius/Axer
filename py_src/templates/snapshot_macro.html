@@ -344,6 +344,29 @@
     {#    {% endif %}#}
 {% endmacro %}
 
+{% macro note_card(address_book) %}
+    <div class="col-2 p-1">
+        <div class="card">
+            <div class="card-header">
+                Note
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <form action="{{ url_for('snapshot_note', result_path=address_book.result_path(),
+                                    app_name=address_book.app_name(),
+                                    snapshot_name=address_book.snapshot_name() ) }}" id="note_form" method="POST">
+                            <textarea id ="snapshot_note" name="snapshot_note">{{ address_book.whelper.get_note() }}</textarea>
+                            <button type="submit" class="btn btn-primary">Update</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+
+
 {% macro action_result_row(address_book, action_index) %}
     <div class="row">
         {% set action_result = address_book.whelper.get_action(action_index) %}
@@ -414,7 +437,8 @@
                                              {"Details": url_for('send_result_static_v2', path=static_path_fixer(address_book.perform_actions_atf_issues_path, result_path))},
                                              1) }}
         {% endif %}
-        {{  tag_card(address_book, -1) }}
+        {{ note_card(address_book) }}
+        {{ tag_card(address_book, -1) }}
 
     </div>
     <div class="row">
@@ -704,6 +728,28 @@
             } else {
                 alert("Empty tag");
             }
+        });
+    </script>
+{% endmacro %}
+{% macro note_form_script() %}
+    <script>
+        $("#note_form").submit(function(e) {
+
+            e.preventDefault(); // avoid to execute the actual submit of the form.
+
+            var form = $(this);
+            var actionUrl = form.attr('action');
+
+            $.ajax({
+                type: "POST",
+                url: actionUrl,
+                data: form.serialize(), // serializes the form's elements.
+                success: function(data)
+                {
+                    alert(data); // show response from the php script.
+                }
+            });
+
         });
     </script>
 {% endmacro %}

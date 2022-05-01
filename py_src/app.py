@@ -483,6 +483,19 @@ def tag_action(result_path, app_name, snapshot_name, index, tag):
     return jsonify(result=True)
 
 
+@flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/note", methods=['POST'])
+def snapshot_note(result_path, app_name, snapshot_name):
+    result_path = pathlib.Path(fix_path(result_path)).resolve()
+    snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)
+    if not snapshot_path.is_dir():
+        return jsonify(result=False)
+    address_book = AddressBook(snapshot_path)
+    note = request.form.get('snapshot_note', None)
+    if note:
+        address_book.whelper.update_note(note)
+    return jsonify(result=True)
+
+
 @flask_app.route("/v2/<result_path>/tags")
 def tags_list(result_path):
     result_path_str = result_path

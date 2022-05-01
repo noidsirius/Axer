@@ -288,6 +288,16 @@ class WebHelper:
                 for t in tags:
                     f.write(json.dumps({'index': index, 'tag': t.strip()}) + "\n")
 
+    def get_note(self) -> str:
+        if not self.address_book.note_path.exists():
+            return ""
+        with open(self.address_book.note_path) as f:
+            return f.read()
+
+    def update_note(self, new_note: str):
+        with open(self.address_book.note_path, "w") as f:
+            return f.write(new_note)
+
 
 class AddressBook:
     BASE_MODE = "base"
@@ -374,6 +384,7 @@ class AddressBook:
         self.visited_elements_path = self.snapshot_result_path.joinpath("visited.jsonl")
         # self.valid_elements_path = self.snapshot_result_path.joinpath("valid_elements.jsonl")
         self.tags_path = self.snapshot_result_path.joinpath("tags.jsonl")
+        self.note_path = self.snapshot_result_path.joinpath("note.txt")
         # self.s_possible_action_path = self.snapshot_result_path.joinpath("s_possible_action.jsonl")
         self.s_action_path = self.snapshot_result_path.joinpath("s_action.jsonl")
         # self.s_action_screenshot = self.mode_path_map['s_exp'].joinpath("all_actions.png")
