@@ -26,6 +26,7 @@ def _encode_latte_message(message: str) -> str:
         .replace("&", "__^^_^__") \
         .replace("[", "__^^-^__") \
         .replace("]", "__^^^^^__")
+    message = message.replace(")", "").replace("(", "")  # TODO: Must be changed
     return message
 
 

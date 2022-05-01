@@ -15,6 +15,7 @@
                 <th>#TB Dir. Loc. Issue</th>
                 <th>#TB Tou. Loc. Issue</th>
                 <th>#TB Act. Issue</th>
+                <th>#Touch Act. Issue</th>
                 <th>#API Act. Issue</th>
                 <th>#ATF</th>
                 <th>...</th>
@@ -43,7 +44,9 @@
 {#                    <td>{{ snapshot_summary["api_act_issue"] }}</td>#}
                     <td>{{ address_book.whelper.get_atf_count() }}</td>
                     <td>
-                        -
+                        <ul>
+                            <li>ClickableSpan: {{ address_book.whelper.get_clickable_span_nodes() | length }}</li>
+                        </ul>
                     </td>
                 </tr>
             {% endfor %}

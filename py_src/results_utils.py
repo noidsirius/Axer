@@ -7,7 +7,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional, Union, Dict, List, Tuple
 
-from GUI_utils import Node, bounds_included, is_in_same_state_with_layout_path
+from GUI_utils import Node, bounds_included, is_in_same_state_with_layout_path, NodesFactory
 from adb_utils import get_current_activity_name, get_windows, get_activities, capture_layout as adb_capture_layout
 from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG
 from latte_executor_utils import ExecutionResult, latte_capture_layout as capture_layout
@@ -37,6 +37,7 @@ class Actionables(Enum):  # Overly Accessible Condition
     TBUnreachable = 4
     NA11y = 5
     Selected = 6
+    Spanned = 7
 
 
 def extract_events(event_log_message: str) -> List[Tuple[str, Node]]:
@@ -204,6 +205,14 @@ class WebHelper:
                 snapshot_summary["touch_act_issue"] += 1 if summary["touch_act_issue"] else 0
         return snapshot_summary
 
+    def get_clickable_span_nodes(self) -> List[Node]:
+        nodes = NodesFactory() \
+            .with_layout_path(self.address_book.get_layout_path(AddressBook.BASE_MODE, AddressBook.INITIAL)) \
+            .with_xpath_pass() \
+            .with_ad_detection() \
+            .build()
+        return [node for node in nodes if node.clickable_span and not node.clickable and node.text]
+
 class AddressBook:
     BASE_MODE = "base"
     INITIAL = "INITIAL"
@@ -248,6 +257,7 @@ class AddressBook:
                                       Actionables.TBReachable: 'tb_reachable_actionables',
                                       Actionables.TBUnreachable: 'tb_unreachable_actionables',
                                       Actionables.Selected: 'selected_actionables',
+                                      Actionables.Spanned: 'spanned_actionables',
                                       }
         self.extract_actions_nodes = {}
         self.extract_actions_screenshots = {}

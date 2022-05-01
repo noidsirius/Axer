@@ -73,6 +73,10 @@ class ExtractActionsTask(SnapshotTask):
                 visited_resource_ids.add(node.resource_id)
             nodes_map[Actionables.UniqueResource].append(node)
 
+        nodes_map[Actionables.Spanned] = []
+        for node in self.snapshot.get_nodes(filter_query=lambda node: node.clickable_span and not node.clickable and node.text and not node.is_ad):
+            nodes_map[Actionables.Spanned].append(node)
+
         pre_selected = []
         for node in nodes_map[Actionables.UniqueResource]:
             pre_selected.append(node)
