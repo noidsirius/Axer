@@ -183,11 +183,33 @@ class AddressBook:
                     action = json.loads(action)
                     if action['tb_action_result'] is not None:
                         with open(self.get_log_path('s_tb', action['index'], extension=BLIND_MONKEY_EVENTS_TAG)) as f2:
-                            if "TYPE_VIEW_CLICKED" in f2.read():
-                                tb_actions_xpaths[action['element']['xpath']] = action
+                            for line in f2.readlines():
+                                if "TYPE_VIEW_CLICKED" in line:
+                                    tb_actions_xpaths[action['element']['xpath']] = action
+                                    break
+                                if "WindowContentChange:" in line:
+                                    remaining = line.split("WindowContentChange:")[1]
+                                    try:
+                                        info = json.loads(remaining)
+                                        if info['changedWindowId'] == info['activeWindowId']:
+                                            tb_actions_xpaths[action['element']['xpath']] = action
+                                            break
+                                    except Exception:
+                                        pass
                     with open(self.get_log_path('s_areg', action['index'], extension=BLIND_MONKEY_EVENTS_TAG)) as f2:
-                        if "TYPE_VIEW_CLICKED" in f2.read():
-                            api_actions_xpaths[action['element']['xpath']] = action
+                        for line in f2.readlines():
+                            if "TYPE_VIEW_CLICKED" in line:
+                                api_actions_xpaths[action['element']['xpath']] = action
+                                break
+                            if "WindowContentChange:" in line:
+                                remaining = line.split("WindowContentChange:")[1]
+                                try:
+                                    info = json.loads(remaining)
+                                    if info['changedWindowId'] == info['activeWindowId']:
+                                        api_actions_xpaths[action['element']['xpath']] = action
+                                        break
+                                except Exception:
+                                    pass
         oae_tags = defaultdict(list)
         if self.oversight_tag.exists():
             with open(self.oversight_tag) as f:
@@ -240,15 +262,17 @@ class AddressBook:
         p_tbrs = set()
         p_tbrs_tp = set()
         p_tbrs_fp = set()
+        p_tbrs_fn = set()
         a_smells = set()
         a_smells_tp = set()
         a_smells_fp = set()
         a_tbas = set()
         a_tbas_tp = set()
         a_tbas_fp = set()
+        a_tbas_fn = set()
         a_apias = set()
-        a_apias_tp = set()
-        a_apias_fp = set()
+        # a_apias_tp = set()
+        # a_apias_fp = set()
         if self.oversight_tag.exists():
             with open(self.oversight_tag) as f:
                 for line in f.readlines():
@@ -262,19 +286,23 @@ class AddressBook:
                             p_tbrs_tp.add(r['xpath'])
                         elif r['tag'].lower() == 'tbrf':
                             p_tbrs_fp.add(r['xpath'])
+                        elif r['tag'].lower() == 'tbfn':
+                            p_tbrs_fn.add(r['xpath'])
                     elif r['oac'].startswith('A'):
                         if r['tag'].lower() == 'tp':
                             a_smells_tp.add(r['xpath'])
                         elif r['tag'].lower() == 'fp':
                             a_smells_fp.add(r['xpath'])
-                        elif r['tag'].lower() == 'tbat':
+                        elif r['tag'].lower() == 'tbrt':
                             a_tbas_tp.add(r['xpath'])
-                        elif r['tag'].lower() == 'tbaf':
+                        elif r['tag'].lower() == 'tbrf':
                             a_tbas_fp.add(r['xpath'])
-                        elif r['tag'].lower() == 'apit':
-                            a_apias_tp.add(r['xpath'])
-                        elif r['tag'].lower() == 'apif':
-                            a_apias_fp.add(r['xpath'])
+                        elif r['tag'].lower() == 'tbfn':
+                            a_tbas_fn.add(r['xpath'])
+                        # elif r['tag'].lower() == 'apit':
+                        #     a_apias_tp.add(r['xpath'])
+                        # elif r['tag'].lower() == 'apif':
+                        #     a_apias_fp.add(r['xpath'])
         for oac in oac_names['P']:
             for oae, info in self.get_oacs_with_info(oac).items():
                 p_smells.add(oae.xpath)
@@ -291,16 +319,18 @@ class AddressBook:
         result['p_tp'] = len(p_smells_tp)
         result['p_tbrs'] = len(p_tbrs)
         result['p_tbrs_tp'] = len(p_tbrs_tp)
+        result['p_tbrs_fn'] = len(p_tbrs_fn)
         result['a_smells'] = len(a_smells)
         result['a_tp'] = len(a_smells_tp)
         result['a_tbas'] = len(a_tbas)
         result['a_tbas_tp'] = len(a_tbas_tp)
-        result['a_apias'] = len(a_apias)
-        result['a_apias_tp'] = len(a_apias_tp)
+        result['a_tbas_fn'] = len(a_tbas_fn)
+        # result['a_apias'] = len(a_apias)
+        # result['a_apias_tp'] = len(a_apias_tp)
         result['t_smells'] = len(p_smells.union(a_smells))
         result['t_tp'] = len(p_smells_tp.union(a_smells_tp))
         result['missing_smell_tag'] = result['t_smells'] - len(a_smells.union(p_smells).intersection(p_smells_tp.union(a_smells_tp.union(p_smells_fp.union(a_smells_fp)))))
-        result['missing_verify_tag'] = len(p_tbrs.union(a_tbas.union(a_apias))) - len(p_tbrs_tp.union(p_tbrs_fp).union(a_tbas_tp).union(a_tbas_fp).union(a_apias_tp).union(a_apias_fp))
+        result['missing_verify_tag'] = result['t_smells'] - len(p_tbrs_tp.union(p_tbrs_fp).union(a_tbas_tp).union(a_tbas_fp).union(p_tbrs_fn).union(a_tbas_fn))
         return result
 
 class ResultWriter:

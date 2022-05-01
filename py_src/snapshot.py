@@ -164,6 +164,7 @@ class Snapshot:
             tags.append(BLIND_MONKEY_INSTRUMENTED_TAG)
 
         while True:
+            await asyncio.sleep(1)
             log_message_map, next_command_str = await padb_logger\
                 .execute_async_with_log(
                     tb_navigate_next(not self.is_next_direction),

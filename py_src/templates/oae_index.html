@@ -18,10 +18,11 @@
                 <th>App</th>
                 <th>Snapshot</th>
                 <th>#P Smell (TP)</th>
-                <th>#P TBR (TP)</th>
                 <th>#A Smell (TP)</th>
-                <th>#A TB Act (TP)</th>
-                <th>#A API Act (TP)</th>
+                <th>#P TBR (TP)</th>
+                <th>#A TBR (TP)</th>
+                <th>#TBR (FN)</th>
+{#                <th>#A API Act (TP)</th>#}
 {#                <th>#Smell (TP)</th>#}
                 <th>Missing Smell Tag</th>
                 <th>Missing Verify Tag</th>
@@ -34,10 +35,11 @@
                     <td> {{ row.app_name}}</td>
                     <td> {{row.snapshot_name}}</td>
                     <td> {{row.result.p_smells}}({{row.result.p_tp}})</td>
-                    <td> {{row.result.p_tbrs}}({{row.result.p_tbrs_tp}})</td>
                     <td> {{row.result.a_smells}}({{row.result.a_tp}})</td>
+                    <td> {{row.result.p_tbrs}}({{row.result.p_tbrs_tp}})</td>
                     <td> {{row.result.a_tbas}}({{row.result.a_tbas_tp}})</td>
-                    <td> {{row.result.a_apias}}({{row.result.a_apias_tp}})</td>
+                    <td> {{row.result.p_tbrs_fn+row.result.a_tbas_fn}}</td>
+{#                    <td> {{row.result.a_apias}}({{row.result.a_apias_tp}})</td>#}
 {#                    <td> {{row.result.t_smells}}({{row.result.t_tp}})</td>#}
                     <td> {{row.result.missing_smell_tag}}</td>
                     <td> {{ row.result.missing_verify_tag }}</td>

@@ -195,7 +195,7 @@ def inject_user():
                 static_path_fixer=static_path_fixer,
                 mode_to_repr=mode_to_repr,
                 zip=zip,
-                oac_names=[oac.name for oac in OAC])
+                oac_names=[oac.name for oac in OAC if not oac.name.startswith("O_P")])
 
 
 @flask_app.route(f'/v2/static/<path:path>')

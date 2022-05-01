@@ -47,17 +47,17 @@ def statice_analyze(layout_path: Union[str, Path],
         OAC.O_AD: lambda node: node.is_ad
     }
     oa_conditions[OAC.A1_PINVISIBLE] = lambda node: any(oa_conditions[oac](node) for oac in OAC if oac.name.startswith("P"))
-    P_Map = {}
-    for i in range(1, 7):
-        P_Map[i] = [oac for oac in OAC if oac.name.startswith(f"P{str(i)}")][0]
-    OAC_MAP = {}
-    for oac in OAC:
-        OAC_MAP[oac.name] = oac
-    for i in range(1, 7):
-        for j in range(i+1, 7):
-            key = f"O_P{i}{j}"
-            oac = OAC_MAP[key]
-            oa_conditions[oac] = lambda node, i=i, j=j: oa_conditions[P_Map[i]](node) and oa_conditions[P_Map[j]](node)
+    # P_Map = {}
+    # for i in range(1, 7):
+    #     P_Map[i] = [oac for oac in OAC if oac.name.startswith(f"P{str(i)}")][0]
+    # OAC_MAP = {}
+    # for oac in OAC:
+    #     OAC_MAP[oac.name] = oac
+    # for i in range(1, 7):
+    #     for j in range(i+1, 7):
+    #         key = f"O_P{i}{j}"
+    #         oac = OAC_MAP[key]
+    #         oa_conditions[oac] = lambda node, i=i, j=j: oa_conditions[P_Map[i]](node) and oa_conditions[P_Map[j]](node)
 
     node_to_oac_map = defaultdict(list)
     oac_count = {}

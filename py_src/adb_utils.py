@@ -42,6 +42,7 @@ async def load_snapshot(snapshot_name, device_name: str = DEVICE_NAME) -> bool:
     if "OK" not in stdout:
         return False
     r_code, *_ = await run_bash(f"adb -s {device_name} wait-for-device")
+    await asyncio.sleep(3)
     return r_code == 0
 
 

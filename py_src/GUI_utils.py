@@ -268,7 +268,10 @@ class NodesFactory:
             if resource_id.endswith("_ad") \
                 or resource_id.endswith("_ads") \
                 or '_ad_' in resource_id \
-                or remaining.startswith('ads'):
+                or remaining.startswith('ad_')\
+                or remaining.startswith('fl_adp')\
+                or remaining.startswith('ads')\
+                or remaining.startswith('flAds'):
                 node.is_ad = True
             if node.is_ad:
                 for child_node in children_nodes:
