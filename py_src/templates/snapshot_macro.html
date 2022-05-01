@@ -128,7 +128,7 @@
 
 {% endmacro %}
 
-{% macro action_info_card(action_result) %}
+{% macro action_info_card(address_book, action_result) %}
     <div class="col-2 p-1">
         <div class="card">
             <div class="card-header">
@@ -138,6 +138,14 @@
                 <div class="mb-3">
                     {% if action_result %}
                         <table class="table">
+                            <tr>
+                                <td class="text-end">Snapshot</td>
+                                <td class="text-start">
+                                    <a href="{{ url_for('report_v2', result_path=address_book.result_path(), app_name=address_book.app_name(), snapshot_name=address_book.snapshot_name()) }}">
+                                        {{ address_book.snapshot_name() }}
+                                    </a>
+                                </td>
+                            </tr>
                             <tr>
                                 <td class="text-end">Index</td>
                                 <td class="text-start"> {{ action_result.index }}</td>
@@ -284,7 +292,7 @@
     <div class="row">
         {% set action_result = address_book.whelper.get_action(action_index) %}
         {% if action_result %}
-            {{ action_info_card(action_result) }}
+            {{ action_info_card(address_book, action_result) }}
             {{ snapshot_image_card("Initial",
                                              static_path_fixer(address_book.audit_path_map[address_book.PERFORM_ACTIONS].joinpath(
                     "{}.png".format(action_index)), result_path),

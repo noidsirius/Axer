@@ -145,15 +145,25 @@ class WebHelper:
         with open(self.address_book.perform_actions_atf_issues_path) as f:
             return len(f.readlines())
 
-    def get_action(self, action_index: int) -> dict:
+    def get_action(self, action_index: int) -> ActionResult:
         if not self.address_book.perform_actions_results_path.exists():
             return None
         with open(self.address_book.perform_actions_results_path) as f:
             for line in f.readlines():
-                result = json.loads(line.strip())
-                if result['index'] == action_index:
-                    return result
+                result_json = json.loads(line.strip())
+                if result_json['index'] == action_index:
+                    return ActionResult.createFromDict(result_json)
         return None
+
+    def get_actions(self) -> List[ActionResult]:
+        if not self.address_book.perform_actions_results_path.exists():
+            return []
+        result = []
+        with open(self.address_book.perform_actions_results_path) as f:
+            for line in f.readlines():
+                result_json = json.loads(line.strip())
+                result.append(ActionResult.createFromDict(result_json))
+        return result
 
     def is_same_layout(self, mode1, index1, mode2, index2):
         layout_path1 = self.address_book.get_layout_path(mode1, index1)
@@ -182,7 +192,7 @@ class WebHelper:
         action_result = self.get_action(index)
         if action_result is None:
             return None
-        node = Node.createNodeFromDict(action_result['node'])
+        node = action_result.node
         if self.address_book.extract_actions_nodes[Actionables.TBReachable].exists():
             with open(self.address_book.extract_actions_nodes[Actionables.TBReachable]) as f:
                 for line in f.readlines():
@@ -194,7 +204,7 @@ class WebHelper:
             'did_tb_click': mode_result['tb_touch']['did_tb_click'],
             'no_click_at_all': all(mode_result[mode]['clicked_node'] is None for mode in modes),
             'is_tb_reachable': is_tb_reachable,
-            'is_tb_touchable': action_result["tb_touch_failed"] is None,
+            'is_tb_touchable': action_result.tb_touch_failed is None,
         }
         same_clicked = True
         for i, mode in enumerate(modes):

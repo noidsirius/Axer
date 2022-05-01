@@ -1,6 +1,6 @@
 {% from "action_macro.html" import action_row, action_tag_script with context %}
 {% from "utils_macro.html" import compare_layout_form with context %}
-{% from "snapshot_macro.html" import snapshot_summary, snapshot_bs_summary with context %}
+{% from "snapshot_macro.html" import action_result_row, snapshot_summary, snapshot_bs_summary with context %}
 {% extends "layout.html" %}
 {% block title %}
     Search
@@ -16,35 +16,80 @@
                         </div>
 
                         <div class="card-body">
+
                             <div class="row mb-3">
-                                {% for (action_attr_name, action_attr_field) in action_attrs %}
-                                    <div class="col-3">
-                                        <label for="{{ action_attr_name }}SearchField" class="form-label">{{ action_attr_name }}</label>
-                                        <input type="text" class="form-control" name="{{ action_attr_name }}" id="{{ action_attr_name }}SearchField"
-                                        {% if action_attr_field %}
-                                            value="{{ action_attr_field }}"
-                                        {% endif %}
-                                        >
-                                    </div>
-                                {% endfor %}
+                                <h5>
+                                    Action Attributes
+                                </h5>
                             </div>
-                            <div class="row mb-3">
-                                {% for (action_xml_attr_name, action_xml_attr_field) in action_xml_attrs %}
-                                    <div class="col-2">
-                                        <label for="{{ action_xml_attr_name }}SearchField" class="form-label">{{ action_xml_attr_name }}</label>
-                                        <select class="form-select" name="{{ action_xml_attr_name }}" id="{{ action_xml_attr_name }}SearchField" aria-label="{{ action_xml_attr_name }}e">
-                                            {% for item in ['Any', 'true', 'false'] %}
-                                                <option value="{{ item }}"
-                                                        {% if action_xml_attr_field==item %}
+                            {% for (attr, value) in zip(action_attr_names, action_attr_values) %}
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <select class="form-select" name="actionSearchAttr[]" aria-label="Action Search Attribute">
+                                            {% for item in [('ALL', 'All'),
+                                                    ('text','Text'),
+                                                    ('content-desc','ContentDescription'),
+                                                    ('class','ClassName'),
+                                                    ('clickable','Clickable'),
+                                                    ('checkable','Checkable'),
+                                                    ('visible','Visible'),
+                                                    ('enabled','Enabled'),
+                                                    ('clickable_span','ClickableSpan'),
+                                                    ('resource-id','ResourceId'),
+                                                    ('a11y_actions','A11y Actions'),
+                                                    ('invalid','Invalid'),
+                                                    ('context_clickable','Context Clickable'),
+                                                    ('important_for_accessibility','ImportantForAccessibility'),
+                                                    ('area','Area'),
+                                                    ('width','Width'),
+                                                    ('height','Height')] %}
+                                                <option value="{{ item[0] }}" class="text-start"
+                                                        {% if attr == item[0] %}
                                                         selected
                                                         {% endif %}>
-                                                    {{ item }}
+                                                    {{item[1]}}
                                                 </option>
-                                            {% endfor  %}
+                                            {% endfor %}
                                         </select>
                                     </div>
-                                {% endfor %}
-                            </div>
+                                    <div class="col-6">
+                                        <input type="text" class="form-control" name="actionSearchQuery[]" id="actionSearchField"
+                                                {% if value %}
+                                               value="{{ value }}"
+                                                {% endif %}
+                                        >
+                                    </div>
+                                </div>
+                            {% endfor %}
+{#                            <div class="row mb-3">#}
+{#                                {% for (action_attr_name, action_attr_field) in action_attrs %}#}
+{#                                    <div class="col-3">#}
+{#                                        <label for="{{ action_attr_name }}SearchField" class="form-label">{{ action_attr_name }}</label>#}
+{#                                        <input type="text" class="form-control" name="{{ action_attr_name }}" id="{{ action_attr_name }}SearchField"#}
+{#                                        {% if action_attr_field %}#}
+{#                                            value="{{ action_attr_field }}"#}
+{#                                        {% endif %}#}
+{#                                        >#}
+{#                                    </div>#}
+{#                                {% endfor %}#}
+{#                            </div>#}
+{#                            <div class="row mb-3">#}
+{#                                {% for (action_xml_attr_name, action_xml_attr_field) in action_xml_attrs %}#}
+{#                                    <div class="col-2">#}
+{#                                        <label for="{{ action_xml_attr_name }}SearchField" class="form-label">{{ action_xml_attr_name }}</label>#}
+{#                                        <select class="form-select" name="{{ action_xml_attr_name }}" id="{{ action_xml_attr_name }}SearchField" aria-label="{{ action_xml_attr_name }}e">#}
+{#                                            {% for item in ['Any', 'true', 'false'] %}#}
+{#                                                <option value="{{ item }}"#}
+{#                                                        {% if action_xml_attr_field==item %}#}
+{#                                                        selected#}
+{#                                                        {% endif %}>#}
+{#                                                    {{ item }}#}
+{#                                                </option>#}
+{#                                            {% endfor  %}#}
+{#                                        </select>#}
+{#                                    </div>#}
+{#                                {% endfor %}#}
+{#                            </div>#}
 
                             <div class="mb-3">
                                 <label for="tbSearchField" class="form-label">Talkback Mode</label>
@@ -307,7 +352,7 @@
             Number of action results: {{ all_action_result_count }}
         </h6>
         <h6>
-            Number of snapshot results: {{ all_snapshots_result_count }}  Shown: {{ results | length }}
+            Number of snapshot results: {{ all_snapshots_result_count }}
         </h6>
 
     </div>
@@ -315,76 +360,24 @@
     <div class="row">
         <ul class="nav nav-tabs" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="actions-tab" data-bs-toggle="tab" data-bs-target="#actions-container" type="button" role="tab" aria-controls="#actions-container" aria-selected="false">Actions</button>
+                <button class="nav-link active" id="actions-tab" data-bs-toggle="tab" data-bs-target="#actions-container" type="button" role="tab" aria-controls="#actions-container" aria-selected="true">Actions</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="snapshots-tab" data-bs-toggle="tab" data-bs-target="#snapshots-container" type="button" role="tab" aria-controls="#snapshots-container" aria-selected="true">Snapshots</button>
+                <button class="nav-link" id="snapshots-tab" data-bs-toggle="tab" data-bs-target="#snapshots-container" type="button" role="tab" aria-controls="#snapshots-container" aria-selected="false">Snapshots</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="blindsimmer-tab" data-bs-toggle="tab" data-bs-target="#blindsimmer-container" type="button" role="tab" aria-controls="#blindsimmer-container" aria-selected="false">BlindSimmer</button>
             </li>
         </ul>
         <div class="tab-content" id="myTabContent">
-            <div class="tab-pane fade" id="actions-container" role="tabpanel" aria-labelledby="home-tab">
-{#                <div class="row">#}
-{#                    <table class="table table-bordered">#}
-{#                        <thead>#}
-{#                        <tr>#}
-{#                            <th scope="col">#</th>#}
-{#                            <th scope="col">Action</th>#}
-{#                            <th scope="col">{{ mode_to_repr['exp'] }}</th>#}
-{#                            <th scope="col">{{ mode_to_repr['tb'] }}</th>#}
-{#                            <th scope="col">{{ mode_to_repr['reg'] }}</th>#}
-{#                            <th scope="col">{{ mode_to_repr['areg'] }}</th>#}
-{#                            <th scope="col">Result</th>#}
-{#                        </tr>#}
-{#                        </thead>#}
-{#                        <tbody>#}
-{#                        {% for search_snapshot_result in results %}#}
-{#                            {% for step in search_snapshot_result.action_results %}#}
-{#                                {{ action_row(step, true) }}#}
-{#                            {% endfor %}#}
-{#                        {% endfor %}#}
-{#                        </tbody>#}
-{#                    </table>#}
-{#                </div>#}
-            </div>
-            <div class="tab-pane fade show active" id="snapshots-container" role="tabpanel" aria-labelledby="profile-tab">
-                {% for search_snapshot_result in results %}
-                    <div class="row">
-                        <div class="col">
-                            <a  class="enlarge">
-                                <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(search_snapshot_result.address_book.get_screenshot_path('base', 'INITIAL'),result_path)) }}" class="rounded d-block mx-auto"
-                                     style="width: 10rem;">
-                            </a>
-                            <hr>
-                            <p class="text-center">
-                                <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(search_snapshot_result.address_book.get_layout_path('base', 'INITIAL'), result_path)) }}">Layout</a>
-                            </p>
-                        </div>
-                        {% if search_snapshot_result.address_book.audit_path_map[search_snapshot_result.address_book.PROCESS_SCREENSHOT].exists() %}
-                            <div class="col">
-                                <a  class="enlarge">
-                                    <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(search_snapshot_result.address_book.audit_path_map[search_snapshot_result.address_book.PROCESS_SCREENSHOT].joinpath("INITIAL_OCR.png"),result_path)) }}" class="rounded d-block mx-auto"
-                                         style="width: 10rem;">
-                                </a>
-                                <hr>
-                                <p class="text-center">
-                                    <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(search_snapshot_result.address_book.audit_path_map[search_snapshot_result.address_book.PROCESS_SCREENSHOT].joinpath("INITIAL_OCR.json"), result_path)) }}">Components</a>
-                                </p>
-                            </div>
-
-
-                        {% endif %}
-
-                    </div>
-{#                    {{ snapshot_summary(search_snapshot_result.address_book, '') }}#}
+            <div class="tab-pane fade show active" id="actions-container" role="tabpanel" aria-labelledby="home-tab">
+                {% for search_result in results %}
+                    {{ action_result_row(search_result.address_book, search_result.action_result.index) }}
                 {% endfor %}
             </div>
+            <div class="tab-pane fade" id="snapshots-container" role="tabpanel" aria-labelledby="profile-tab">
+            </div>
             <div class="tab-pane fade" id="blindsimmer-container" role="tabpanel" aria-labelledby="profile-tab">
-{#                {% for search_snapshot_result in results %}#}
-{#                    {{ snapshot_bs_summary(search_snapshot_result.address_book) }}#}
-{#                {% endfor %}#}
             </div>
         </div>
     </div>

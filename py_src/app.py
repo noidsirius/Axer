@@ -21,7 +21,7 @@ from results_utils import AddressBook, OAC
 from post_analysis import do_post_analysis, get_post_analysis, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, \
     XML_PROBLEM \
     , DIFFERENT_BEHAVIOR, UNREACHABLE, POST_ANALYSIS_PREFIX
-from action_search import get_search_manager, SearchQuery
+from action_search import get_search_manager, SearchActionQuery
 
 logger = logging.getLogger(__name__)
 flask_app = Flask(__name__, static_url_path='', )
@@ -323,14 +323,6 @@ def snapshot_search(result_path_str: str):
 
 @flask_app.route("/v2/<result_path_str>/search", methods=['GET', 'POST'])
 def search_v2(result_path_str: str):
-    action_attr_names = ['text', 'contentDescription', 'class', 'resourceId']
-    action_attr_fields = []
-    for action_attr in action_attr_names:
-        action_attr_fields.append(request.args.get(action_attr, None))
-    action_xml_attr_names = ['clickable', 'NAF', 'clickableSpan', 'focused', 'focusable', 'enabled']
-    action_xml_attr_fields = []
-    for action_xml_attr in action_xml_attr_names:
-        action_xml_attr_fields.append(request.args.get(action_xml_attr, 'Any'))
     tb_type = request.args.get('tbType', 'both')
     post_analysis_result = request.args.get('postAnalysisResult', 'ANY')
     one_result_per_snapshot = request.args.get('oneResultPerSnapshot', 'off')
@@ -340,6 +332,11 @@ def search_v2(result_path_str: str):
     tb_result_field = request.args.get('tbResult', 'ALL')
     reg_result_field = request.args.get('regResult', 'ALL')
     areg_result_field = request.args.get('aregResult', 'ALL')
+    action_attr_names = request.args.getlist('actionSearchAttr[]')
+    action_attr_values = request.args.getlist('actionSearchQuery[]')
+    if len(action_attr_names) == 0 or len(action_attr_names) != len(action_attr_values):
+        action_attr_names = ['ALL']*2
+        action_attr_values = [None]*2
     xml_search_mode = request.args.get('xmlSearchMode', 'ALL')
     xml_search_attrs = request.args.getlist('xmlSearchAttr[]')
     xml_search_fields = request.args.getlist('xmlSearchQuery[]')
@@ -376,62 +373,44 @@ def search_v2(result_path_str: str):
     result_path = pathlib.Path(fix_path(result_path_str))
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is inccorrect!"
-    search_query = SearchQuery()\
-        .talkback_mode(tb_type) \
+    search_query = SearchActionQuery()\
         .post_analysis(post_analysis_result=post_analysis_result)\
         .set_valid_app(app_name_field)\
 
-    for action_attr, value in zip(action_attr_names, action_attr_fields):
-        if value:
-            search_query.contains_action_attr(action_attr, value)
+    # for action_attr, value in zip(action_attr_names, action_attr_fields):
+    #     if value:
+    #         search_query.contains_action_attr(action_attr, value)
+    #
+    # for action_attr, value in zip(action_xml_attr_names, action_xml_attr_fields):
+    #     if value and value != 'Any':
+    #         search_query.contains_action_xml_attr(action_attr, value)
 
-    for action_attr, value in zip(action_xml_attr_names, action_xml_attr_fields):
-        if value and value != 'Any':
-            search_query.contains_action_xml_attr(action_attr, value)
-
-    if len(include_tags) > 0 or len(exclude_tags) > 0:
-        search_query.contains_tags(include_tags, exclude_tags)
-    if tb_result_field:
-        search_query.executor_result('tb', tb_result_field)
-    if reg_result_field:
-        search_query.executor_result('reg', reg_result_field)
-    if areg_result_field:
-        search_query.executor_result('areg', areg_result_field)
-    if any(xml_search_fields):
-        search_query.xml_search(xml_search_mode, attrs=xml_search_attrs, queries=xml_search_fields)
-
-    for (left_xml_field, op_xml_field, right_xml_field) in zip(left_xml_fields, op_xml_fields, right_xml_fields):
-        if left_xml_field != 'None' and right_xml_field != 'None':
-            search_query.compare_xml(left_xml_field, right_xml_field, should_be_same=op_xml_field == '=')
-
-    for (left_screen_field, op_screen_field, right_screen_field) in zip(left_screen_fields, op_screen_fields, right_screen_fields):
-        if left_screen_field != 'None' and right_screen_field != 'None':
-            search_query.compare_screen(left_screen_field, right_screen_field, should_be_same=op_screen_field == '=')
+    # if len(include_tags) > 0 or len(exclude_tags) > 0:
+    #     search_query.contains_tags(include_tags, exclude_tags)
+    # if tb_result_field:
+    #     search_query.executor_result('tb', tb_result_field)
+    # if reg_result_field:
+    #     search_query.executor_result('reg', reg_result_field)
+    # if areg_result_field:
+    #     search_query.executor_result('areg', areg_result_field)
+    if any(action_attr_values):
+        search_query.contains_action_with_attrs(attr_names=action_attr_names, attr_queries=action_attr_values)
+    # if any(xml_search_fields):
+    #     search_query.xml_search(xml_search_mode, attrs=xml_search_attrs, queries=xml_search_fields)
+    #
+    # for (left_xml_field, op_xml_field, right_xml_field) in zip(left_xml_fields, op_xml_fields, right_xml_fields):
+    #     if left_xml_field != 'None' and right_xml_field != 'None':
+    #         search_query.compare_xml(left_xml_field, right_xml_field, should_be_same=op_xml_field == '=')
+    #
+    # for (left_screen_field, op_screen_field, right_screen_field) in zip(left_screen_fields, op_screen_fields, right_screen_fields):
+    #     if left_screen_field != 'None' and right_screen_field != 'None':
+    #         search_query.compare_screen(left_screen_field, right_screen_field, should_be_same=op_screen_field == '=')
 
     search_results = get_search_manager(result_path).search(search_query=search_query,
-                                                            # limit=count_field,
-                                                            action_per_snapshot_limit= limit_per_snapshot)
-    all_action_result_count = sum(len(x.action_results) for x in search_results)
-    all_snapshots_result_count = len(search_results)
-    action_result_count = 0
-    results = []
-    for address_book, search_action_results in search_results:
-        if action_result_count >= action_limit_field:
-            break
-        if len(results) >= snapshot_limit_field:
-            break
-        snapshot_result = {'address_book': address_book, 'action_results': []}
-        for search_action_result in search_action_results:
-            action_result = create_step(address_book,
-                                        result_path.parent,
-                                        search_action_result.action,
-                                        search_action_result.post_analysis,
-                                        is_sighted=search_action_result.action['is_sighted'])
-            snapshot_result['action_results'].append(action_result)
-            action_result_count += 1
-            if action_result_count >= action_limit_field:
-                break
-        results.append(snapshot_result)
+                                                            action_limit=action_limit_field,
+                                                            action_per_snapshot_limit=limit_per_snapshot)
+    all_action_result_count = len(search_results)
+    all_snapshots_result_count = len(set([x.address_book.snapshot_name() for x in search_results]))
 
     app_names = ['All']
     for app_path in result_path.iterdir():
@@ -441,11 +420,13 @@ def search_v2(result_path_str: str):
 
     return render_template('search.html',
                            result_path=result_path_str,
-                           results=results,
+                           results=search_results,
                            all_action_result_count=all_action_result_count,
                            all_snapshots_result_count=all_snapshots_result_count,
-                           action_attrs=zip(action_attr_names, action_attr_fields),
-                           action_xml_attrs=zip(action_xml_attr_names, action_xml_attr_fields),
+                           action_attr_names=action_attr_names,
+                           action_attr_values=action_attr_values,
+                           # action_attrs=zip(action_attr_names, action_attr_fields),
+                           # action_xml_attrs=zip(action_xml_attr_names, action_xml_attr_fields),
                            tb_type=tb_type,
                            tb_result_field=tb_result_field,
                            reg_result_field=reg_result_field,
