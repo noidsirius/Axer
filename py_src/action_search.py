@@ -5,6 +5,8 @@ from collections import namedtuple, defaultdict
 from functools import lru_cache
 from pathlib import Path
 from typing import Union, List
+
+from GUI_utils import NodesFactory
 from results_utils import AddressBook, ActionResult
 from post_analysis import get_post_analysis, SUCCESS, A11Y_WARNING, OTHER, INEFFECTIVE, \
     CRASHED, API_SMELL, EXTERNAL_SERVICE, LOADING, TB_WEBVIEW_LOADING, API_A11Y_ISSUE, TB_A11Y_ISSUE
@@ -46,27 +48,16 @@ class SearchActionQuery:
             self.filters.append(action_attr_satisfies)
         return self
 
-    def contains_action_xml_attr(self, attr_name: str, value: str):
-        def action_xml_attr_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
-            # TODO:
-            action_attr_values = [action['element'][attr] for attr in ['bounds', 'resourceId', 'class']]
-            prefix = "s_" if is_sighted else ""
-            if 'node' in action and action['node']:
-                if attr_name not in action['node']:
-                    return False
-                return value in action['node'][attr_name]
-            layout_path = address_book.get_layout_path(f'{prefix}exp', action['index'], should_exists=True)
-            if layout_path is None:
-                return False
-            with open(layout_path) as f:
-                for line in f.readlines():
-                    if all(v in line for v in action_attr_values) and attr_name in line:
-                        attr_value = line.split(f'{attr_name}')[1].split('"')[1]
-                        return value in attr_value
-            return False
-
-        if value and attr_name and value != 'Any':
-            self.filters.append(action_xml_attr_satisfies)
+    def contains_layout_with_attrs(self, attr_names: List[str], attr_queries: List[str]):
+        def layout_attr_satisfies(address_book: AddressBook, action_result: ActionResult) -> bool:
+            nodes = NodesFactory() \
+                .with_layout_path(address_book.get_layout_path(AddressBook.BASE_MODE, AddressBook.INITIAL)) \
+                .with_xpath_pass() \
+                .with_ad_detection() \
+                .build()
+            return contains_node_with_attrs(nodes, attr_names, attr_queries)
+        if attr_names and attr_queries:
+            self.filters.append(layout_attr_satisfies)
         return self
 
     def contains_tags(self, include_tags: List[str], exclude_tags: List[str]):
@@ -94,93 +85,6 @@ class SearchActionQuery:
             return True
 
         self.filters.append(tag_satisfies)
-        return self
-
-    def xml_search(self, select_mode: str, attrs: List[str], queries: List[str]):
-        logging.getLogger("F").error(f"---> {select_mode}, {attrs}, {queries}")
-        def xml_search_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
-            modes = ['exp', 'tb', 'reg', 'areg']
-            if select_mode in modes:
-                modes = [select_mode]
-            prefix = "s_" if is_sighted else ''
-            for mode in modes:
-                if mode == 'exp' and is_sighted:
-                    layout_path = address_book.get_layout_path(mode=f"{prefix}{mode}",  index="INITIAL", should_exists=True)
-                else:
-                    layout_path = address_book.get_layout_path(mode=f"{prefix}{mode}",  index=action['index'], should_exists=True)
-                if layout_path:
-                    with open(layout_path, encoding="utf-8") as f:
-                        for line in f.readlines():
-                            line = line.lower()
-                            flag = True
-                            for (attr, query) in zip(attrs, queries):
-                                if not query or len(query) == 0:
-                                    continue
-                                if attr == 'ALL':
-                                    if query.lower() not in line:
-                                        flag = False
-                                        break
-                                else:
-                                    new_attr = attr.lower()
-                                    if attr in ['width', 'height', 'area']:
-                                        new_attr = 'bounds'
-                                    # TODO: Should be removed eventually
-                                    if attr == 'actionList' and 'z-a11y-actions' in line:
-                                        new_attr = 'z-a11y-actions'
-                                    if f'{new_attr}="' not in line \
-                                            or line[line.index(f'{new_attr}="')-1] not in [' ', '<']:
-                                        flag = False
-                                        break
-                                    value = line[line.index(f'{new_attr}="'):].split('"')[1]
-                                    if new_attr == "bounds":
-                                        bounds = convert_bounds(value)
-                                        target = 0
-                                        if attr == 'area':
-                                            target = (bounds[2]-bounds[0]) * (bounds[3]-bounds[1])
-                                        elif attr == 'width':
-                                            target = (bounds[2]-bounds[0])
-                                        elif attr == 'height':
-                                            target = (bounds[3]-bounds[1])
-                                        if query.startswith('<'):
-                                            if target >= int(query[1:]):
-                                                flag = False
-                                                break
-                                        elif query.startswith('>'):
-                                            if target <= int(query[1:]):
-                                                flag = False
-                                                break
-                                        else:
-                                            if target != int(query):
-                                                flag = False
-                                                break
-                                    elif attr == 'actionList':
-                                        actions = set(value.split('-'))
-                                        is_include = True
-                                        if query.startswith("!"):
-                                            is_include = False
-                                            query = query[1:]
-                                        query_set = set(query.split('-'))
-                                        if is_include != query_set.issubset(actions):
-                                            flag = False
-                                            break
-                                    else:
-                                        if query == "~":  # The value should be empty
-                                            if len(value) > 0:
-                                                flag = False
-                                                break
-                                        else:
-                                            is_include = True
-                                            if query.startswith("!"):
-                                                is_include = False
-                                                query = query[1:]
-                                            if is_include != (query.lower() in value):
-                                                flag = False
-                                                break
-                            if flag:
-                                return True
-            return False
-        if len(attrs) == len(queries) and any(queries):
-            self.filters.append(xml_search_satisfies)
         return self
 
 
@@ -217,13 +121,17 @@ class SearchActionQuery:
         return self
 
     def executor_result(self, mode: str, result: str):
-        def executor_result_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:
-            executor_result = action.get(f'{mode}_action_result', ('FAILED',))[0]
-            if executor_result not in ['FAILED', 'COMPLETED', 'TIMEOUT']:
-                executor_result = 'FAILED'
-            if executor_result != result:
+        def executor_result_satisfies(address_book: AddressBook, action_result: ActionResult) -> bool:
+            response = None
+            if mode == 'tb':
+                response = action_result.tb_action_result
+            elif mode == 'touch':
+                response = action_result.touch_action_result
+            elif mode == 'a11y_api':
+                response = action_result.a11y_api_action_result
+            else:
                 return False
-            return True
+            return response.state == result
 
         if result != 'ALL':
             self.filters.append(executor_result_satisfies)

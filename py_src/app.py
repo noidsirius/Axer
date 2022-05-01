@@ -330,8 +330,8 @@ def search_v2(result_path_str: str):
     exclude_tags_field = request.args.get('excludeTags', '')
     app_name_field = request.args.get('appName', 'All')
     tb_result_field = request.args.get('tbResult', 'ALL')
-    reg_result_field = request.args.get('regResult', 'ALL')
-    areg_result_field = request.args.get('aregResult', 'ALL')
+    touch_result_field = request.args.get('regResult', 'ALL')
+    a11y_api_result_field = request.args.get('aregResult', 'ALL')
     action_attr_names = request.args.getlist('actionSearchAttr[]')
     action_attr_values = request.args.getlist('actionSearchQuery[]')
     if len(action_attr_names) == 0 or len(action_attr_names) != len(action_attr_values):
@@ -387,16 +387,16 @@ def search_v2(result_path_str: str):
 
     # if len(include_tags) > 0 or len(exclude_tags) > 0:
     #     search_query.contains_tags(include_tags, exclude_tags)
-    # if tb_result_field:
-    #     search_query.executor_result('tb', tb_result_field)
-    # if reg_result_field:
-    #     search_query.executor_result('reg', reg_result_field)
-    # if areg_result_field:
-    #     search_query.executor_result('areg', areg_result_field)
+    if tb_result_field:
+        search_query.executor_result('tb', tb_result_field)
+    if touch_result_field:
+        search_query.executor_result('touch', touch_result_field)
+    if a11y_api_result_field:
+        search_query.executor_result('a11y_api', a11y_api_result_field)
     if any(action_attr_values):
         search_query.contains_action_with_attrs(attr_names=action_attr_names, attr_queries=action_attr_values)
-    # if any(xml_search_fields):
-    #     search_query.xml_search(xml_search_mode, attrs=xml_search_attrs, queries=xml_search_fields)
+    if any(xml_search_fields):
+        search_query.contains_layout_with_attrs(attr_names=xml_search_attrs, attr_queries=xml_search_fields)
     #
     # for (left_xml_field, op_xml_field, right_xml_field) in zip(left_xml_fields, op_xml_fields, right_xml_fields):
     #     if left_xml_field != 'None' and right_xml_field != 'None':
@@ -429,8 +429,8 @@ def search_v2(result_path_str: str):
                            # action_xml_attrs=zip(action_xml_attr_names, action_xml_attr_fields),
                            tb_type=tb_type,
                            tb_result_field=tb_result_field,
-                           reg_result_field=reg_result_field,
-                           areg_result_field=areg_result_field,
+                           touch_result_field=touch_result_field,
+                           a11y_api_result_field=a11y_api_result_field,
                            post_analysis_result=post_analysis_result,
                            one_result_per_snapshot=one_result_per_snapshot,
                            action_limit_field=action_limit_field,
