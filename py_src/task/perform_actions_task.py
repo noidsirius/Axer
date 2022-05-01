@@ -7,7 +7,7 @@ from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG
 from controller import TalkBackTouchController, TouchController, A11yAPIController, TalkBackAPIController
 from latte_executor_utils import report_atf_issues
 from padb_utils import ParallelADBLogger
-from results_utils import AddressBook, Actionables, capture_current_state
+from results_utils import AddressBook, Actionables, capture_current_state, ActionResult
 from snapshot import EmulatorSnapshot
 from task.snapshot_task import SnapshotTask
 from utils import annotate_elements, annotate_rectangle
@@ -44,7 +44,7 @@ class PerformActionsTask(SnapshotTask):
         tags = [BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG]
         for index, node in enumerate(selected_actionable_nodes):
             command = ClickCommand(node)
-            logger.info(f"Action {index}/({len(selected_actionable_nodes)-1}): Clicking on node {node.xpath}!")
+            logger.info(f"Action {index}/({len(selected_actionable_nodes) - 1}): Clicking on node {node.xpath}!")
             action_results = {}
             for controller_mode in ['tb_touch', 'a11y_api', 'touch']:
                 logger.info(f"Reloading the snapshot for controller {controller_mode}")
@@ -77,15 +77,14 @@ class PerformActionsTask(SnapshotTask):
                                             log_message_map=log_message_map,
                                             dumpsys=True,
                                             has_layout=True)
-            new_action = {'index': index,
-                          'node': node.toJSON(),
-                          'tb_action_result': action_results['tb_touch'].toJSON(),
-                          'touch_action_result': action_results['touch'].toJSON(),
-                          'a11y_api_action_result': action_results['a11y_api'].toJSON(),
-                          'tb_touch_failed': action_results.get('tb_touch_failed', None)
-                          }
+            action_result = ActionResult(index=index,
+                                         node=node,
+                                         tb_action_result=action_results['tb_touch'],
+                                         touch_action_result=action_results['touch'],
+                                         a11y_api_action_result=action_results['a11y_api'],
+                                         tb_touch_failed=action_results.get('tb_touch_failed', None))
             with open(snapshot.address_book.perform_actions_results_path, "a") as f:
-                f.write(f"{json.dumps(new_action)}\n")
+                f.write(f"{action_result.toJSONStr()}\n")
             # Post process
             annotate_rectangle(snapshot.initial_screenshot,
                                snapshot.address_book.audit_path_map[AddressBook.PERFORM_ACTIONS].joinpath(

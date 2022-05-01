@@ -98,7 +98,7 @@ class CommandResponse(JSONSerializable):
                 'duration': -1,
             }
         return {
-            'command_type': response.get('type', 'Unknown'),
+            'command_type': response.get('type', response.get('command_type', 'Unknown')),
             'state': response.get('state', 'Unknown'),
             'duration': int(response.get('duration', -1)),
         }
@@ -118,9 +118,9 @@ class LocatableCommandResponse(CommandResponse):
     @classmethod
     def get_kwargs_from_response(cls, response: dict) -> dict:
         kwargs = super().get_kwargs_from_response(response)
-        kwargs['target_node'] = Node.createNodeFromDict(response.get('targetWidget', {}))
-        kwargs['acted_node'] = Node.createNodeFromDict(response.get('actedWidget', {}))
-        kwargs['locating_attempts'] = response.get('locatingAttempts', -1)
+        kwargs['target_node'] = Node.createNodeFromDict(response.get('targetWidget', response.get('target_node', {})))
+        kwargs['acted_node'] = Node.createNodeFromDict(response.get('actedWidget', response.get('acted_node', {})))
+        kwargs['locating_attempts'] = response.get('locatingAttempts', response.get('locating_attempts', -1))
         return kwargs
 
 
@@ -132,7 +132,7 @@ class NavigateCommandResponse(CommandResponse):
     @classmethod
     def get_kwargs_from_response(cls, response: dict) -> dict:
         kwargs = super().get_kwargs_from_response(response)
-        kwargs['navigated_node'] = Node.createNodeFromDict(response.get('navigatedWidget', {}))
+        kwargs['navigated_node'] = Node.createNodeFromDict(response.get('navigatedWidget', response.get('navigated_node', {})))
         return kwargs
 
 
@@ -144,7 +144,7 @@ class InfoCommandResponse(CommandResponse):
     @classmethod
     def get_kwargs_from_response(cls, response: dict) -> dict:
         kwargs = super().get_kwargs_from_response(response)
-        kwargs['answer'] = Node.createNodeFromDict(response.get('result', {}))
+        kwargs['answer'] = Node.createNodeFromDict(response.get('result', response.get('answer', {})))
         return kwargs
 
 

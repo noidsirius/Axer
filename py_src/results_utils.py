@@ -9,7 +9,9 @@ from typing import Optional, Union, Dict, List, Tuple
 
 from GUI_utils import Node, bounds_included, is_in_same_state_with_layout_path, NodesFactory
 from adb_utils import get_current_activity_name, get_windows, get_activities, capture_layout as adb_capture_layout
+from command import LocatableCommandResponse
 from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG
+from json_util import JSONSerializable
 from latte_executor_utils import ExecutionResult, latte_capture_layout as capture_layout
 from padb_utils import ParallelADBLogger, save_screenshot
 from utils import annotate_rectangle
@@ -38,6 +40,38 @@ class Actionables(Enum):  # Overly Accessible Condition
     NA11y = 5
     Selected = 6
     Spanned = 7
+
+
+class ActionResult(JSONSerializable):
+    def __init__(self, index: int,
+                 node: Node,
+                 tb_action_result: LocatableCommandResponse,
+                 touch_action_result: LocatableCommandResponse,
+                 a11y_api_action_result: LocatableCommandResponse,
+                 tb_touch_failed: Union[LocatableCommandResponse, None]
+                 ):
+        self.index = index
+        self.node = node
+        self.tb_action_result = tb_action_result
+        self.touch_action_result = touch_action_result
+        self.a11y_api_action_result = a11y_api_action_result
+        self.tb_touch_failed = tb_touch_failed
+
+    @staticmethod
+    def createFromDict(action_result_json: dict) -> 'ActionResult':
+        index = action_result_json.get('index', -1)
+        node = Node.createNodeFromDict(action_result_json.get('node', None))
+        tb_action_result = LocatableCommandResponse.create_from_response(
+            action_result_json.get('tb_action_result', None))
+        touch_action_result = LocatableCommandResponse.create_from_response(
+            action_result_json.get('touch_action_result', None))
+        a11y_api_action_result = LocatableCommandResponse.create_from_response(
+            action_result_json.get('a11y_api_action_result', None))
+        tb_touch_failed = None if action_result_json.get('tb_touch_failed', None) is None \
+            else LocatableCommandResponse.create_from_response(action_result_json['tb_touch_failed'])
+        return ActionResult(index=index, node=node, tb_action_result=tb_action_result,
+                            touch_action_result=touch_action_result, a11y_api_action_result=a11y_api_action_result,
+                            tb_touch_failed=tb_touch_failed)
 
 
 def extract_events(event_log_message: str) -> List[Tuple[str, Node]]:
@@ -164,15 +198,17 @@ class WebHelper:
         }
         same_clicked = True
         for i, mode in enumerate(modes):
-            summary[f"{mode}_clicked_node"] = None if mode_result[mode]['clicked_node'] is None else mode_result[mode]['clicked_node'].toJSONStr()
-            for m2 in modes[i+1:]:
+            summary[f"{mode}_clicked_node"] = None if mode_result[mode]['clicked_node'] is None else mode_result[mode][
+                'clicked_node'].toJSONStr()
+            for m2 in modes[i + 1:]:
                 same_clicked_in_modes = False
                 if mode_result[mode]['clicked_node'] is None:
                     same_clicked_in_modes = mode_result[m2]['clicked_node'] is None
                 elif mode_result[m2]['clicked_node'] is None:
                     same_clicked_in_modes = False
                 else:
-                    same_clicked_in_modes = mode_result[mode]['clicked_node'].xpath == mode_result[m2]['clicked_node'].xpath
+                    same_clicked_in_modes = mode_result[mode]['clicked_node'].xpath == mode_result[m2][
+                        'clicked_node'].xpath
                 same_clicked = same_clicked and same_clicked_in_modes
                 summary[f"same_clicked_{mode}_{m2}"] = same_clicked_in_modes
                 summary[f"same_clicked_{m2}_{mode}"] = same_clicked_in_modes
@@ -181,10 +217,12 @@ class WebHelper:
         summary["touch_change_xml"] = not self.is_same_layout(AddressBook.BASE_MODE, index, 'touch', index)
         summary["api_change_xml"] = not self.is_same_layout(AddressBook.BASE_MODE, index, 'a11y_api', index)
         summary["any_change_xml"] = summary["tb_change_xml"] or summary["touch_change_xml"] or summary["api_change_xml"]
-        summary["possible_to_locate"] = (summary['is_tb_reachable'] or summary['is_tb_touchable'] or node.important_for_accessibility) and summary["api_change_xml"]
+        summary["possible_to_locate"] = (summary['is_tb_reachable'] or summary[
+            'is_tb_touchable'] or node.important_for_accessibility) and summary["api_change_xml"]
         summary["tb_dir_issue"] = summary["possible_to_locate"] and not summary['is_tb_reachable']
         summary["tb_touch_issue"] = summary["possible_to_locate"] and not summary['is_tb_touchable']
-        summary["tb_act_issue"] = summary["any_change_xml"] and not summary["tb_change_xml"] and mode_result['tb_touch']['did_tb_click']
+        summary["tb_act_issue"] = summary["any_change_xml"] and not summary["tb_change_xml"] and \
+                                  mode_result['tb_touch']['did_tb_click']
         summary["api_act_issue"] = summary["any_change_xml"] and not summary["api_change_xml"]
         summary["touch_act_issue"] = summary["any_change_xml"] and not summary["touch_change_xml"]
         return summary
@@ -213,6 +251,7 @@ class WebHelper:
             .build()
         return [node for node in nodes if node.clickable_span and not node.clickable and node.text]
 
+
 class AddressBook:
     BASE_MODE = "base"
     INITIAL = "INITIAL"
@@ -228,7 +267,7 @@ class AddressBook:
             snapshot_result_path = Path(snapshot_result_path)
         # ---- For Web Visualization ------
         self.whelper = WebHelper(self)
-        #--------------
+        # --------------
 
         self.snapshot_result_path = snapshot_result_path
         self.audit_path_map = {}
@@ -269,8 +308,10 @@ class AddressBook:
         # ----------- Audit: perform_actions ---------------
         self.audit_path_map[AddressBook.PERFORM_ACTIONS] = self.snapshot_result_path.joinpath("PerformActions")
         self.perform_actions_results_path = self.audit_path_map[AddressBook.PERFORM_ACTIONS].joinpath("results.jsonl")
-        self.perform_actions_atf_issues_path = self.audit_path_map[AddressBook.PERFORM_ACTIONS].joinpath("atf_elements.jsonl")
-        self.perform_actions_atf_issues_screenshot = self.audit_path_map[AddressBook.PERFORM_ACTIONS].joinpath("atf_elements.png")
+        self.perform_actions_atf_issues_path = self.audit_path_map[AddressBook.PERFORM_ACTIONS].joinpath(
+            "atf_elements.jsonl")
+        self.perform_actions_atf_issues_screenshot = self.audit_path_map[AddressBook.PERFORM_ACTIONS].joinpath(
+            "atf_elements.png")
         # ---------------------------------------------------
         # TODO: Needs to find a more elegant solution
         navigate_modes = [AddressBook.BASE_MODE, "tb_touch", "touch", "a11y_api"]
