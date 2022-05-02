@@ -261,6 +261,7 @@ class AddressBook:
         p_smells_fp = set()
         p_tbrs = set()
         p_tbrs_tp = set()
+        p_tbrs_tn = set()
         p_tbrs_fp = set()
         p_tbrs_fn = set()
         a_smells = set()
@@ -268,64 +269,66 @@ class AddressBook:
         a_smells_fp = set()
         a_tbas = set()
         a_tbas_tp = set()
+        a_tbas_tn = set()
         a_tbas_fp = set()
         a_tbas_fn = set()
         a_apias = set()
         # a_apias_tp = set()
         # a_apias_fp = set()
-        if self.oversight_tag.exists():
-            with open(self.oversight_tag) as f:
-                for line in f.readlines():
-                    r = json.loads(line)
-                    if r['oac'].startswith('P'):
-                        if r['tag'].lower() == 'tp':
-                            p_smells_tp.add(r['xpath'])
-                        elif r['tag'].lower() == 'fp':
-                            p_smells_fp.add(r['xpath'])
-                        elif r['tag'].lower() == 'tbrt':
-                            p_tbrs_tp.add(r['xpath'])
-                        elif r['tag'].lower() == 'tbrf':
-                            p_tbrs_fp.add(r['xpath'])
-                        elif r['tag'].lower() == 'tbfn':
-                            p_tbrs_fn.add(r['xpath'])
-                    elif r['oac'].startswith('A'):
-                        if r['tag'].lower() == 'tp':
-                            a_smells_tp.add(r['xpath'])
-                        elif r['tag'].lower() == 'fp':
-                            a_smells_fp.add(r['xpath'])
-                        elif r['tag'].lower() == 'tbrt':
-                            a_tbas_tp.add(r['xpath'])
-                        elif r['tag'].lower() == 'tbrf':
-                            a_tbas_fp.add(r['xpath'])
-                        elif r['tag'].lower() == 'tbfn':
-                            a_tbas_fn.add(r['xpath'])
-                        # elif r['tag'].lower() == 'apit':
-                        #     a_apias_tp.add(r['xpath'])
-                        # elif r['tag'].lower() == 'apif':
-                        #     a_apias_fp.add(r['xpath'])
-        for oac in oac_names['P']:
-            for oae, info in self.get_oacs_with_info(oac).items():
-                p_smells.add(oae.xpath)
-                if info['tbr']:
-                    p_tbrs.add(oae.xpath)
-        for oac in oac_names['A']:
-            for oae, info in self.get_oacs_with_info(oac).items():
-                a_smells.add(oae.xpath)
-                if info['tba']:
-                    a_tbas.add(oae.xpath)
-                if info['apia']:
-                    a_apias.add(oae.xpath)
+        for oac_name in oac_names['P']:
+            for node, oac_info in self.get_oacs_with_info(oac_name).items():
+                p_smells.add(node.xpath)
+                if 'tp' in oac_info['tags']:
+                    p_smells_tp.add(node.xpath)
+                if 'fp' in oac_info['tags']:
+                    p_smells_tp.add(node.xpath)
+                if oac_info['tbr']:
+                    p_tbrs.add(node.xpath)
+                    if 'tbrt' in oac_info['tags']:
+                        p_tbrs_tp.add(node.xpath)
+                    if 'tbrf' in oac_info['tags']:
+                        p_tbrs_fp.add(node.xpath)
+                else:
+                    if 'tbrt' in oac_info['tags']:
+                        p_tbrs_tn.add(node.xpath)
+                    if 'tbrf' in oac_info['tags']:
+                        p_tbrs_fn.add(node.xpath)
+        for oac_name in oac_names['A']:
+            for node, oac_info in self.get_oacs_with_info(oac_name).items():
+                a_smells.add(node.xpath)
+                if 'tp' in oac_info['tags']:
+                    a_smells_tp.add(node.xpath)
+                if 'fp' in oac_info['tags']:
+                    a_smells_tp.add(node.xpath)
+                if oac_info['tba']:
+                    a_tbas.add(node.xpath)
+                    if 'tbrt' in oac_info['tags']:
+                        a_tbas_tp.add(node.xpath)
+                    if 'tbrf' in oac_info['tags']:
+                        a_tbas_fp.add(node.xpath)
+                else:
+                    if 'tbrt' in oac_info['tags']:
+                        a_tbas_tn.add(node.xpath)
+                    if 'tbrf' in oac_info['tags']:
+                        a_tbas_fn.add(node.xpath)
+                if oac_info['apia']:
+                    a_apias.add(node.xpath)
+
         result['p_smells'] = len(p_smells)
         result['p_tp'] = len(p_smells_tp)
         result['p_tbrs'] = len(p_tbrs)
         result['p_tbrs_tp'] = len(p_tbrs_tp)
+        result['p_tbrs_tn'] = len(p_tbrs_tn)
+        result['p_tbrs_fp'] = len(p_tbrs_fp)
         result['p_tbrs_fn'] = len(p_tbrs_fn)
         result['a_smells'] = len(a_smells)
         result['a_tp'] = len(a_smells_tp)
         result['a_tbas'] = len(a_tbas)
         result['a_tbas_tp'] = len(a_tbas_tp)
+        result['a_tbas_tn'] = len(a_tbas_tn)
+        result['a_tbas_fp'] = len(a_tbas_fp)
         result['a_tbas_fn'] = len(a_tbas_fn)
-        # result['a_apias'] = len(a_apias)
+        result['a_apias'] = len(a_apias)
         # result['a_apias_tp'] = len(a_apias_tp)
         result['t_smells'] = len(p_smells.union(a_smells))
         result['t_tp'] = len(p_smells_tp.union(a_smells_tp))
