@@ -46,16 +46,16 @@
                     <td> {{row.result.p_tbrs_tp}} </td>
                     <td> {{row.result.p_tbrs_fp}} </td>
                     <td> {{row.result.p_tbrs_fn}} </td>
-                    <td> {{row.result.p_smells - (row.result.p_tbrs_tn + row.result.p_tbrs_tp + row.result.p_tbrs_fp + row.result.p_tbrs_fn)}} </td>
+                    <th> {{row.result.p_smells - (row.result.p_tbrs_tn + row.result.p_tbrs_tp + row.result.p_tbrs_fp + row.result.p_tbrs_fn)}} </th>
                     <td> {{row.result.a_tbas}} </td>
                     <td> {{row.result.a_tbas_tp}} </td>
                     <td> {{row.result.a_tbas_fp}} </td>
                     <td> {{row.result.a_tbas_fn}} </td>
-                    <td> {{row.result.a_smells - (row.result.a_tbas_tn + row.result.a_tbas_tp + row.result.a_tbas_fp + row.result.a_tbas_fn)}} </td>
+                    <th> {{row.result.a_smells - (row.result.a_tbas_tn + row.result.a_tbas_tp + row.result.a_tbas_fp + row.result.a_tbas_fn)}} </th>
                     <td> {{row.result.a_apias}} </td>
 {#                    <td> {{row.result.a_apias}}({{row.result.a_apias_tp}})</td>#}
 {#                    <td> {{row.result.t_smells}}({{row.result.t_tp}})</td>#}
-                    <td> {{row.result.missing_smell_tag}}</td>
+                    <th> {{row.result.missing_smell_tag}}</th>
 {#                    <td> {{ row.result.missing_verify_tag }}</td>#}
                     <th>
                         <a href="{{ url_for('report_sb_v2', result_path=result_path, app_name=row.app_name, snapshot_name=row.snapshot_name) }}">link</a
