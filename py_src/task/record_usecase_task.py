@@ -50,13 +50,20 @@ class RecordUsecaseTask(AppTask):
         for file in self.sugilite_script_path.resolve().iterdir():
             if file.name==most_recent_name:
                 with open(file, 'r') as f:
-                    for line in f:
-                        text=re.sub(r"\"","",re.findall(r"\(hasText (.+?)\)",line)[0]) if re.findall(r"\(hasText (.+?)\)",line) else ''
-                        class_name=re.findall(r"\(HAS_CLASS_NAME (.+?)\)",line)[0] if re.findall(r"\(HAS_CLASS_NAME (.+?)\)",line) else ''
-                        resource_id=re.findall(r"\(HAS_VIEW_ID (.+?)\)",line)[0] if re.findall(r"\(HAS_VIEW_ID (.+?)\)",line) else ''
-                        content_desc=re.sub(r"\"","",re.findall(r"\(HAS_CONTENT_DESCRIPTION (.+?)\)",line)[0]) if re.findall(r"\(HAS_CONTENT_DESCRIPTION (.+?)\)",line) else ''
-                        xpath=re.findall(r"\(HAS_XPATH (.+?)\)",line)[0] if re.findall(r"\(HAS_XPATH (.+?)\)",line) else ''
-                        pkg_name=re.findall(r"\(HAS_PACKAGE_NAME (.+?)\)",line)[0] if re.findall(r"\(HAS_PACKAGE_NAME (.+?)\)",line) else ''
+                    lines=f.readlines()
+                    i=0
+                    while i< len(lines):
+                        text=re.sub(r"\"","",re.findall(r"\(hasText (.+?)\)",lines[i])[0]) if re.findall(r"\(hasText (.+?)\)",lines[i]) else ''
+                        class_name=re.findall(r"\(HAS_CLASS_NAME (.+?)\)",lines[i])[0] if re.findall(r"\(HAS_CLASS_NAME (.+?)\)",lines[i]) else ''
+                        resource_id=re.findall(r"\(HAS_VIEW_ID (.+?)\)",lines[i])[0] if re.findall(r"\(HAS_VIEW_ID (.+?)\)",lines[i]) else ''
+                        content_desc=re.sub(r"\"","",re.findall(r"\(HAS_CONTENT_DESCRIPTION (.+?)\)",lines[i])[0]) if re.findall(r"\(HAS_CONTENT_DESCRIPTION (.+?)\)",lines[i]) else ''
+                        xpath=re.findall(r"\(HAS_XPATH (.+?)\)",lines[i])[0] if re.findall(r"\(HAS_XPATH (.+?)\)",lines[i]) else ''
+                        pkg_name=re.findall(r"\(HAS_PACKAGE_NAME (.+?)\)",lines[i])[0] if re.findall(r"\(HAS_PACKAGE_NAME (.+?)\)",lines[i]) else ''
+                        if i>0:
+                            prev_xpath=re.findall(r"\(HAS_XPATH (.+?)\)",lines[i-1])[0] if re.findall(r"\(HAS_XPATH (.+?)\)",lines[i-1]) else ''
+                            if xpath==prev_xpath:
+                                i+=1
+                                continue
                         node_dict={
                             'text':text,
                             'class_name':class_name,
@@ -68,7 +75,7 @@ class RecordUsecaseTask(AppTask):
                         node=Node.createNodeFromDict(node_dict)
                         command=ClickCommand(node)
                         commands.append(command)
-
+                        i+=1
 
             # Once the commands is filled write it to usecase path
             with open(self.usecase_path, "w") as f:
