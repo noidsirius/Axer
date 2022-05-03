@@ -233,7 +233,70 @@ async def execute_latte_command(device, command: str, extra: str):
         print(f"Apps with at least any verified smell: {app_with_1plus_ver_smell}")
 
 
+    if command == "os_n3_rq1":
+        result_path = pathlib.Path(extra)
+        if not result_path.is_dir():
+            logger.error("The result path doesn't exist")
+            return
 
+        oac_names = {}
+        for w in ['A', 'P']:
+            oac_names[w] = {oac.name: oac for oac in OAC if oac.name.startswith(w)}
+        # header = "App & Snapshot & \#Nodes & \#P Smell (TP) & \#P TBR (TP) & \#A Smell (TP) & \#A TBAct (TP) & \#A APIAct (TP)\\\\" \
+        #          +"\hline" \
+        #          + "\n"
+        # print(header)
+        empty_row_lambda = lambda app_name: "\multirow{1}{*}{\\texttt{" + app_name[:15] + "}" + ("..." if len(app_name) > 15 else "") + "} "+ "& -" * 12 + "\\\\ \n" +"\hline \n"
+        smell_precisions = []
+        verify_precisions = []
+        verify_recall = []
+
+        for app_names in [locker_pkgs, latte_pkgs, other_pkgs]:
+            for app_name in app_names:
+                if not app_name:
+                    continue
+                app_path = result_path.joinpath(app_name)
+                if not app_path.exists() or not app_path.is_dir():
+                    print(empty_row_lambda(app_path.name))
+                    continue
+                snapshot_paths = []
+                for s_index, snapshot_path in enumerate(app_path.iterdir()):
+                    if not snapshot_path.is_dir():
+                        continue
+                    snapshot_paths.append(snapshot_path)
+                snapshot_count = len(snapshot_paths)
+                if snapshot_count == 0:
+                    print(empty_row_lambda(app_path.name))
+                    continue
+                app_row = "\multirow{" + str(snapshot_count) + "}{*}{\\texttt{" + app_path.name[:15] + "}" + ("..." if len(app_path.name) > 15 else "") + "} "
+                s_index = 0
+                for snapshot_path in sorted(snapshot_paths, key=lambda x: x.name):
+                    s_index += 1
+                    app_row += f"& {s_index} "  # Scenario
+                    address_book = AddressBook(snapshot_path)
+                    with open(address_book.get_layout_path("exp", "INITIAL")) as f:
+                        number_of_nodes = f.read().count("<node")
+                    app_row += f"& {number_of_nodes} "  # Nodes
+                    oae_result = address_book.get_oae_result()
+                    smell_precisions.append(oae_result['precision_smells'])
+                    verify_precisions.append(oae_result['precision_verify'])
+                    verify_recall.append(oae_result['recall_verify'])
+                    app_row += f"& {oae_result['p_smells']} "
+                    app_row += f"& {oae_result['a_smells']} "
+                    app_row += f"& {oae_result['precision_smells']:.2f} "
+                    app_row += f"& {oae_result['p_tbrs']} "
+                    app_row += f"& {oae_result['a_tbas']} "
+                    app_row += f"& {oae_result['a_apias']} "
+                    app_row += f"& {oae_result['precision_verify']:.2f} "
+                    app_row += f"& {oae_result['recall_verify']:.2f} "
+                    app_row += f"& - "
+                    app_row += "\\\\ \n"
+                app_row += "\hline \n"
+                print(app_row)
+            print("\hline \n")
+        logger.info(f"smell_precision: {sum(smell_precisions)/len(smell_precisions)}")
+        logger.info(f"verify_precision: {sum(verify_precisions)/len(smell_precisions)}")
+        logger.info(f"verify_recall: {sum(verify_recall)/len(verify_recall)}")
 
     if command == "os_n2_rq1":
         result_path = pathlib.Path(extra)

@@ -281,7 +281,7 @@ class AddressBook:
                 if 'tp' in oac_info['tags']:
                     p_smells_tp.add(node.xpath)
                 if 'fp' in oac_info['tags']:
-                    p_smells_tp.add(node.xpath)
+                    p_smells_fp.add(node.xpath)
                 if oac_info['tbr']:
                     p_tbrs.add(node.xpath)
                     if 'tbrt' in oac_info['tags']:
@@ -299,7 +299,7 @@ class AddressBook:
                 if 'tp' in oac_info['tags']:
                     a_smells_tp.add(node.xpath)
                 if 'fp' in oac_info['tags']:
-                    a_smells_tp.add(node.xpath)
+                    a_smells_fp.add(node.xpath)
                 if oac_info['tba']:
                     a_tbas.add(node.xpath)
                     if 'tbrt' in oac_info['tags']:
@@ -331,6 +331,12 @@ class AddressBook:
         result['a_apias'] = len(a_apias)
         # result['a_apias_tp'] = len(a_apias_tp)
         result['t_smells'] = len(p_smells.union(a_smells))
+        result['precision_p_smells'] = len(p_smells_tp) / max(len(p_smells), 1)
+        result['precision_smells'] = 1.0 if len(p_smells.union(a_smells)) == 0 else len(p_smells_tp.union(a_smells_tp)) / len(p_smells.union(a_smells))
+        result['precision_tb_verify'] = 1.0 if len(p_tbrs.union(a_tbas)) == 0 else len(p_tbrs_tp.union(a_tbas_tp)) / len(p_tbrs.union(a_tbas))
+        result['recall_tb_verify'] = 1.0 if len(p_tbrs_tp.union(p_tbrs_tn).union(a_tbas_tp).union(a_tbas_tn)) == 0 else len(p_tbrs_tp.union(a_tbas_tp)) / len(p_tbrs_tp.union(p_tbrs_tn).union(a_tbas_tp).union(a_tbas_tn))
+        result['precision_verify'] = (result['precision_tb_verify'] + 1) / 2
+        result['recall_verify'] = (result['recall_tb_verify'] + 1) / 2
         result['t_tp'] = len(p_smells_tp.union(a_smells_tp))
         result['missing_smell_tag'] = result['t_smells'] - len(a_smells.union(p_smells).intersection(p_smells_tp.union(a_smells_tp.union(p_smells_fp.union(a_smells_fp)))))
         result['missing_verify_tag'] = result['t_smells'] - len(p_tbrs_tp.union(p_tbrs_fp).union(a_tbas_tp).union(a_tbas_fp).union(p_tbrs_fn).union(a_tbas_fn))
