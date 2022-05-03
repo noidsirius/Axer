@@ -5,6 +5,7 @@ import logging
 import json
 import pathlib
 import sys
+from collections import defaultdict
 
 from ppadb.client_async import ClientAsync as AdbClient
 from padb_utils import ParallelADBLogger, save_screenshot
@@ -57,7 +58,7 @@ other_pkgs = [".".join(x.strip().split(".")[:-1]) for x in """
         com.houzz.app.apk
         com.mcdonalds.app.apk
         com.meditationmoments.meditationmoments.apk
-        MISSING
+        com.pinterest.apk
         com.popularapp.thirtydayfitnesschallenge.apk
         com.theathletic.apk
         com.weawow.apk
@@ -151,6 +152,31 @@ async def execute_latte_command(device, command: str, extra: str):
         for node in nodes:
             if node.covered:
                 logger.info(f"Covered Node: {node.covered}  {node.is_ad}")
+
+    if command == "os_eval_smell_to_app":
+        result_path = pathlib.Path(extra)
+        if not result_path.is_dir():
+            logger.error("The result path doesn't exist")
+            return
+        smell_to_app = defaultdict(set)
+        for app_names in [locker_pkgs, latte_pkgs, other_pkgs]:
+            for app_name in app_names:
+                if not app_name:
+                    continue
+                app_path = result_path.joinpath(app_name)
+                for s_index, snapshot_path in enumerate(app_path.iterdir()):
+                    if not snapshot_path.is_dir():
+                        continue
+                address_book = AddressBook(snapshot_path)
+                for oac in OAC:
+                    if oac.name[0] in ['P', 'A']:
+                        if len(address_book.get_oacs(oac)) > 0:
+                            smell_to_app[oac.name].add(app_name)
+        for k,v in smell_to_app.items():
+            print(f"{k}: {len(v)}")
+        print("--------")
+        for k,v in smell_to_app.items():
+            print(f"{k}:", " ".join(v))
 
     if command == "os_eval_questions":
         result_path = pathlib.Path(extra)
