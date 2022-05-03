@@ -164,14 +164,16 @@ async def execute_latte_command(device, command: str, extra: str):
                 if not app_name:
                     continue
                 app_path = result_path.joinpath(app_name)
+                if not app_path.exists():
+                    continue
                 for s_index, snapshot_path in enumerate(app_path.iterdir()):
                     if not snapshot_path.is_dir():
                         continue
-                address_book = AddressBook(snapshot_path)
-                for oac in OAC:
-                    if oac.name[0] in ['P', 'A']:
-                        if len(address_book.get_oacs(oac)) > 0:
-                            smell_to_app[oac.name].add(app_name)
+                    address_book = AddressBook(snapshot_path)
+                    for oac in OAC:
+                        if oac.name[0] in ['P', 'A']:
+                            if len(address_book.get_oacs(oac)) > 0:
+                                smell_to_app[oac.name].add(app_name)
         for k,v in smell_to_app.items():
             print(f"{k}: {len(v)}")
         print("--------")
