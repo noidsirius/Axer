@@ -80,8 +80,9 @@
                     </thead>
                     <tbody>
                     {% for node, info in address_book.get_oacs_with_info(oac_name).items() %}
+                        {% set oac_loop = loop %}
                         <tr>
-                            <td>{{ loop.index }}</td>
+                            <td>{{ oac_loop.index }}</td>
                             <td class="text-truncate" style="max-width: 10em">{{ node.text }}</td>
                             <td>{{ node.content_desc }}</td>
                             <td>{{ node.clickable }}</td>
@@ -127,7 +128,7 @@
                                                 <input type="hidden" class="snapshot-app" value="{{ address_book.app_name() }}">
                                                 <input type="hidden" class="snapshot-name" value="{{ address_book.snapshot_name() }}">
                                                 <input type="hidden" class="snapshot-oac" value="{{ oac_name }}">
-                                                <input type="hidden" class="snapshot-index" value="{{ loop.index0 }}">
+                                                <input type="hidden" class="snapshot-index" value="{{ oac_loop.index0 }}">
                                             </button>
                                         </div>
                                     </div>
@@ -142,6 +143,35 @@
                                         {% endfor %}
                                     </div>
                                 </div>
+                                {% if oac_name != 'oacs' %}
+                                    <div class="row">
+                                        {% for tag, name in { 'tbrt': 'TBR T',
+                                        'tbrf': 'TBR F',
+                                        'tp': 'Smell TP',
+                                        'fp': 'Smell FP'}.items() %}
+                                            {% if tag not in info.tags %}
+
+                                                    <div class="col-3">
+                                                        <div>
+                                                            <button class="oac_tag btn btn-outline-primary">
+                                                                {{ name }}
+                                                                <input type="hidden" class="snapshot-result-path" value="{{ address_book.result_path() }}">
+                                                                <input type="hidden" class="snapshot-app" value="{{ address_book.app_name() }}">
+                                                                <input type="hidden" class="snapshot-name" value="{{ address_book.snapshot_name() }}">
+                                                                <input type="hidden" class="snapshot-oac" value="{{ oac_name }}">
+                                                                <input type="hidden" class="snapshot-index" value="{{ oac_loop.index0 }}">
+                                                            </button>
+                                                        </div>
+                                                        <div>
+                                                            <input type="hidden" class="oac-tag-value form-control" value="{{ tag }}">
+                                                        </div>
+                                                    </div>
+
+
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
 
 
 
@@ -164,7 +194,7 @@
             let index = $(this).find('.snapshot-index').attr('value');
             let tag_input_element = $(this).parent().parent().find('.oac-tag-value');
             let tag = tag_input_element.val();
-            let tag_container_element = $(this).parent().parent().parent().find('.tag-container');
+            let tag_container_element = $(this).parent().parent().parent().parent().find('.tag-container');
             if (tag) {
                 {#let path = "/v2/"+ result_path +"/app/"+ app_name + "/post_analysis";#}
                 let host_url = window.location.href.split("/v2/")[0]
