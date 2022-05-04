@@ -177,6 +177,19 @@
                                 </span>
                                 </td>
                             </tr>
+                            <tr>
+                                {% set snapshot_note = address_book.whelper.get_note() %}
+                                <td class="text-end">Note</td>
+                                <td class="text-start text-truncate" style="max-width: 10em;">
+                                <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ snapshot_note }}">
+                                    <a class="btn copyer">
+                                            {{ snapshot_note }}
+                                            <input type="hidden" class="text-to-copy"
+                                                   value="{{snapshot_note }}">
+                                        </a>
+                                </span>
+                                </td>
+                            </tr>
                         </table>
                     {% else %}
                         No Info
@@ -189,7 +202,7 @@
 {% endmacro %}
 
 {% macro post_analysis_card(address_book, action_result) %}
-    {% set summary = address_book.whelper.summarized_events(action_result.index) %}
+    {% set summary = address_book.whelper.action_summary(action_result.index) %}
     <div class="col-3 p-1">
         <div class="card">
             <div class="card-header">
@@ -208,7 +221,7 @@
                                     action_result.index,
                                     False,
                                     left_mode, right_mode,
-                                    address_book.whelper.is_same_layout(left_mode, action_result.index, right_mode, action_result.index)) }}
+                                    summary["same_layout_{}_{}".format(left_mode,right_mode)]) }}
                                 </div>
                             {% endif %}
                         {% endfor %}
@@ -217,11 +230,18 @@
                 <div class="row mb-3">
                     <table class="table">
                         {% set qa = [
+                                ("NIgnored:", not summary[address_book.whelper.AUTO_IGNORED_NAME]),
                                 ("Locate by TB Direction:", summary["is_tb_reachable"]),
                                 ("Locate By TB Touch:", summary["is_tb_touchable"]),
                                 ("Did TB Click:", summary["did_tb_click"]),
                                 ("Any click in all controllers:", not summary["no_click_at_all"]),
-                                ("Same click result:", summary["same_clicked"])
+                                ("Same click result:", summary["same_clicked"]),
+                                ("Children in actions:", summary["children_nodes_action_indices"]),
+                                ("Remaining xpath:", summary["tb_closest_reachable"]),
+                                ("Changes:", "{} {} {}".format(
+                                                            summary["changed_elements_tb_touch"]|length,
+                                                            summary["changed_elements_touch"]|length,
+                                                            summary["changed_elements_a11y_api"]|length)),
                                 ] %}
                         {% for question, answer in qa %}
                             <tr>
@@ -291,7 +311,33 @@
 {% endmacro %}
 
 {% macro tag_card(address_book, action_index) %}
-    <div class="col-2 p-1">
+    {% set predefined_tags = {
+        'FIN': 'Finalized',
+        'ACC': 'Accessible',
+        'CHE': 'CheckAgain',
+        'RED': 'Redo',
+        'PRE': 'Presentation',
+        'INE': 'Ineffective',
+        'NIM': 'NImpA11y',
+        'EXT': 'Extra' ,
+        'TDR': 'TB Dir',
+        'TTR': 'TB Touch',
+        'OVE': 'Overlapping',
+        'TBA': 'TB Act',
+        'APA': 'API Act',
+        'SWI': 'SwitchVerified',
+        'TOA': 'Touch Act',
+        'DIF': 'DifferentBehavior',
+        'RET': 'Redundant',
+        'COV': 'Covered',
+        'FTD': 'FixTBD',
+        'OTT': 'OverrideTBTouch',
+        'OTD': 'OverrideTBDir',
+        'OTA': 'OverrideTBAct',
+        'IGN': 'ManualIgnored',
+     } %}
+    {% set action_tags = address_book.whelper.get_tags(action_index) %}
+    <div class="col-3 p-1">
         <div class="card">
             <div class="card-header">
                 Tags
@@ -315,33 +361,51 @@
                 <div class="m-3">
                     Tags:
                     <div class="tag-container" style="display: block; overflow-x: auto; white-space:nowrap ">
-                        {% for tag in address_book.whelper.get_tags(action_index) %}
-                            <span class="btn btn-light rounded-pill m-1" style="display: inline-block;">
-                                {{ tag }}
-                            </span>
+                        {% for tag in action_tags %}
+
+                                {% if tag in predefined_tags %}
+                                    <span class="btn
+                                    {% if tag in ['TDR', 'TTR', 'TBA', 'APA', 'TOA'] %}
+                                        btn-danger
+                                    {% else %}
+                                        btn-info
+                                    {% endif %}
+                                    rounded-pill disabled m-1" style="display: inline-block;">
+                                        {{ predefined_tags[tag] }}
+                                    </span>
+                                {% else %}
+                                    <span class="btn btn-light rounded-pill disabled m-1" style="display: inline-block;">
+                                        {{ tag }}
+                                    </span>
+                                {% endif %}
+
+
                         {% endfor %}
                     </div>
+                </div>
+                <div class="row">
+                    {% for tag in predefined_tags %}
+                        {% if tag not in action_tags %}
+                            <div class="col-6 p-1">
+                                <div>
+                                    <button class="action_tag btn btn-outline-primary">
+                                        {{ predefined_tags[tag] }}
+                                        <input type="hidden" class="snapshot-result-path" value="{{ address_book.result_path() }}">
+                                        <input type="hidden" class="snapshot-app" value="{{ address_book.app_name() }}">
+                                        <input type="hidden" class="snapshot-name" value="{{ address_book.snapshot_name() }}">
+                                        <input type="hidden" class="snapshot-index" value="{{ action_index }}">
+                                    </button>
+                                </div>
+                                <div>
+                                    <input type="hidden" class="action-tag-value form-control" value="{{ tag }}">
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
                 </div>
             </div>
         </div>
     </div>
-    {#    {% if 'v' not in action_result.tags %}#}
-    {#        <div class="row">#}
-    {#            <div class="col-4">#}
-    {#                <button class="action_tag btn btn-outline-primary">#}
-    {#                    Visited?#}
-    {#                    <input type="hidden" class="snapshot-result-path" value="{{ action_result.snapshot_info.result_path }}">#}
-    {#                    <input type="hidden" class="snapshot-app" value="{{ action_result.snapshot_info.app_name }}">#}
-    {#                    <input type="hidden" class="snapshot-name" value="{{ action_result.snapshot_info.snapshot_name }}">#}
-    {#                    <input type="hidden" class="snapshot-index" value="{{ action_result.index }}">#}
-    {#                    <input type="hidden" class="snapshot-sighted" value="{{ 'sighted' if action_result.is_sighted else 'unsighted' }}">#}
-    {#                </button>#}
-    {#            </div>#}
-    {#            <div class="col-8">#}
-    {#                <input type="hidden" class="action-tag-value form-control" value="v">#}
-    {#            </div>#}
-    {#        </div>#}
-    {#    {% endif %}#}
 {% endmacro %}
 
 {% macro note_card(address_book) %}
@@ -701,7 +765,7 @@
             let index = $(this).find('.snapshot-index').attr('value');
             let tag_input_element = $(this).parent().parent().find('.action-tag-value');
             let tag = tag_input_element.val();
-            let tag_container_element = $(this).parent().parent().parent().find('.tag-container');
+            let tag_container_element = $(this).parent().parent().parent().parent().find('.tag-container');
             if (index == -1)
                 tag_container_element = $('.tag-container');
             if (tag) {

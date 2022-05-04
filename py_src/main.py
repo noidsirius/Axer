@@ -17,6 +17,7 @@ from task.oversight_static_task import OversightStaticTask
 from task.perform_actions_task import PerformActionsTask
 from task.process_screenshot_task import ProcessScreenshotTask
 from task.record_usecase_task import RecordUsecaseTask
+from task.snapshot_task import RemoveSummaryTask
 from task.talkback_explore_task import TalkBackExploreTask
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,9 @@ async def execute_snapshot_task(args, address_book: AddressBook):
         elif args.snapshot_task == "extract_actions":
             logger.info("Snapshot Task: Extract Actions")
             await ExtractActionsTask(snapshot).execute()
+        elif args.snapshot_task == "remove_summary":
+            logger.info("Snapshot Task: Remove Summary")
+            await RemoveSummaryTask(snapshot).execute()
         elif args.snapshot_task == "perform_actions":
             logger.info("Snapshot Task: Perform Actions")
             await PerformActionsTask(snapshot).execute()

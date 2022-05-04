@@ -91,19 +91,7 @@
 {#                                {% endfor %}#}
 {#                            </div>#}
 
-                            <div class="mb-3">
-                                <label for="tbSearchField" class="form-label">Talkback Mode</label>
-                                <select class="form-select" name="tbType" id="tbSearchField" aria-label="Talkback Mode">
-                                    {% for item in [('both', 'Both'), ('exp', 'Directional'), ('sighted', 'Random Exploration') ] %}
-                                        <option value="{{ item[0] }}"
-                                                {% if tb_type==item[0] %}
-                                                selected
-                                                {% endif %}>
-                                            {{ item[1] }}
-                                        </option>
-                                    {% endfor  %}
-                                </select>
-                            </div>
+
                             <div class="mb-3 row">
                                 <div class="col-4 ">
                                     <label class="form-label">TalkBack Result</label>
@@ -160,31 +148,50 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="mb-3">
-                                <label for="postAnalysisResultField" class="form-label">Post Analysis Result</label>
-                                <select class="form-select" name="postAnalysisResult" id="postAnalysisResultField" aria-label="Post Analysis Result">
-                                    {% for item in [('ANY', 'Any'),
-                                                    ('PROCESSED', 'Processed'),
-                                                    ('ACCESSIBLE', 'Accessible'),
-                                                    ('TB_A11Y_ISSUE', 'TB A11y Failure'),
-                                                    ('API_A11Y_ISSUE', 'API A11y Failure'),
-                                                    ('A11Y_WARNING', 'A11y Warning'),
-                                                    ('API_SMELL', 'API Smell'),
-                                                    ('EXTERNAL_SERVICE', 'External Service'),
-                                                    ('LOADING', 'Loading Screen'),
-                                                    ('TB_WEBVIEW_LOADING', 'WebView Loading in TalkBack'),
-                                                    ('INEFFECTIVE', 'Ineffective Action'),
-                                                    ('CRASHED', 'Crashed'),
-                                                    ('OTHER', 'Other')] %}
-                                        <option value="{{ item[0] }}"
-                                                {% if post_analysis_result==item[0] %}
-                                                selected
-                                                {% endif %}>
-                                            {{ item[1] }}
-                                        </option>
-                                    {% endfor  %}
-                                </select>
+                            <div class="row mb-3">
+                                <h5>
+                                    Summary Values
+                                </h5>
                             </div>
+                            {% for (name, value) in zip(summary_names, summary_values) %}
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <select class="form-select" name="summarySearchName[]" aria-label="Action Summary Result Fields">
+                                            {% for item in [('ANY', 'Any'),
+                                                    ('tb_dir_issue', 'TB Directional Loc.'),
+                                                    ('tb_touch_issue', 'TB Touch Loc.'),
+                                                    ('loc_issue', 'Loc Issue'),
+                                                    ('tb_act_issue', 'TB Act.'),
+                                                    ('touch_act_issue', 'Touch Act.'),
+                                                    ('act_issue', 'Act Issue.'),
+                                                    ('api_act_issue', 'API A11y Act.'),
+                                                    ('a11y_api_change_xml', 'API A11y XML Change'),
+                                                    ('did_tb_click', 'Did TB Click'),
+                                                    ('children_nodes_action_indices', 'TBR Children'),
+                                                    ('changed_elements_a11y_api', 'EventChanges in API A11y'),
+                                                    ('changed_elements_touch', 'EventChanges in Touch'),
+                                                    ('only_touch_change_event', 'OnlyTouchChangeEvent'),
+                                                    ('same_layout_base_touch', 'SameTouchLayout'),
+                                                    ] %}
+                                                <option value="{{ item[0] }}" class="text-start"
+                                                        {% if name == item[0] %}
+                                                        selected
+                                                        {% endif %}>
+                                                    {{item[1]}}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="text" class="form-control" name="summarySearchValue[]" id="summarySearchField"
+                                                {% if value %}
+                                               value="{{ value }}"
+                                                {% endif %}
+                                        >
+                                    </div>
+                                </div>
+                            {% endfor %}
+
 
                         </div>
                     </div>

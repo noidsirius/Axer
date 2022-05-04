@@ -111,6 +111,64 @@ async def execute_latte_command(device, command: str, extra: str):
             if node.covered:
                 logger.info(f"Covered Node: {node.covered}  {node.is_ad}")
 
+
+    if command == "gh_latex_main":
+        result_path = pathlib.Path(extra)
+        if not result_path.is_dir():
+            logger.error("The result path doesn't exist")
+            return
+        issue_names = ["loc_issue", "tb_act_issue", "touch_act_issue", "api_act_issue"]
+        all_results = defaultdict(int)
+        for app_path in result_path.iterdir():
+            if not app_path.is_dir():
+                continue
+            if "com.sbi.lotus" in app_path.name:
+                continue
+            if "au.gov.nsw." in app_path.name:
+                continue
+            if "com.zzkk" in app_path.name:
+                continue
+            app_row = "\\texttt{" + app_path.name[:15] + "}" + ("..." if len(app_path.name) > 15 else "")
+            result = defaultdict(int)
+
+
+            for s_index, snapshot_path in enumerate(app_path.iterdir()):
+                if not snapshot_path.is_dir():
+                    continue
+                address_book = AddressBook(snapshot_path)
+                if address_book.whelper.is_snapshot_ignored():
+                    continue
+                result["total_actions"] += address_book.whelper.get_action_count()
+                result["gh_actions"] += address_book.whelper.get_actual_action_count()
+                snapshot_summary = address_book.whelper.oracle()
+
+                for issue in issue_names:
+                    result[issue] += snapshot_summary[issue]
+                    result[f"tp_{issue}"] += snapshot_summary[f"tp_{issue}"]
+
+            app_row += f"& {result['total_actions']} "  # Total Actions
+            app_row += f"& {result['gh_actions']} "  # Total Actions
+            for issue in issue_names:
+                all_results[issue] += result[issue]
+                all_results[f"tp_{issue}"] += result[f"tp_{issue}"]
+                app_row += f"& {result[issue]} " # Issues
+                app_row += f"& {result['tp_'+issue]} "  # TP
+
+            app_row += "\\\\ \n"
+            app_row += "\hline \n"
+            print(app_row)
+        last_row = "\\multicolumn{3}{|c|}{Total} "
+        for issue in issue_names:
+            last_row += f"& {all_results[issue]} & {all_results['tp_'+issue]}"
+        last_row += "\\\\\n"
+        last_row += "\\hline\n"
+        print(last_row)
+        last_row = "\\multicolumn{3}{|c|}{Precision} "
+        for issue in issue_names:
+            last_row += "& \\multicolumn{2}{c|}{"+f"{(all_results['tp_'+issue]/all_results[issue]):.2f}" +"}"
+        last_row += "\\\\\n"
+        print(last_row)
+
     if command == "os_empirical":
         result_path = pathlib.Path(extra)
         if not result_path.is_dir():

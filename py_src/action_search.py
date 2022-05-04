@@ -10,7 +10,7 @@ from GUI_utils import NodesFactory
 from results_utils import AddressBook, ActionResult
 from post_analysis import get_post_analysis, SUCCESS, A11Y_WARNING, OTHER, INEFFECTIVE, \
     CRASHED, API_SMELL, EXTERNAL_SERVICE, LOADING, TB_WEBVIEW_LOADING, API_A11Y_ISSUE, TB_A11Y_ISSUE
-from search_utils import contains_node_with_attrs
+from search_utils import contains_node_with_attrs, compare_bool, compare_int
 from utils import convert_bounds
 
 
@@ -82,6 +82,33 @@ class SearchActionQuery:
         self.filters.append(tag_satisfies)
         return self
 
+    def has_summary(self, summary_names: List[str], summary_values: List[str]):
+        def has_summary_satisfies(address_book: AddressBook, action_result: ActionResult) -> bool:
+            summary = address_book.whelper.action_summary(action_result.index)
+            for name, value in zip(summary_names, summary_values):
+                if name == 'ANY' or not value:
+                    continue
+                if name == "only_touch_change_event":
+                    res = len(summary["changed_elements_touch"]) > 0 and len(summary["changed_elements_tb_touch"]) == 0 and len(summary["changed_elements_a11y_api"]) == 0
+                    if not res:
+                        return False
+                    continue
+
+                if name not in summary:
+                    return False
+                if name == "children_nodes_action_indices" or name.startswith("changed_elements_"):
+                    if not compare_int(len(summary[name]), value):
+                        return False
+                    continue
+
+                if not compare_bool(summary[name], value):
+                    return False
+
+            return True
+
+        if summary_names and summary_values:
+            self.filters.append(has_summary_satisfies)
+        return self
 
     def post_analysis(self, post_analysis_result: str):
         def post_analysis_satisfies(action, post_analysis_results, address_book: AddressBook, is_sighted) -> bool:

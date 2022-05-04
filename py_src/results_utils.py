@@ -129,7 +129,30 @@ def get_clicked_element(events: List[Tuple[str, Node]]) -> Node:
     return None
 
 
+def get_changed_elements(event_log_message: str) -> List[Node]:
+    nodes = []
+    for line in event_log_message.split("\n"):
+        if "WindowContentChange:" in line:
+            try:
+                right_part = line.split("WindowContentChange:")[1]
+                change_part = json.loads(right_part.strip())
+                if change_part:
+                    change_window = change_part.get('changedWindowId', -2)
+                    active_window = change_part.get('activeWindowId', -3)
+                    if change_window == active_window:
+                        if 'Element' in change_part:
+                            node = Node.createNodeFromDict(change_part['Element'])
+                            nodes.append(node)
+                        else:
+                            logger.warning(f"Problem with analyzing WindowContentChange: '{line}'")
+            except Exception as e:
+                logger.warning(f"Problem in analyzing WindowContentChange: '{e}'")
+    return nodes
+
+
 class WebHelper:
+    AUTO_IGNORED_NAME = "auto_ignored"
+
     def __init__(self, address_book: 'AddressBook'):
         self.address_book = address_book
 
@@ -165,6 +188,9 @@ class WebHelper:
                 result.append(ActionResult.createFromDict(result_json))
         return result
 
+    def is_snapshot_ignored(self) -> bool:
+        return "ManualIgnored" in self.get_note()
+
     def is_same_layout(self, mode1, index1, mode2, index2):
         layout_path1 = self.address_book.get_layout_path(mode1, index1)
         layout_path2 = self.address_book.get_layout_path(mode2, index2)
@@ -177,87 +203,191 @@ class WebHelper:
         events = extract_events(event_logs)
         result = {
             'did_tb_click': did_talkback_perform_click(events),
-            'clicked_node': get_clicked_element(events)
+            'clicked_node': get_clicked_element(events),
+            'changed_nodes': get_changed_elements(event_log_message=event_logs)
         }
         return result
 
     def summarized_events(self, index: int) -> dict:
-        if self.address_book.perform_actions_summary.exists():
-            with open(self.address_book.perform_actions_summary) as f:
-                for line in f.readlines():
-                    json_part = json.loads(line)
-                    if json_part['index'] == index:
-                        return json_part['summary']
-        mode_result = {}
+        cache: bool = True
+        if cache:
+            if self.address_book.perform_actions_summary.exists():
+                with open(self.address_book.perform_actions_summary) as f:
+                    for line in f.readlines():
+                        json_part = json.loads(line)
+                        if json_part['index'] == index:
+                            return json_part['summary']
+        summary = {}
+        mode_events_info = {}
         modes = ['tb_touch', 'touch', 'a11y_api']
         for mode in modes:
-            mode_result[mode] = self.get_events_info(mode, index)
+            mode_events_info[mode] = self.get_events_info(mode, index)
         is_tb_reachable = False
         action_result = self.get_action(index)
         if action_result is None:
             return None
+        all_action_results = self.get_actions()
         node = action_result.node
+        summary["tb_closest_reachable"] = None
         if self.address_book.extract_actions_nodes[Actionables.TBReachable].exists():
+            closest_child = None
             with open(self.address_book.extract_actions_nodes[Actionables.TBReachable]) as f:
                 for line in f.readlines():
                     l_node = Node.createNodeFromDict(json.loads(line))
-                    if node is not None and node.xpath and node.xpath == l_node.xpath:
-                        is_tb_reachable = True
-                        break
-        summary = {
-            'did_tb_click': mode_result['tb_touch']['did_tb_click'],
-            'no_click_at_all': all(mode_result[mode]['clicked_node'] is None for mode in modes),
-            'is_tb_reachable': is_tb_reachable,
-            'is_tb_touchable': action_result.tb_touch_failed is None,
-        }
+                    if node is not None and node.xpath and l_node.xpath.startswith(node.xpath) :
+                        if closest_child is None or l_node.xpath < closest_child.xpath:
+                            closest_child = l_node
+            if closest_child:
+                remaining = closest_child.xpath[len(node.xpath):]
+                if remaining.count("/") < 3:
+                    summary["tb_closest_reachable"] = remaining
+                    is_tb_reachable = True
+        children_nodes_action_indices = []
+        for ar in all_action_results:
+            if ar.index != action_result.index and node.xpath in ar.node.xpath:
+                children_nodes_action_indices.append(ar.index)
+
+        summary['did_tb_click'] = mode_events_info['tb_touch']['did_tb_click']
+        summary['no_click_at_all'] = all(mode_events_info[mode]['clicked_node'] is None for mode in modes)
+        summary['is_tb_reachable'] = is_tb_reachable
+        summary['children_nodes_action_indices'] = children_nodes_action_indices
+
         same_clicked = True
         for i, mode in enumerate(modes):
-            summary[f"{mode}_clicked_node"] = None if mode_result[mode]['clicked_node'] is None else mode_result[mode][
+            summary[f"{mode}_clicked_node"] = None if mode_events_info[mode]['clicked_node'] is None else mode_events_info[mode][
                 'clicked_node'].toJSONStr()
+            summary[f"changed_elements_{mode}"] = [node.toJSON() for node in mode_events_info[mode]['changed_nodes']]
             for m2 in modes[i + 1:]:
                 same_clicked_in_modes = False
-                if mode_result[mode]['clicked_node'] is None:
-                    same_clicked_in_modes = mode_result[m2]['clicked_node'] is None
-                elif mode_result[m2]['clicked_node'] is None:
+                if mode_events_info[mode]['clicked_node'] is None:
+                    same_clicked_in_modes = mode_events_info[m2]['clicked_node'] is None
+                elif mode_events_info[m2]['clicked_node'] is None:
                     same_clicked_in_modes = False
                 else:
-                    same_clicked_in_modes = mode_result[mode]['clicked_node'].xpath == mode_result[m2][
+                    same_clicked_in_modes = mode_events_info[mode]['clicked_node'].xpath == mode_events_info[m2][
                         'clicked_node'].xpath
                 same_clicked = same_clicked and same_clicked_in_modes
                 summary[f"same_clicked_{mode}_{m2}"] = same_clicked_in_modes
-                summary[f"same_clicked_{m2}_{mode}"] = same_clicked_in_modes
+                summary[f"same_layout_{m2}_{mode}"] = self.is_same_layout(mode, index, m2, index)
+                summary[f"same_layout_{mode}_{m2}"] = summary[f"same_layout_{m2}_{mode}"]
         summary["same_clicked"] = same_clicked
-        summary["tb_change_xml"] = not self.is_same_layout(AddressBook.BASE_MODE, index, 'tb_touch', index)
-        summary["touch_change_xml"] = not self.is_same_layout(AddressBook.BASE_MODE, index, 'touch', index)
-        summary["api_change_xml"] = not self.is_same_layout(AddressBook.BASE_MODE, index, 'a11y_api', index)
-        summary["any_change_xml"] = summary["tb_change_xml"] or summary["touch_change_xml"] or summary["api_change_xml"]
-        summary["possible_to_locate"] = (summary['is_tb_reachable'] or summary[
-            'is_tb_touchable'] or node.important_for_accessibility) and summary["api_change_xml"]
+        summary["any_change_xml"] = False
+        for mode in modes:
+            same_layout = self.is_same_layout(AddressBook.BASE_MODE, index, mode, index)
+            summary[f"same_layout_{mode}_{AddressBook.BASE_MODE}"] = same_layout
+            summary[f"same_layout_{AddressBook.BASE_MODE}_{mode}"] = same_layout
+
+        if cache:
+            with open(self.address_book.perform_actions_summary, "a") as f:
+                s = {'index': index, 'summary': summary}
+                f.write(f"{json.dumps(s)}\n")
+        return summary
+
+    def action_summary(self, index: int) -> dict:
+        action_result = self.get_action(index)
+        if action_result is None:
+            return None
+        node = action_result.node
+        summary = self.summarized_events(index)
+        summary['is_tb_touchable'] = action_result.tb_touch_failed is None
+        modes = ['tb_touch', 'touch', 'a11y_api']
+        summary["any_change_xml"] = False
+        for mode in modes:
+            same_layout = summary[f"same_layout_{mode}_{AddressBook.BASE_MODE}"]
+            summary[f"{mode}_change_xml"] = (not same_layout)
+            if len(summary[f"changed_elements_{mode}"]) > 0:
+                if mode != "a11y_api":
+                    if len(summary[f"changed_elements_{mode}"]) > 3:
+                        summary[f"{mode}_change_xml"] = True
+                else:
+                    if len(summary[f"changed_elements_{mode}"]) > 2:
+                        summary[f"{mode}_change_xml"] = True
+
+            summary["any_change_xml"] = summary["any_change_xml"] or summary[f"{mode}_change_xml"]
+        summary["possible_to_locate"] = summary['is_tb_reachable'] or summary[
+            'is_tb_touchable'] or summary["a11y_api_change_xml"] or summary["tb_touch_change_xml"] or node.text
         summary["tb_dir_issue"] = summary["possible_to_locate"] and not summary['is_tb_reachable']
         summary["tb_touch_issue"] = summary["possible_to_locate"] and not summary['is_tb_touchable']
-        summary["tb_act_issue"] = summary["any_change_xml"] and not summary["tb_change_xml"] and \
-                                  mode_result['tb_touch']['did_tb_click']
-        summary["api_act_issue"] = summary["any_change_xml"] and not summary["api_change_xml"]
+        summary["loc_issue"] = summary["tb_dir_issue"] or summary["tb_touch_issue"]
+        summary["tb_act_issue"] = summary["any_change_xml"] and not summary["tb_touch_change_xml"] and summary['did_tb_click']
+        summary["api_act_issue"] = summary["any_change_xml"] and not summary["a11y_api_change_xml"]
         summary["touch_act_issue"] = summary["any_change_xml"] and not summary["touch_change_xml"]
-        with open(self.address_book.perform_actions_summary, "a") as f:
-            s = {'index': index, 'summary': summary}
-            f.write(f"{json.dumps(s)}\n")
+        summary["act_issue"] = summary["tb_act_issue"] or summary["api_act_issue"] or summary["touch_act_issue"]
+        tags = self.get_tags(index)
+        # -------------- Action Auto Ignored --------------------
+        summary[self.AUTO_IGNORED_NAME] = False
+        if action_result.tb_action_result.state == 'timeout':
+            summary[self.AUTO_IGNORED_NAME] = True
+        if summary["tb_dir_issue"] and len(summary["children_nodes_action_indices"]) > 0 and len(summary["changed_elements_a11y_api"]) < 2:
+            summary[self.AUTO_IGNORED_NAME] = True
+        if 'IGN' in tags:
+            summary[self.AUTO_IGNORED_NAME] = True
+
+        # --------------- Manual Override -----------------
+        if "TBTouchLocateOK" in self.get_note() or 'OTT' in tags:
+            summary["tb_touch_issue"] = False
+        if 'OTD' in tags:
+            summary["tb_dir_issue"] = False
+        if 'OTA' in tags:
+            summary["tb_act_issue"] = False
+
         return summary
+
+    def get_actual_action_count(self):
+        c = 0
+        for index in range(self.get_action_count()):
+            if not self.action_summary(index)[self.AUTO_IGNORED_NAME]:
+                c += 1
+        return c
+
 
     def oracle(self) -> dict:
         if not self.address_book.perform_actions_results_path.exists():
             return None
         snapshot_summary = defaultdict(int)
+        missing_tags = 0
+        issue_names = ["tb_dir_issue", "tb_touch_issue", "tb_act_issue", "touch_act_issue", "api_act_issue"]
+        issue_tags = ['TDR', 'TTR', 'TBA', 'TOA', 'APA']
+        issue_name_map = {'loc': ["tb_dir_issue", "tb_touch_issue"], 'act': ["tb_act_issue", "touch_act_issue", "api_act_issue"]}
+        issue_tag_map = {'loc': ['TDR', 'TTR'], 'act': ['TBA', 'TOA', 'APA']}
         with open(self.address_book.perform_actions_results_path) as f:
             for line in f.readlines():
                 action = json.loads(line.strip())
                 index = action['index']
-                summary = self.summarized_events(index)
-                snapshot_summary["tb_dir_issue"] += 1 if summary["tb_dir_issue"] else 0
-                snapshot_summary["tb_touch_issue"] += 1 if summary["tb_touch_issue"] else 0
-                snapshot_summary["tb_act_issue"] += 1 if summary["tb_act_issue"] else 0
-                snapshot_summary["api_act_issue"] += 1 if summary["api_act_issue"] else 0
-                snapshot_summary["touch_act_issue"] += 1 if summary["touch_act_issue"] else 0
+                summary = self.action_summary(index)
+                if summary[self.AUTO_IGNORED_NAME]:
+                    continue
+                tags = self.get_tags(index)
+                for tt in ['loc', 'act']:
+                    if set(issue_tag_map[tt]).intersection(tags):
+                        snapshot_summary[f"a_{tt}_issue"] += 1
+                    flag = True
+                    for issue in issue_name_map[tt]:
+                        if summary[issue]:
+                            if flag:
+                                snapshot_summary[f"{tt}_issue"] += 1
+                                flag = False
+                            if set(issue_tag_map[tt]).intersection(tags):
+                                snapshot_summary[f"tp_{tt}_issue"] += 1
+                                break
+
+                for tag, issue in zip(issue_tags, issue_names):
+                    if tag in tags:
+                        snapshot_summary[f"a_{issue}"] += 1
+                    if summary[issue]:
+                        snapshot_summary[issue] += 1
+                        if tag in tags:
+                            snapshot_summary[f"tp_{issue}"] += 1
+
+                if 'FIN' not in self.get_tags(index):
+                    missing_tags += 1
+
+        issue_names = ["loc_issue", "act_issue"]
+        snapshot_summary["total_issue"] = sum([snapshot_summary[x] for x in issue_names])
+        snapshot_summary["a_total_issue"] = sum([snapshot_summary["a_"+x] for x in issue_names])
+        snapshot_summary["tp_total_issue"] = sum([snapshot_summary["tp_"+x] for x in issue_names])
+        snapshot_summary["missing_tag"] = missing_tags
+
         return snapshot_summary
 
     def get_clickable_span_nodes(self) -> List[Node]:
@@ -266,7 +396,7 @@ class WebHelper:
             .with_xpath_pass() \
             .with_ad_detection() \
             .build()
-        return [node for node in nodes if node.clickable_span and not node.clickable and node.text]
+        return [node for node in nodes if node.clickable_span and not node.clickable and node.text and node.visible]
 
     def get_tags(self, action_index: int) -> List[str]:
         if not self.address_book.tags_path.exists():
@@ -360,7 +490,7 @@ class AddressBook:
         self.perform_actions_atf_issues_screenshot = self.audit_path_map[AddressBook.PERFORM_ACTIONS].joinpath(
             "atf_elements.png")
         self.perform_actions_summary = self.audit_path_map[AddressBook.PERFORM_ACTIONS].joinpath(
-            "summary_of_actions_v1.jsonl")
+            "summary_of_actions_v2.jsonl")
         # ---------------------------------------------------
         # TODO: Needs to find a more elegant solution
         navigate_modes = [AddressBook.BASE_MODE, "tb_touch", "touch", "a11y_api"]

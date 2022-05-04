@@ -241,6 +241,8 @@ def homepage():
 
 @flask_app.route("/v2/<result_path_str>/gh_summary")
 def gh_summary(result_path_str: str):
+    show_all = request.args.get('all', 'false')
+    show_all = show_all == 'true'
     result_path = pathlib.Path(fix_path(result_path_str))
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is inccorrect!"
@@ -251,7 +253,7 @@ def gh_summary(result_path_str: str):
         for snapshot_path in app_path.iterdir():
             if snapshot_path.is_dir():
                 address_books.append(AddressBook(snapshot_path))
-    return render_template('gh_summary.html', address_books=address_books, result_path=result_path_str)
+    return render_template('gh_summary.html', address_books=address_books, result_path=result_path_str, show_all=show_all)
 
 
 @flask_app.route("/v2/<result_path_str>/")
@@ -332,6 +334,11 @@ def search_v2(result_path_str: str):
     tb_result_field = request.args.get('tbResult', 'ALL')
     touch_result_field = request.args.get('regResult', 'ALL')
     a11y_api_result_field = request.args.get('aregResult', 'ALL')
+    summary_names = request.args.getlist('summarySearchName[]')
+    summary_values = request.args.getlist('summarySearchValue[]')
+    if len(summary_names) == 0 or len(summary_names) != len(summary_values):
+        summary_names = ['ANY']*3
+        summary_values = [None]*3
     action_attr_names = request.args.getlist('actionSearchAttr[]')
     action_attr_values = request.args.getlist('actionSearchQuery[]')
     if len(action_attr_names) == 0 or len(action_attr_names) != len(action_attr_values):
@@ -386,7 +393,7 @@ def search_v2(result_path_str: str):
     #         search_query.contains_action_xml_attr(action_attr, value)
 
     if len(include_tags) > 0 or len(exclude_tags) > 0:
-        search_query.contains_tags(include_tags, exclude_tags)
+        search_query.contains_tags(include_tags=include_tags, exclude_tags=exclude_tags)
     if tb_result_field:
         search_query.executor_result('tb', tb_result_field)
     if touch_result_field:
@@ -397,6 +404,8 @@ def search_v2(result_path_str: str):
         search_query.contains_action_with_attrs(attr_names=action_attr_names, attr_queries=action_attr_values)
     if any(xml_search_fields):
         search_query.contains_layout_with_attrs(attr_names=xml_search_attrs, attr_queries=xml_search_fields)
+    if any(summary_values):
+        search_query.has_summary(summary_names=summary_names, summary_values=summary_values)
     #
     # for (left_xml_field, op_xml_field, right_xml_field) in zip(left_xml_fields, op_xml_fields, right_xml_fields):
     #     if left_xml_field != 'None' and right_xml_field != 'None':
@@ -425,6 +434,8 @@ def search_v2(result_path_str: str):
                            all_snapshots_result_count=all_snapshots_result_count,
                            action_attr_names=action_attr_names,
                            action_attr_values=action_attr_values,
+                           summary_names=summary_names,
+                           summary_values=summary_values,
                            # action_attrs=zip(action_attr_names, action_attr_fields),
                            # action_xml_attrs=zip(action_xml_attr_names, action_xml_attr_fields),
                            tb_type=tb_type,

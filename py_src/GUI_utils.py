@@ -390,7 +390,7 @@ def is_in_same_state_with_nodes(nodes1: List[Node], nodes2: List[Node], extra_ex
     if len(nodes1) != len(nodes2):
         return False
     excluded_attributes = ['xpath', 'naf', 'focused', 'bounds', 'index', 'drawing_order',
-                           'a11y_actions']
+                           'a11y_actions', 'invalid']
     if extra_excluded_attributes is not None:
         excluded_attributes.extend(extra_excluded_attributes)
     for node1, node2 in zip(nodes1, nodes2):
