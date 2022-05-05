@@ -5,7 +5,8 @@ import logging
 import json
 import pathlib
 import sys
-from collections import defaultdict
+from collections import defaultdict, Counter, namedtuple
+from typing import Dict
 
 from ppadb.client_async import ClientAsync as AdbClient
 from padb_utils import ParallelADBLogger, save_screenshot
@@ -34,6 +35,124 @@ def smart__write_open(filename=None):
     finally:
         if fh is not sys.stdout:
             fh.close()
+
+big_gh_data_set = """1_Popular	Instagram	com.instagram.android	298419767	255.0.0.8.119	1000000000	4.1	Social
+1_Popular	FacebookLite	com.facebook.lite	298079508	192.0.0.35.123	1000000000	4.1	Social
+1_Popular	Wish	com.contextlogic.wish	1682	4.48.3	500000000	4.6	Shopping
+1_Popular	Zoom	us.zoom.videomeetings	650907	5.9.6.4756	500000000	4.4	Business
+1_Popular	Tubi	com.tubitv	578	4.13.0	100000000	4.8	Entertainment
+1_Popular	Shein	com.zzkko	418	7.6.2	100000000	4.8	Shopping
+1_Popular	MicrosoftTeams	com.microsoft.teams	2021063722	1416/1.0.0.2021063702	100000000	4.7	Business
+1_Popular	Booking	com.booking	17473	30.9.1	100000000	4.6	Travel
+1_Popular	FileMaster	com.root.clean.boost.explorer.filemanager	129	1.2.9	100000000	4.5	Tools
+1_Popular	Life360	com.life360.android.safetymapd	241870	21.5.0	100000000	4.5	Lifestyle
+2_AndroZoo	YONO	com.sbi.lotusintouch	12350	1.23.50	100000000	4.1	Finance
+1_Popular	MovetoiOS	com.apple.movetoios	3011	3.1.2	100000000	2.9	Tools
+1_Popular	Bible	kjv.bible.kingjamesbible	315	2.66.1	50000000	4.9	Books
+1_Popular	ToonMe	com.vicman.toonmeapp	365	0.6.0	50000000	4.6	Photography
+1_Popular	OfferUp	com.offerup	140124472	4.8.0	50000000	4.3	Shopping
+1_Popular	ESPN	com.espn.score_center	8879	6.46.1	50000000	4	Sports
+3_Latte	Yelp	com.yelp.android	21020803	10.21.1-21020803	50000000	4	Food
+3_Latte	GeekShopping	com.contextlogic.geek	352	2.3.7	10000000	4.6	Shopping
+3_Latte	Dictionary	com.dictionary	297	7.5.36	10000000	4.6	Books
+3_Latte	FatSecret	com.fatsecret.android	495	8.7.2.0	10000000	4.6	Health
+1_Popular	Nike	com.nike.omega	1810041428	2.34.0	10000000	4.5	Shopping
+1_Popular	Roku	com.roku.remote	125	7.8.0.644430	10000000	4.4	Entertainment
+3_Latte	SchoolPlanner	daldev.android.gradehelper	198	3.15.1	10000000	4.4	Education
+1_Popular	NortonVPN	com.symantec.securewifi	12368	3.5.3.12368.ad83ac2	10000000	4.3	Tools
+1_Popular	Venmo	com.venmo	3069	9.15.0	10000000	4.2	Finance
+3_Latte	Checkout51	com.c51	531	5.3.1	10000000	4.2	Shopping
+1_Popular	DigitalClock	com.andronicus.ledclock	89	10.4	10000000	4.1	Tools
+1_Popular	Lyft	me.lyft.android	1623222642	6.88.3.1623222642	10000000	3.8	Navigation
+1_Popular	Expedia	com.expedia.bookings	21230001	21.23.0	10000000	3.5	Travel
+3_Latte	TripIt	com.tripit	2007301330	9.7.0	5000000	4.8	Tavel
+3_Latte	ZipRecruiter	com.ziprecruiter.android.release	81	3.0.0	5000000	4.8	Business
+2_AndroZoo	To-Do-List	todolist.scheduleplanner.dailyplanner.todo.reminders	1000114	1.01.75.0110	5000000	4.7	Productivity
+3_Latte	Feedly	com.devhd.feedly	669	38.0.0	5000000	4.3	News
+2_AndroZoo	HTTP-Injector	com.evozi.injector.lite	14220	5.3.0	1000000	4.5	Tools
+3_Latte	BudgetPlanner	com.colpit.diamondcoming.isavemoney	230	6.6.0	1000000	4.4	Finance
+2_AndroZoo	Estapar	br.com.estapar.sp	707	0.7.6	1000000	4.3	Vehicles
+2_AndroZoo	net.inverline.bancosabadell.officelocator.android	net.inverline.bancosabadell.officelocator.android	127399051	22.1.0	1000000	3.6	Finance
+2_AndroZoo	com.abinbev.android.tapwiser.beesMexico	com.abinbev.android.tapwiser.beesMexico	16474	14.5	100000	3.4	Business
+2_AndroZoo	com.masterlock.enterprise.vaultenterprise	com.masterlock.enterprise.vaultenterprise	2100007	2.10.0.7	50000	4.2	Lifestyle
+2_AndroZoo	com.spinearnpk.pk	com.spinearnpk.pk	95	1.9.5	50000	3.8	Finance
+2_AndroZoo	MyCentsys	com.CenturionSystems.MyCentsysPro	126	1.5.0.19	10000	-	House
+2_AndroZoo	HManager	com.chsappz.hmanager	69	2.1.3	10000	4.2	Productivity
+2_AndroZoo	Greysheet	com.cdn.greysheet	23	5.1	10000	4	Lifestyle
+2_AndroZoo	com.cegid.cashmanager	com.cegid.cashmanager	34	1.8.3	5000	-	Business
+2_AndroZoo	MGFlasher	com.mgflasher.app	572	320	5000	4.2	Vehicles
+2_AndroZoo	com.cryptzone.appgate.xdp	com.cryptzone.appgate.xdp	55325407	5.5.3-25407-release	5000	3.5	Business
+2_AndroZoo	Newcatsle	au.gov.nsw.newcastle.app.android	1387	1.8.6	1000	-	Lifestyle
+2_AndroZoo	com.freemanhealth.EmployeePortal	com.freemanhealth.EmployeePortal	59	2.11.5	1000	4.2	Tools
+2_AndroZoo	io.cordova.myapp6baa2d	io.cordova.myapp6baa2d	10507	1.5.7	100	-	Health
+2_AndroZoo	AuditManager	com.focusinformatica.AuditManagerAzimutBenetti	20	2.1.1	50	-	Productivity
+2_AndroZoo	com.murder.eyez	com.murder.eyez	32	1.0.2	50	-	Entertainment
+2_AndroZoo	com.alphasoft.burn	com.alphasoft.burn	2	1.1	1	-	-"""
+
+gh_data_set = """1_Popular	Instagram	com.instagram.android	298419767	255.0.0.8.119	1000000000	4.1	Social
+1_Popular	FacebookLite	com.facebook.lite	298079508	192.0.0.35.123	1000000000	4.1	Social
+1_Popular	Shein	com.zzkko	418	7.6.2	100000000	4.8	Shopping
+1_Popular	MicrosoftTeams	com.microsoft.teams	2021063722	1416/1.0.0.2021063702	100000000	4.7	Business
+2_AndroZoo	YONO	com.sbi.lotusintouch	12350	1.23.50	100000000	4.1	Finance
+1_Popular	MovetoiOS	com.apple.movetoios	3011	3.1.2	100000000	2.9	Tools
+1_Popular	Bible	kjv.bible.kingjamesbible	315	2.66.1	50000000	4.9	Books
+3_Latte	Yelp	com.yelp.android	21020803	10.21.1-21020803	50000000	4	Food
+3_Latte	GeekShopping	com.contextlogic.geek	352	2.3.7	10000000	4.6	Shopping
+3_Latte	Dictionary	com.dictionary	297	7.5.36	10000000	4.6	Books
+3_Latte	FatSecret	com.fatsecret.android	495	8.7.2.0	10000000	4.6	Health
+1_Popular	Roku	com.roku.remote	125	7.8.0.644430	10000000	4.4	Entertainment
+3_Latte	SchoolPlanner	daldev.android.gradehelper	198	3.15.1	10000000	4.4	Education
+1_Popular	NortonVPN	com.symantec.securewifi	12368	3.5.3.12368.ad83ac2	10000000	4.3	Tools
+3_Latte	Checkout51	com.c51	531	5.3.1	10000000	4.2	Shopping
+1_Popular	DigitalClock	com.andronicus.ledclock	89	10.4	10000000	4.1	Tools
+1_Popular	Expedia	com.expedia.bookings	21230001	21.23.0	10000000	3.5	Travel
+3_Latte	TripIt	com.tripit	2007301330	9.7.0	5000000	4.8	Tavel
+3_Latte	ZipRecruiter	com.ziprecruiter.android.release	81	3.0.0	5000000	4.8	Business
+2_AndroZoo	To-Do-List	todolist.scheduleplanner.dailyplanner.todo.reminders	1000114	1.01.75.0110	5000000	4.7	Productivity
+3_Latte	Feedly	com.devhd.feedly	669	38.0.0	5000000	4.3	News
+2_AndroZoo	HTTP-Injector	com.evozi.injector.lite	14220	5.3.0	1000000	4.5	Tools
+3_Latte	BudgetPlanner	com.colpit.diamondcoming.isavemoney	230	6.6.0	1000000	4.4	Finance
+2_AndroZoo	Estapar	br.com.estapar.sp	707	0.7.6	1000000	4.3	Vehicles
+2_AndroZoo	MyCentsys	com.CenturionSystems.MyCentsysPro	126	1.5.0.19	10000	-	House
+2_AndroZoo	HManager	com.chsappz.hmanager	69	2.1.3	10000	4.2	Productivity
+2_AndroZoo	Greysheet	com.cdn.greysheet	23	5.1	10000	4	Lifestyle
+2_AndroZoo	MGFlasher	com.mgflasher.app	572	320	5000	4.2	Vehicles
+2_AndroZoo	Newcatsle	au.gov.nsw.newcastle.app.android	1387	1.8.6	1000	-	Lifestyle
+2_AndroZoo	AuditManager	com.focusinformatica.AuditManagerAzimutBenetti	20	2.1.1	50	-	Productivity"""
+
+
+def convert_installs(i):
+    x = Counter(i)
+    if '0' not in x:
+        return "<10K"
+    elif x['0'] == 9:
+        return ">1B"
+    elif x['0'] >= 6:
+        return f">{i[0]}{(x['0']-6)*'0'}M"
+    elif x['0'] >= 4:
+        return f">{i[0]}{(x['0']-3)*'0'}K"
+    else:
+        return "<10K"
+
+AppInfo = namedtuple('AppInfo', ['type', 'name', 'pkg_name', 'pkg_str', 'version_code', 'installs', 'installs_str', 'rate', 'category'])
+def get_data_set_info() -> Dict[str,AppInfo]:
+    apps = {}
+    t_counter = defaultdict(int)
+    for i, line in enumerate(big_gh_data_set.split("\n")):
+        parts = line.split()
+        t_type = parts[0].split('_')[1][0]
+        t_counter[t_type] += 1
+        t_type = f"{t_type}{t_counter[t_type]}"
+        name = parts[1]
+        pkg_name = parts[2]
+        pkg_str = f"\\texttt{{{parts[2][:20]}}}" + ("" if len(parts[2]) <= 20 else "...")
+        code = parts[3]
+        installs = int(parts[5])
+        installs_str = convert_installs(parts[5])
+        rate = parts[6]
+        category = parts[7]
+        apps[pkg_name] = AppInfo(t_type, name, pkg_name, pkg_str, code, installs, installs_str, rate, category)
+    return apps
 
 
 async def execute_latte_command(device, command: str, extra: str):
@@ -117,57 +236,107 @@ async def execute_latte_command(device, command: str, extra: str):
         if not result_path.is_dir():
             logger.error("The result path doesn't exist")
             return
-        issue_names = ["loc_issue", "tb_act_issue", "touch_act_issue", "api_act_issue"]
+        issue_names = ["loc_issue", "tb_act_issue", "api_act_issue", "total_issue"]
         all_results = defaultdict(int)
-        for app_path in result_path.iterdir():
-            if not app_path.is_dir():
-                continue
-            if "com.sbi.lotus" in app_path.name:
+        app_infos = get_data_set_info()
+        COLORED_CELL = "\\cellcolor{LightCyan}"
+        for pkg_name, app_info in app_infos.items():
+            app_path = result_path.joinpath(pkg_name)
+            if not app_path.exists() or not app_path.is_dir():
                 continue
             if "au.gov.nsw." in app_path.name:
                 continue
             if "com.zzkk" in app_path.name:
                 continue
-            app_row = "\\texttt{" + app_path.name[:15] + "}" + ("..." if len(app_path.name) > 15 else "")
+            # app_row = "\\texttt{" + app_path.name[:15] + "}" + ("..." if len(app_path.name) > 15 else "")
+            app_row = f"{app_info.type} & {app_info.name}  & {app_info.version_code} & {app_info.category} & {app_info.installs_str}"
             result = defaultdict(int)
-
-
+            snapshot_count = 0
+            atf_count = 0
             for s_index, snapshot_path in enumerate(app_path.iterdir()):
                 if not snapshot_path.is_dir():
                     continue
                 address_book = AddressBook(snapshot_path)
                 if address_book.whelper.is_snapshot_ignored():
                     continue
+                snapshot_count += 1
                 result["total_actions"] += address_book.whelper.get_action_count()
                 result["gh_actions"] += address_book.whelper.get_actual_action_count()
                 snapshot_summary = address_book.whelper.oracle()
-
+                result["sa_verified_issues"] += snapshot_summary["sa_verified_issues"]
                 for issue in issue_names:
                     result[issue] += snapshot_summary[issue]
                     result[f"tp_{issue}"] += snapshot_summary[f"tp_{issue}"]
-
+                atf_count += address_book.whelper.get_atf_count()
+            if snapshot_count < 5:
+                logger.warning(f"App {pkg_name} has {snapshot_count} snapshots!")
             app_row += f"& {result['total_actions']} "  # Total Actions
             app_row += f"& {result['gh_actions']} "  # Total Actions
+            all_results['atf'] += atf_count
+            all_results["sa_verified_issues"] += result["sa_verified_issues"]
+            all_results['total_actions'] += result['total_actions']
+            all_results['gh_actions'] += result['gh_actions']
             for issue in issue_names:
                 all_results[issue] += result[issue]
                 all_results[f"tp_{issue}"] += result[f"tp_{issue}"]
                 app_row += f"& {result[issue]} " # Issues
-                app_row += f"& {result['tp_'+issue]} "  # TP
-
+                if result['tp_'+issue] > 0:
+                    app_row += f"& {COLORED_CELL}\\textbf{{{result['tp_'+issue]}}} "  # TP
+                else:
+                    app_row += f"& {result['tp_'+issue]} "  # TP
+                if issue == 'api_act_issue':
+                    app_row += f"& {result['sa_verified_issues']} "  # SA_Verified
+            app_row += f"& {atf_count} "  # ATF
             app_row += "\\\\ \n"
             app_row += "\hline \n"
             print(app_row)
-        last_row = "\\multicolumn{3}{|c|}{Total} "
+        last_row = "\\multicolumn{5}{|c|}{Total} "
+        last_row += f"& {all_results['total_actions']} & {all_results['gh_actions']}"  # ATF
         for issue in issue_names:
             last_row += f"& {all_results[issue]} & {all_results['tp_'+issue]}"
+            if issue == 'api_act_issue':
+                last_row += f"& {all_results['sa_verified_issues']}"
+        last_row += f"& {all_results['atf']} "  # ATF
         last_row += "\\\\\n"
         last_row += "\\hline\n"
         print(last_row)
-        last_row = "\\multicolumn{3}{|c|}{Precision} "
+        last_row = "\\multicolumn{7}{|c|}{Precision} "
         for issue in issue_names:
             last_row += "& \\multicolumn{2}{c|}{"+f"{(all_results['tp_'+issue]/all_results[issue]):.2f}" +"}"
-        last_row += "\\\\\n"
+            if issue == 'api_act_issue':
+                last_row += "& "
+        last_row += "&\\\\\n"
         print(last_row)
+
+    if command == "gh_atf":
+        result_path = pathlib.Path(extra)
+        if not result_path.is_dir():
+            logger.error("The result path doesn't exist")
+            return
+        atf_types = defaultdict(set)
+        atf_types_to_snapshot = defaultdict(set)
+        for app_path in result_path.iterdir():
+            if not app_path.is_dir():
+                continue
+            for snapshot_path in app_path.iterdir():
+                if not snapshot_path.is_dir():
+                    continue
+                address_book = AddressBook(snapshot_path)
+                if address_book.perform_actions_atf_issues_path.exists():
+                    with open(address_book.perform_actions_atf_issues_path) as f:
+                        for line in f.readlines():
+                            part = json.loads(line)
+                            t = part['ATFType']
+                            atf_types[t].add(app_path.name)
+                            atf_types_to_snapshot[t].add(snapshot_path.name)
+        for tt, names in atf_types.items():
+            print(f"{tt}: {len(names)}")
+            if len(names) < 3:
+                for name in atf_types_to_snapshot[tt]:
+                    print("\t", name)
+
+
+
 
     if command == "os_empirical":
         result_path = pathlib.Path(extra)
@@ -178,20 +347,38 @@ async def execute_latte_command(device, command: str, extra: str):
         for w in ['A', 'P']:
             oac_names.extend([oac.name for oac in OAC if oac.name.startswith(w)])
         oac_count = defaultdict(int)
+        total_nodes = 0
+        total_oaes = 0
+        total_screen_with_oaes = 0
+        total_app_with_oaes = 0
         for app_path in result_path.iterdir():
             if not app_path.is_dir():
                 continue
-
+            app_oae = 0
             for snapshot_path in app_path.iterdir():
                 if not snapshot_path.is_dir():
                     continue
                 address_book = AddressBook(snapshot_path)
+                with open(address_book.get_layout_path(AddressBook.BASE_MODE, AddressBook.INITIAL)) as f:
+                    total_nodes += f.read().count("</node>")
+                has_oac = 0
                 for oac in oac_names:
                     oacs = address_book.get_oacs(oac=oac)
                     if len(oacs) > 0:
+                        has_oac += 1
                         oac_count[oac] += 1
+                oacs = len(address_book.get_oacs())
+                app_oae += oacs
+                if oacs > 0:
+                    total_screen_with_oaes += 1
+                total_oaes += oacs
+            if app_oae > 0:
+                total_app_with_oaes += 1
+
+
         for k, v in oac_count.items():
             print(f"{k}: {v}")
+        print(f"Nodes: {total_nodes}, OAEs: {total_oaes}, ScreenWithOAEs: {total_screen_with_oaes}, AppsWithOAEs: {total_app_with_oaes}")
 
 
 

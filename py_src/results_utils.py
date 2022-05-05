@@ -290,9 +290,16 @@ class WebHelper:
         node = action_result.node
         summary = self.summarized_events(index)
         summary['is_tb_touchable'] = action_result.tb_touch_failed is None
+
         modes = ['tb_touch', 'touch', 'a11y_api']
         summary["any_change_xml"] = False
+        with open(self.address_book.get_layout_path(AddressBook.BASE_MODE,AddressBook.INITIAL)) as f:
+            base_layout = f.read()
         for mode in modes:
+            with open(self.address_book.get_layout_path(mode, index)) as f:
+                mode_layout = f.read()
+            summary[f'exact_same_layout_{mode}_{AddressBook.BASE_MODE}'] = base_layout == mode_layout
+            summary[f'exact_same_layout_{AddressBook.BASE_MODE}_{mode}'] = summary[f'exact_same_layout_{mode}_{AddressBook.BASE_MODE}']
             same_layout = summary[f"same_layout_{mode}_{AddressBook.BASE_MODE}"]
             summary[f"{mode}_change_xml"] = (not same_layout)
             if len(summary[f"changed_elements_{mode}"]) > 0:
@@ -305,14 +312,14 @@ class WebHelper:
 
             summary["any_change_xml"] = summary["any_change_xml"] or summary[f"{mode}_change_xml"]
         summary["possible_to_locate"] = summary['is_tb_reachable'] or summary[
-            'is_tb_touchable'] or summary["a11y_api_change_xml"] or summary["tb_touch_change_xml"] or node.text
+            'is_tb_touchable'] or summary["a11y_api_change_xml"] or summary["tb_touch_change_xml"] or len(node.text) > 0
         summary["tb_dir_issue"] = summary["possible_to_locate"] and not summary['is_tb_reachable']
         summary["tb_touch_issue"] = summary["possible_to_locate"] and not summary['is_tb_touchable']
-        summary["loc_issue"] = summary["tb_dir_issue"] or summary["tb_touch_issue"]
+
         summary["tb_act_issue"] = summary["any_change_xml"] and not summary["tb_touch_change_xml"] and summary['did_tb_click']
         summary["api_act_issue"] = summary["any_change_xml"] and not summary["a11y_api_change_xml"]
         summary["touch_act_issue"] = summary["any_change_xml"] and not summary["touch_change_xml"]
-        summary["act_issue"] = summary["tb_act_issue"] or summary["api_act_issue"] or summary["touch_act_issue"]
+
         tags = self.get_tags(index)
         # -------------- Action Auto Ignored --------------------
         summary[self.AUTO_IGNORED_NAME] = False
@@ -331,6 +338,15 @@ class WebHelper:
         if 'OTA' in tags:
             summary["tb_act_issue"] = False
 
+        summary["loc_issue"] = summary["tb_dir_issue"] or summary["tb_touch_issue"]
+
+        # ------------- TalkBack --------
+        if (summary["tb_dir_issue"] or summary["tb_closest_reachable"]) and summary["tb_touch_issue"]:
+            summary["tb_act_issue"] = False
+        if not summary["possible_to_locate"]:
+            summary["tb_act_issue"] = False
+
+        summary["act_issue"] = summary["tb_act_issue"] or summary["api_act_issue"] or summary["touch_act_issue"]
         return summary
 
     def get_actual_action_count(self):
@@ -348,8 +364,11 @@ class WebHelper:
         missing_tags = 0
         issue_names = ["tb_dir_issue", "tb_touch_issue", "tb_act_issue", "touch_act_issue", "api_act_issue"]
         issue_tags = ['TDR', 'TTR', 'TBA', 'TOA', 'APA']
-        issue_name_map = {'loc': ["tb_dir_issue", "tb_touch_issue"], 'act': ["tb_act_issue", "touch_act_issue", "api_act_issue"]}
-        issue_tag_map = {'loc': ['TDR', 'TTR'], 'act': ['TBA', 'TOA', 'APA']}
+        # issue_name_map = {'loc': ["tb_dir_issue", "tb_touch_issue"], 'act': ["tb_act_issue", "touch_act_issue", "api_act_issue"]}
+        # issue_tag_map = {'loc': ['TDR', 'TTR'], 'act': ['TBA', 'TOA', 'APA']}
+        issue_name_map = {'loc': ["tb_dir_issue", "tb_touch_issue"], 'act': ["tb_act_issue", "api_act_issue"]}
+        issue_tag_map = {'loc': ['TDR', 'TTR'], 'act': ['TBA', 'APA']}
+        snapshot_summary["sa_verified_issues"] = 0
         with open(self.address_book.perform_actions_results_path) as f:
             for line in f.readlines():
                 action = json.loads(line.strip())
@@ -378,10 +397,11 @@ class WebHelper:
                         snapshot_summary[issue] += 1
                         if tag in tags:
                             snapshot_summary[f"tp_{issue}"] += 1
+                            if issue == 'api_act_issue' and 'SWI' in tags:
+                                snapshot_summary["sa_verified_issues"] += 1
 
                 if 'FIN' not in self.get_tags(index):
                     missing_tags += 1
-
         issue_names = ["loc_issue", "act_issue"]
         snapshot_summary["total_issue"] = sum([snapshot_summary[x] for x in issue_names])
         snapshot_summary["a_total_issue"] = sum([snapshot_summary["a_"+x] for x in issue_names])

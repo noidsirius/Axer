@@ -170,8 +170,14 @@
                                                     ('children_nodes_action_indices', 'TBR Children'),
                                                     ('changed_elements_a11y_api', 'EventChanges in API A11y'),
                                                     ('changed_elements_touch', 'EventChanges in Touch'),
+                                                    ('changed_elements_tb_touch', 'EventChanges in TalkBack'),
                                                     ('only_touch_change_event', 'OnlyTouchChangeEvent'),
                                                     ('same_layout_base_touch', 'SameTouchLayout'),
+                                                    ('same_layout_base_tb_touch', 'SameTBLayout'),
+                                                    ('same_layout_base_a11y_api', 'SameA11yAPILayout'),
+                                                    ('exact_same_layout_base_a11y_api', 'ExactSameA11yAPILayout'),
+                                                    ('auto_ignored', 'AutoIgnored'),
+                                                    ('possible_to_locate','PossibleToLocate'),
                                                     ] %}
                                                 <option value="{{ item[0] }}" class="text-start"
                                                         {% if name == item[0] %}
@@ -316,7 +322,7 @@
                                 <div class="mb-3">
                                     <label for="countSearchActionField" class="form-label">Number of Action Results</label>
                                     <select class="form-select" name="action_limit_field" id="countSearchActionField" aria-label="Number of Action Results">
-                                        {% for i in [10, 50, 100] %}
+                                        {% for i in [10, 50, 100, 500] %}
                                             <option value="{{ i }}"
                                                     {% if action_limit_field==i %}
                                                     selected

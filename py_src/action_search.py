@@ -93,7 +93,6 @@ class SearchActionQuery:
                     if not res:
                         return False
                     continue
-
                 if name not in summary:
                     return False
                 if name == "children_nodes_action_indices" or name.startswith("changed_elements_"):
@@ -221,6 +220,8 @@ class SearchActionManager:
 
                 action_in_snapshot_count = 0
                 address_book = AddressBook(snapshot_path)
+                if "ManualIgnored" in address_book.whelper.get_note():  # TODO: REMOVED
+                    continue
                 if not address_book.perform_actions_results_path.exists():
                     continue
                 for action_result in address_book.whelper.get_actions():

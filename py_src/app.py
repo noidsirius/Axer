@@ -337,8 +337,8 @@ def search_v2(result_path_str: str):
     summary_names = request.args.getlist('summarySearchName[]')
     summary_values = request.args.getlist('summarySearchValue[]')
     if len(summary_names) == 0 or len(summary_names) != len(summary_values):
-        summary_names = ['ANY']*3
-        summary_values = [None]*3
+        summary_names = ['ANY']*6
+        summary_values = [None]*6
     action_attr_names = request.args.getlist('actionSearchAttr[]')
     action_attr_values = request.args.getlist('actionSearchQuery[]')
     if len(action_attr_names) == 0 or len(action_attr_names) != len(action_attr_values):
