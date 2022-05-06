@@ -263,7 +263,8 @@ async def execute_latte_command(device, command: str, extra: str):
                 continue
             # app_row = "\\texttt{" + app_path.name[:15] + "}" + ("..." if len(app_path.name) > 15 else "")
             all_results["app_count"] += 1
-            app_row = f"{app_info.type} & {app_info.name}  & {app_info.version_code} & {app_info.category} & {app_info.installs_str}"
+            # app_row = f"{app_info.type} & {app_info.name}  & {app_info.version_code} & {app_info.category} & {app_info.installs_str}"
+            app_row = f"{app_info.type} & {app_info.name}   & {app_info.category} & {app_info.installs_str}"
             result = defaultdict(int)
             atf_count = 0
             for s_index, snapshot_path in enumerate(app_path.iterdir()):
@@ -307,7 +308,7 @@ async def execute_latte_command(device, command: str, extra: str):
             app_row += "\\\\ \n"
             app_row += "\hline \n"
             print(app_row)
-        last_row = "\\multicolumn{5}{|c|}{Total} "
+        last_row = "\\multicolumn{4}{|c|}{Total} "
         last_row += f"& {all_results['total_actions']} & {all_results['gh_actions']}"  # ATF
         for issue in issue_names:
             last_row += f"& {all_results[issue]} & {all_results['tp_'+issue]}"
@@ -317,7 +318,7 @@ async def execute_latte_command(device, command: str, extra: str):
         last_row += "\\\\\n"
         last_row += "\\hline\n"
         print(last_row)
-        last_row = "\\multicolumn{7}{|c|}{Precision} "
+        last_row = "\\multicolumn{6}{|c|}{Precision} "
         for issue in issue_names:
             last_row += "& \\multicolumn{2}{c|}{"+f"{(all_results['tp_'+issue]/all_results[issue]):.2f}" +"}"
             if issue == 'api_act_issue':
