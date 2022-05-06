@@ -84,6 +84,22 @@ public class Utils {
                 result.add(node);
             }
         }
+        if (result.size() == 0)  // TODO: For Groundhog, should not be used by Latte
+        {
+            String targetXpath = target.getXpath();
+            targetXpath = targetXpath.replaceAll("\\[1\\]", "");
+            Log.d(LatteService.TAG, "Check simpler target xpath" + targetXpath);
+            for(AccessibilityNodeInfo node : getAllA11yNodeInfo(false)) {
+                if(!LatteService.considerInvisibleNodes && !node.isVisibleToUser())
+                    continue;
+                ActualWidgetInfo currentNodeInfo = ActualWidgetInfo.createFromA11yNode(node); // TODO: Use Cache
+                String myXpath = currentNodeInfo.getXpath();
+                myXpath = myXpath.replaceAll("\\[1\\]", "");
+                if (myXpath.equals(targetXpath)) {
+                    result.add(node);
+                }
+            }
+        }
         return result;
     }
 

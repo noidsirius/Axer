@@ -43,6 +43,7 @@ big_gh_data_set = """1_Popular	Instagram	com.instagram.android	298419767	255.0.0
 1_Popular	Tubi	com.tubitv	578	4.13.0	100000000	4.8	Entertainment
 1_Popular	Shein	com.zzkko	418	7.6.2	100000000	4.8	Shopping
 1_Popular	MicrosoftTeams	com.microsoft.teams	2021063722	1416/1.0.0.2021063702	100000000	4.7	Business
+3_Latte	Soundcloud	com.soundcloud.android	29090	2020.07.06-release	100000000	4.7	Music
 1_Popular	Booking	com.booking	17473	30.9.1	100000000	4.6	Travel
 1_Popular	FileMaster	com.root.clean.boost.explorer.filemanager	129	1.2.9	100000000	4.5	Tools
 1_Popular	Life360	com.life360.android.safetymapd	241870	21.5.0	100000000	4.5	Lifestyle
@@ -50,12 +51,14 @@ big_gh_data_set = """1_Popular	Instagram	com.instagram.android	298419767	255.0.0
 1_Popular	MovetoiOS	com.apple.movetoios	3011	3.1.2	100000000	2.9	Tools
 1_Popular	Bible	kjv.bible.kingjamesbible	315	2.66.1	50000000	4.9	Books
 1_Popular	ToonMe	com.vicman.toonmeapp	365	0.6.0	50000000	4.6	Photography
+3_Latte	Astro	com.metago.astro	2018041115	6.3.1	50000000	4.4	Tools
 1_Popular	OfferUp	com.offerup	140124472	4.8.0	50000000	4.3	Shopping
 1_Popular	ESPN	com.espn.score_center	8879	6.46.1	50000000	4	Sports
 3_Latte	Yelp	com.yelp.android	21020803	10.21.1-21020803	50000000	4	Food
 3_Latte	GeekShopping	com.contextlogic.geek	352	2.3.7	10000000	4.6	Shopping
 3_Latte	Dictionary	com.dictionary	297	7.5.36	10000000	4.6	Books
 3_Latte	FatSecret	com.fatsecret.android	495	8.7.2.0	10000000	4.6	Health
+3_Latte	Cookpad	com.mufumbo.android.recipe.search	30216420	2.164.2.0-android	10000000	4.6	Food
 1_Popular	Nike	com.nike.omega	1810041428	2.34.0	10000000	4.5	Shopping
 1_Popular	Roku	com.roku.remote	125	7.8.0.644430	10000000	4.4	Entertainment
 3_Latte	SchoolPlanner	daldev.android.gradehelper	198	3.15.1	10000000	4.4	Education
@@ -63,6 +66,7 @@ big_gh_data_set = """1_Popular	Instagram	com.instagram.android	298419767	255.0.0
 1_Popular	Venmo	com.venmo	3069	9.15.0	10000000	4.2	Finance
 3_Latte	Checkout51	com.c51	531	5.3.1	10000000	4.2	Shopping
 1_Popular	DigitalClock	com.andronicus.ledclock	89	10.4	10000000	4.1	Tools
+3_Latte	Vimeo	com.vimeo.android.videoapp	3390001	3.39.0	10000000	4	Entertainment
 1_Popular	Lyft	me.lyft.android	1623222642	6.88.3.1623222642	10000000	3.8	Navigation
 1_Popular	Expedia	com.expedia.bookings	21230001	21.23.0	10000000	3.5	Travel
 3_Latte	TripIt	com.tripit	2007301330	9.7.0	5000000	4.8	Tavel
@@ -70,9 +74,12 @@ big_gh_data_set = """1_Popular	Instagram	com.instagram.android	298419767	255.0.0
 2_AndroZoo	To-Do-List	todolist.scheduleplanner.dailyplanner.todo.reminders	1000114	1.01.75.0110	5000000	4.7	Productivity
 3_Latte	Feedly	com.devhd.feedly	669	38.0.0	5000000	4.3	News
 2_AndroZoo	HTTP-Injector	com.evozi.injector.lite	14220	5.3.0	1000000	4.5	Tools
+3_Latte	Fuelio	com.kajda.fuelio	1259	7.6.29	1000000	4.5	Vehicles
 3_Latte	BudgetPlanner	com.colpit.diamondcoming.isavemoney	230	6.6.0	1000000	4.4	Finance
+3_Latte	TheClock	hdesign.theclock	159	5.2.0	1000000	4.4	Productivity
 2_AndroZoo	Estapar	br.com.estapar.sp	707	0.7.6	1000000	4.3	Vehicles
 2_AndroZoo	net.inverline.bancosabadell.officelocator.android	net.inverline.bancosabadell.officelocator.android	127399051	22.1.0	1000000	3.6	Finance
+3_Latte	BillReminder	com.aa3.easybillsreminder	80	7.8	100000	4.5	Finance
 2_AndroZoo	com.abinbev.android.tapwiser.beesMexico	com.abinbev.android.tapwiser.beesMexico	16474	14.5	100000	3.4	Business
 2_AndroZoo	com.masterlock.enterprise.vaultenterprise	com.masterlock.enterprise.vaultenterprise	2100007	2.10.0.7	50000	4.2	Lifestyle
 2_AndroZoo	com.spinearnpk.pk	com.spinearnpk.pk	95	1.9.5	50000	3.8	Finance
@@ -248,10 +255,16 @@ async def execute_latte_command(device, command: str, extra: str):
                 continue
             if "com.zzkk" in app_path.name:
                 continue
+            if "com.life360.android.safetymapd" in app_path.name:
+                continue
+            if "com.roku.remote" in app_path.name:
+                continue
+            if "com.evozi.injector.lite" in app_path.name:
+                continue
             # app_row = "\\texttt{" + app_path.name[:15] + "}" + ("..." if len(app_path.name) > 15 else "")
+            all_results["app_count"] += 1
             app_row = f"{app_info.type} & {app_info.name}  & {app_info.version_code} & {app_info.category} & {app_info.installs_str}"
             result = defaultdict(int)
-            snapshot_count = 0
             atf_count = 0
             for s_index, snapshot_path in enumerate(app_path.iterdir()):
                 if not snapshot_path.is_dir():
@@ -259,23 +272,27 @@ async def execute_latte_command(device, command: str, extra: str):
                 address_book = AddressBook(snapshot_path)
                 if address_book.whelper.is_snapshot_ignored():
                     continue
-                snapshot_count += 1
+
+                result["snapshot_count"] += 1
                 result["total_actions"] += address_book.whelper.get_action_count()
                 result["gh_actions"] += address_book.whelper.get_actual_action_count()
                 snapshot_summary = address_book.whelper.oracle()
+                all_results['total_time'] += snapshot_summary["total_time"] if ("us.zoom" not in app_path.name) else 3000
+                all_results['actions_time'] += snapshot_summary["actions_time"] if ("us.zoom" not in app_path.name) else 3000 - snapshot_summary["explore_time"]
+                all_results['explore_time'] += snapshot_summary["explore_time"]
+                all_results['direct_time'] += snapshot_summary["direct_time"]
                 result["sa_verified_issues"] += snapshot_summary["sa_verified_issues"]
                 for issue in issue_names:
                     result[issue] += snapshot_summary[issue]
                     result[f"tp_{issue}"] += snapshot_summary[f"tp_{issue}"]
                 atf_count += address_book.whelper.get_atf_count()
-            if snapshot_count < 5:
-                logger.warning(f"App {pkg_name} has {snapshot_count} snapshots!")
+            if result["snapshot_count"] != 5:
+                logger.warning(f"App {pkg_name} has {result['snapshot_count']} snapshots!")
             app_row += f"& {result['total_actions']} "  # Total Actions
             app_row += f"& {result['gh_actions']} "  # Total Actions
             all_results['atf'] += atf_count
-            all_results["sa_verified_issues"] += result["sa_verified_issues"]
-            all_results['total_actions'] += result['total_actions']
-            all_results['gh_actions'] += result['gh_actions']
+            for val in ["snapshot_count", "sa_verified_issues", "total_actions", "gh_actions"]:
+                all_results[val] += result[val]
             for issue in issue_names:
                 all_results[issue] += result[issue]
                 all_results[f"tp_{issue}"] += result[f"tp_{issue}"]
@@ -307,6 +324,10 @@ async def execute_latte_command(device, command: str, extra: str):
                 last_row += "& "
         last_row += "&\\\\\n"
         print(last_row)
+        for val in ["total_actions", "snapshot_count", "app_count"]:
+            logger.info(f"{val}: #{all_results[val]} Average: {all_results['total_time']/all_results[val]:.2f}")
+            logger.info(f"{val}: Explore Opt: {all_results['explore_time']/all_results[val]:.2f}  Reg: {all_results['direct_time']/all_results[val]:.2f}")
+            logger.info(f"{val}: Action {all_results['actions_time']/all_results[val]:.2f}")
 
     if command == "gh_atf":
         result_path = pathlib.Path(extra)

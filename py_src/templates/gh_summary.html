@@ -21,6 +21,10 @@
                 <th colspan="2">#Touch Act. Issue(TP)</th>
                 <th colspan="2">#API Act. Issue(TP)</th>
                 <th>#ATF</th>
+                <th>Explore(s)</th>
+                <th>Extract(s)</th>
+                <th>Perform(s)</th>
+                <th>UpperBound Directional</th>
                 <th>...</th>
             </tr>
             <tr class="table-primary">
@@ -41,6 +45,10 @@
                 <th>Detected</th>
                 <th>Actual</th>
                 <th>Detected</th>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th></th>
                 <th></th>
                 <th>...</th>
             </tr>
@@ -88,7 +96,21 @@
                             ">{{ snapshot_summary[val] }}({{ snapshot_summary["tp_"+val] }})</td>
                         {% endfor %}
                         <td>{{ address_book.whelper.get_atf_count() }}</td>
-
+                        {% for val in ["explore_time", "extract_time", "actions_time"] %}
+                            <td>
+                                {{ snapshot_summary[val] }}
+                            </td>
+                        {% endfor %}
+{#                        <td>#}
+{#                            {{ "{:.2f}".format(snapshot_summary["explore_time"]+snapshot_summary["extract_time"]+snapshot_summary["actions_time"] / address_book.whelper.get_action_count()) }}#}
+{#                        </td>#}
+                        <td class="{% if snapshot_summary["explore_time"] > snapshot_summary["direct_time"] %}
+                                        bg-danger text-light
+                                    {% else %}
+                                        bg-success text-light
+                                    {% endif %}">
+                            {{ snapshot_summary["direct_time"] }}
+                        </td>
 
                         <td>
                             {% set clickable_span = address_book.whelper.get_clickable_span_nodes() | length %}

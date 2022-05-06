@@ -1,6 +1,7 @@
 import logging
 import asyncio
 import json
+import datetime
 import shutil
 from collections import defaultdict
 from enum import Enum
@@ -234,7 +235,7 @@ class WebHelper:
             with open(self.address_book.extract_actions_nodes[Actionables.TBReachable]) as f:
                 for line in f.readlines():
                     l_node = Node.createNodeFromDict(json.loads(line))
-                    if node is not None and node.xpath and l_node.xpath.startswith(node.xpath) :
+                    if node is not None and node.xpath and l_node.xpath.startswith(node.xpath):
                         if closest_child is None or l_node.xpath < closest_child.xpath:
                             closest_child = l_node
             if closest_child:
@@ -242,6 +243,23 @@ class WebHelper:
                 if remaining.count("/") < 3:
                     summary["tb_closest_reachable"] = remaining
                     is_tb_reachable = True
+        # ------------ Calculate Time ---------
+        delta = self.get_time_from_log(self.address_book.snapshot_result_path.parent.joinpath(
+            f"{self.address_book.snapshot_name()}_talkback_explore.log"))
+        total_nodes = 0
+        when_reached = -1
+        finding_xpath = node.xpath + (summary["tb_closest_reachable"] if summary["tb_closest_reachable"] else "")
+        with open(self.address_book.tb_explore_visited_nodes_path) as f:
+            for i, line in enumerate(f.readlines()):
+                xpath = json.loads(line)['xpath']
+                if xpath == finding_xpath and when_reached < 0:
+                    when_reached = i+1
+                total_nodes += 1
+        summary["time_per_dir_nav"] = delta / max(total_nodes, 1)
+        summary["when_reach_dir_nav"] = when_reached
+        summary["direct_time"] = delta  # Will be modified later
+
+        # ------------ End Calculation Time ---------
         children_nodes_action_indices = []
         for ar in all_action_results:
             if ar.index != action_result.index and node.xpath in ar.node.xpath:
@@ -254,7 +272,8 @@ class WebHelper:
 
         same_clicked = True
         for i, mode in enumerate(modes):
-            summary[f"{mode}_clicked_node"] = None if mode_events_info[mode]['clicked_node'] is None else mode_events_info[mode][
+            summary[f"{mode}_clicked_node"] = None if mode_events_info[mode]['clicked_node'] is None else \
+            mode_events_info[mode][
                 'clicked_node'].toJSONStr()
             summary[f"changed_elements_{mode}"] = [node.toJSON() for node in mode_events_info[mode]['changed_nodes']]
             for m2 in modes[i + 1:]:
@@ -293,13 +312,14 @@ class WebHelper:
 
         modes = ['tb_touch', 'touch', 'a11y_api']
         summary["any_change_xml"] = False
-        with open(self.address_book.get_layout_path(AddressBook.BASE_MODE,AddressBook.INITIAL)) as f:
+        with open(self.address_book.get_layout_path(AddressBook.BASE_MODE, AddressBook.INITIAL)) as f:
             base_layout = f.read()
         for mode in modes:
             with open(self.address_book.get_layout_path(mode, index)) as f:
                 mode_layout = f.read()
             summary[f'exact_same_layout_{mode}_{AddressBook.BASE_MODE}'] = base_layout == mode_layout
-            summary[f'exact_same_layout_{AddressBook.BASE_MODE}_{mode}'] = summary[f'exact_same_layout_{mode}_{AddressBook.BASE_MODE}']
+            summary[f'exact_same_layout_{AddressBook.BASE_MODE}_{mode}'] = summary[
+                f'exact_same_layout_{mode}_{AddressBook.BASE_MODE}']
             same_layout = summary[f"same_layout_{mode}_{AddressBook.BASE_MODE}"]
             summary[f"{mode}_change_xml"] = (not same_layout)
             if len(summary[f"changed_elements_{mode}"]) > 0:
@@ -316,7 +336,8 @@ class WebHelper:
         summary["tb_dir_issue"] = summary["possible_to_locate"] and not summary['is_tb_reachable']
         summary["tb_touch_issue"] = summary["possible_to_locate"] and not summary['is_tb_touchable']
 
-        summary["tb_act_issue"] = summary["any_change_xml"] and not summary["tb_touch_change_xml"] and summary['did_tb_click']
+        summary["tb_act_issue"] = summary["any_change_xml"] and not summary["tb_touch_change_xml"] and summary[
+            'did_tb_click']
         summary["api_act_issue"] = summary["any_change_xml"] and not summary["a11y_api_change_xml"]
         summary["touch_act_issue"] = summary["any_change_xml"] and not summary["touch_change_xml"]
 
@@ -325,7 +346,8 @@ class WebHelper:
         summary[self.AUTO_IGNORED_NAME] = False
         if action_result.tb_action_result.state == 'timeout':
             summary[self.AUTO_IGNORED_NAME] = True
-        if summary["tb_dir_issue"] and len(summary["children_nodes_action_indices"]) > 0 and len(summary["changed_elements_a11y_api"]) < 2:
+        if summary["tb_dir_issue"] and len(summary["children_nodes_action_indices"]) > 0 and len(
+                summary["changed_elements_a11y_api"]) < 2:
             summary[self.AUTO_IGNORED_NAME] = True
         if 'IGN' in tags:
             summary[self.AUTO_IGNORED_NAME] = True
@@ -335,6 +357,7 @@ class WebHelper:
             summary["tb_touch_issue"] = False
         if 'OTD' in tags:
             summary["tb_dir_issue"] = False
+            summary["direct_time"] = 4
         if 'OTA' in tags:
             summary["tb_act_issue"] = False
 
@@ -347,6 +370,29 @@ class WebHelper:
             summary["tb_act_issue"] = False
 
         summary["act_issue"] = summary["tb_act_issue"] or summary["api_act_issue"] or summary["touch_act_issue"]
+
+        # ------------- Calculate lowerbound for exploration time ------------
+        # delta = self.get_time_from_log(self.address_book.snapshot_result_path.parent.joinpath(
+        #     f"{self.address_book.snapshot_name()}_talkback_explore.log"))
+        # total_nodes = 0
+        # when_reached = -1
+        # finding_xpath = node.xpath + (summary["tb_closest_reachable"] if summary["tb_closest_reachable"] else "")
+        # with open(self.address_book.tb_explore_visited_nodes_path) as f:
+        #     for i, line in enumerate(f.readlines()):
+        #         xpath = json.loads(line)['xpath']
+        #         if xpath == finding_xpath and when_reached < 0:
+        #             when_reached = i+1
+        #         total_nodes += 1
+        # time_per_nav = delta / max(total_nodes, 1)
+        # optimized_time = summary["direct_time"] / self.get_action_count()
+        when_reached = summary.get("when_reach_dir_nav", -1)
+        if when_reached > 0:
+            summary["direct_time"] = summary.get("time_per_dir_nav", 1) * when_reached
+        elif not summary["tb_dir_issue"]:
+            summary["direct_time"] = summary.get("time_per_dir_nav", 1)
+
+        # logger.error(f"Delta: {delta}, TimePerNav: {time_per_nav},  Directed Time {summary['direct_time']}, Optimized Time {optimized_time}")
+
         return summary
 
     def get_actual_action_count(self):
@@ -355,7 +401,6 @@ class WebHelper:
             if not self.action_summary(index)[self.AUTO_IGNORED_NAME]:
                 c += 1
         return c
-
 
     def oracle(self) -> dict:
         if not self.address_book.perform_actions_results_path.exists():
@@ -369,6 +414,18 @@ class WebHelper:
         issue_name_map = {'loc': ["tb_dir_issue", "tb_touch_issue"], 'act': ["tb_act_issue", "api_act_issue"]}
         issue_tag_map = {'loc': ['TDR', 'TTR'], 'act': ['TBA', 'APA']}
         snapshot_summary["sa_verified_issues"] = 0
+        time_names = {
+            'explore_time': self.address_book.snapshot_result_path.parent.joinpath(
+                f"{self.address_book.snapshot_name()}_talkback_explore.log"),
+            'extract_time': self.address_book.snapshot_result_path.parent.joinpath(
+                f"{self.address_book.snapshot_name()}_extract_actions.log"),
+            'actions_time': self.address_book.snapshot_result_path.parent.joinpath(
+                f"{self.address_book.snapshot_name()}_perform_actions.log")
+        }
+        for time_name, log_path in time_names.items():
+            delta = self.get_time_from_log(log_path)
+            snapshot_summary[time_name] = int(delta)
+
         with open(self.address_book.perform_actions_results_path) as f:
             for line in f.readlines():
                 action = json.loads(line.strip())
@@ -376,6 +433,7 @@ class WebHelper:
                 summary = self.action_summary(index)
                 if summary[self.AUTO_IGNORED_NAME]:
                     continue
+                snapshot_summary["direct_time"] += summary.get("direct_time", 1)
                 tags = self.get_tags(index)
                 for tt in ['loc', 'act']:
                     if set(issue_tag_map[tt]).intersection(tags):
@@ -404,11 +462,49 @@ class WebHelper:
                     missing_tags += 1
         issue_names = ["loc_issue", "act_issue"]
         snapshot_summary["total_issue"] = sum([snapshot_summary[x] for x in issue_names])
-        snapshot_summary["a_total_issue"] = sum([snapshot_summary["a_"+x] for x in issue_names])
-        snapshot_summary["tp_total_issue"] = sum([snapshot_summary["tp_"+x] for x in issue_names])
+        snapshot_summary["a_total_issue"] = sum([snapshot_summary["a_" + x] for x in issue_names])
+        snapshot_summary["tp_total_issue"] = sum([snapshot_summary["tp_" + x] for x in issue_names])
         snapshot_summary["missing_tag"] = missing_tags
+        snapshot_summary["total_time"] = sum(snapshot_summary[x] for x in time_names)
+        # if not("au.gov.nsw." in self.address_book.app_name() or "com.zzkk" in self.address_book.app_name() or self.is_snapshot_ignored()):
+        #     logger.error(f"{self.get_action_count()} {snapshot_summary['explore_time']} {snapshot_summary['direct_time']}")
+
+
 
         return snapshot_summary
+
+    def get_time_from_log(self, log_path: Union[str, Path], start_pattern: str = ": Snapshot Task: ",
+                          end_pattern: str = ": Done executing"):
+        with open(log_path) as f:
+            lines = f.readlines()
+            if len(lines) < 3:
+                # logger.error("Why?")
+                return 1
+            start_time = None
+            end_time = None
+            for line in lines:
+                if start_pattern in line:
+                    parts = line.split()
+                    if len(parts) < 5:
+                        # logger.error("Here?")
+                        return 1
+                    else:
+                        start_time = parts[4][len("\033[1;1m") + 1:-4 - len("\033[0m")]
+                        start_time = datetime.datetime.strptime(start_time, "%H:%M:%S")
+                if end_pattern in line:
+                    parts = line.split()
+                    if len(parts) < 5:
+                        # logger.error("Or?")
+                        return 1
+                    else:
+                        end_time = parts[4][len("\033[1;1m") + 1:-4 - len("\033[0m")]
+                        end_time = datetime.datetime.strptime(end_time, "%H:%M:%S")
+            if start_time is None or end_time is None:
+                return 1
+            delta = (end_time - start_time).total_seconds()
+            if delta < 0:
+                delta += 24 * 3600
+        return delta
 
     def get_clickable_span_nodes(self) -> List[Node]:
         nodes = NodesFactory() \
