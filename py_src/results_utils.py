@@ -713,6 +713,13 @@ class AddressBook:
             file_name = "INITIAL.png"
         return self._get_path(mode, file_name, should_exists)
 
+    def get_gif_path(self, mode: str, index: Union[int, str], extension: str = None,
+                            should_exists: bool = False):
+        file_name = f"{index}_{extension}.gif" if extension else f"{index}.gif"
+        if not extension and mode == 's_exp':
+            file_name = "INITIAL.png"
+        return self._get_path(mode, file_name, should_exists)
+
     def get_layout_path(self, mode: str, index: int, should_exists: bool = False):
         if mode == 's_exp' or mode == AddressBook.BASE_MODE:
             index = 'INITIAL'

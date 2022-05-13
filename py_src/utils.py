@@ -144,7 +144,8 @@ def create_gif(source_images: List[Union[str, Path]],
                image_to_nodes: Dict[str, List[Union[Node, dict]]],
                outline: Tuple[int, int, int] = (144, 238, 144),
                width: int = 10,
-               scale: int = 5):
+               scale: int = 5,
+               duration: int = 300):
     images = []
     for src_image in source_images:
         if isinstance(src_image, Path):
@@ -166,4 +167,4 @@ def create_gif(source_images: List[Union[str, Path]],
                                          width=width,
                                          scale=scale)
                 images.append(img)
-    images[0].save(target_gif, save_all=True, append_images=images[1:], optimize=False, duration=300, loop=0)
+    images[0].save(target_gif, save_all=True, append_images=images[1:], optimize=False, duration=duration, loop=0)

@@ -11,6 +11,7 @@ from results_utils import AddressBook
 from logger_utils import ColoredFormatter
 from snapshot import EmulatorSnapshot, DeviceSnapshot, Snapshot
 from task.app_task import TakeSnapshotTask, StoatSaveSnapshotTask
+from task.create_action_gif_task import CreateActionGifTask
 from task.execute_usecase_task import ExecuteUsecaseTask
 from task.extract_actions_task import ExtractActionsTask
 from task.oversight_static_task import OversightStaticTask
@@ -52,6 +53,9 @@ async def execute_snapshot_task(args, address_book: AddressBook):
         elif args.snapshot_task == "perform_actions":
             logger.info("Snapshot Task: Perform Actions")
             await PerformActionsTask(snapshot).execute()
+        elif args.snapshot_task == "create_action_gif":
+            logger.info("Snapshot Task: Create Action Gif")
+            await CreateActionGifTask(snapshot).execute()
         elif args.snapshot_task == "oversight_static":
             logger.info("Snapshot Task: Oversight Static")
             await OversightStaticTask(snapshot).execute()
