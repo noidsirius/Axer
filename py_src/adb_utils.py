@@ -119,9 +119,6 @@ async def get_file_nums(dir_path: str, device_name: str = DEVICE_NAME) -> int:
     cmd = f"adb -s {device_name} shell ls sdcard/{dir_path} | adb -s {device_name} shell grep . -c"
     _, stdout, _ = await run_bash(cmd)
     return stdout
-    # if stdout.isdigit():
-    #     return int(stdout)
-    # return -1
 
 
 async def get_most_recent_file(dir_path: str, prev_num: int, sleep_time: int, device_name: str = DEVICE_NAME) -> str:
@@ -139,3 +136,9 @@ async def download_recent_file(dir_path: str, file_name: str, destination: str, 
     cmd = f'adb -s {device_name} pull sdcard/{dir_path}/"{file_name}" "{destination}"'
     return_code, _, _ = await run_bash(cmd)
     return return_code==0
+
+
+async def launch_specified_application(pkg_name:str, device_name:str=DEVICE_NAME) -> bool:
+    cmd=f"adb -s {device_name} shell monkey -p {pkg_name} 1"
+    return_code, _, _ = await run_bash(cmd)
+    return return_code == 0
