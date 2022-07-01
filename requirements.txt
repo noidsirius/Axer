@@ -9,3 +9,4 @@ Pillow==8.2.0
 xmlformatter
 ansi2html
 json2html==1.3.0
+websockets==10.3
