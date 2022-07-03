@@ -16,7 +16,7 @@ class OversightStaticTask(SnapshotTask):
         super().__init__(snapshot)
 
     async def execute(self):
-        self.snapshot.address_book.initiate_audit_oversight_static()
+        self.snapshot.address_book.initiate_oversight_static_task()
         pkg_name = self.snapshot.address_book.app_name()  # TODO: It's not always correct
 
         nodes = NodesFactory() \
@@ -29,7 +29,7 @@ class OversightStaticTask(SnapshotTask):
         screen_bounds = nodes[0].bounds
 
         oa_conditions = {
-            OAC.P1_BELONGS: lambda node: node.is_belonged(pkg_name),
+            OAC.P1_BELONGS: lambda node: not node.belongs(pkg_name),
             OAC.P2_OUT_OF_BOUNDS: lambda node: node.is_out_of_bounds(screen_bounds),
             OAC.P3_COVERED: lambda node: node.covered and not node.is_out_of_bounds(screen_bounds),
             OAC.P4_ZERO_AREA: lambda node: node.area() == 0,

@@ -75,7 +75,8 @@ class Node(JSONSerializable):
         resource_id = kwargs.get('resource-id', resource_id)
         content_desc = kwargs.get('content-desc', content_desc)
         pkg_name = kwargs.get('package', pkg_name)
-        clickable_span = kwargs.get('clickable-span', clickable_span)
+        clickable_span = kwargs.get('clickableSpan', clickable_span)
+        long_clickable = kwargs.get('long-clickable', long_clickable)
         context_clickable = kwargs.get('contextClickable', context_clickable)
         naf = kwargs.get('NAF', naf)
         important_for_accessibility = kwargs.get('importantForAccessibility', important_for_accessibility)
@@ -123,9 +124,9 @@ class Node(JSONSerializable):
             a11y_actions = a11y_actions.split("-")
         self.index = index
         self.class_name = class_name
-        self.text = text
-        self.resource_id = resource_id
-        self.content_desc = content_desc
+        self.text = '' if text == 'null' else text
+        self.resource_id = '' if resource_id == 'null' else resource_id
+        self.content_desc = '' if content_desc == 'null' else content_desc
         self.visible = visible
         self.clickable = clickable
         self.long_clickable = long_clickable
@@ -142,7 +143,7 @@ class Node(JSONSerializable):
         self.bounds = bounds
         self.drawing_order = drawing_order
         self.a11y_actions = a11y_actions
-        self.pkg_name = pkg_name
+        self.pkg_name = '' if pkg_name == 'null' else pkg_name
         self.xpath = xpath
         # --- Latte ----
         # TODO: Move it to another class
@@ -158,11 +159,11 @@ class Node(JSONSerializable):
         return self.toJSONStr() == Node().toJSONStr()
 
     def area(self):
-        return (self.bounds[2]-self.bounds[0]) * (self.bounds[3] - self.bounds[1])
+        return (self.bounds[2] - self.bounds[0]) * (self.bounds[3] - self.bounds[1])
 
     def is_valid_bounds(self):
         return self.area() > 0 and \
-               (self.bounds[2]-self.bounds[0]) > 0 and \
+               (self.bounds[2] - self.bounds[0]) > 0 and \
                (self.bounds[3] - self.bounds[1]) > 0
 
     def is_practically_invisible(self):
@@ -173,8 +174,8 @@ class Node(JSONSerializable):
                 return len(self.xml_element.findall('.//node[@visible="true"]')) == 0
         return False
 
-    def is_belonged(self, pkg_name: str) -> bool:
-        return self.pkg_name != pkg_name
+    def belongs(self, pkg_name: str) -> bool:
+        return self.pkg_name == pkg_name
 
     def is_out_of_bounds(self, screen_bounds: Tuple[int, int, int, int]) -> bool:
         [min_x, min_y, max_x, max_y] = screen_bounds
@@ -187,18 +188,20 @@ class Node(JSONSerializable):
         return self.text or \
                self.content_desc
 
-
     def potentially_function(self):
         return self.clickable or \
                self.long_clickable or \
                set(self.a11y_actions).intersection({"16", "32"})
 
-    def practically_equal(self, other: 'Node') -> bool:
+    def practically_equal(self, other: 'Node', excluded_attrs: List[str] = None) -> bool:
         """
         Determines if two nodes are practically equal.
         Some attributes are excluded since they can be flaky or depend on TalkBack's state
         """
-        excluded_attrs = ['focused', 'bounds', 'index', 'drawing_order', 'a11y_actions', 'index']
+        if excluded_attrs is None:
+            excluded_attrs = []
+        # TODO: not sure if it should be added or be configurable
+        excluded_attrs.extend(['focused', 'bounds', 'index', 'drawing_order', 'a11y_actions'])
         return self.toJSONStr(excluded_attrs) == other.toJSONStr(excluded_attrs)
 
     def toJSONStr(self, excluded_attributes: List[str] = None) -> str:
@@ -214,13 +217,7 @@ class Node(JSONSerializable):
         return super().toJSON(excluded_attributes)
 
     def __str__(self):
-        a = {"index": self.index, "class": self.class_name, "text": self.text,
-             "bounds": "[{},{}][{},{}]".format(self.bounds[0], self.bounds[1], self.bounds[2], self.bounds[3]),
-             "clickable": self.clickable, "enabled": self.enabled, "content-desc": self.content_desc,
-             "focusable": self.focusable, "importantForAccessibility": self.important_for_accessibility,
-             "covered": self.covered, "drawing_order": self.drawing_order, "resource-id": self.resource_id,
-             "actionList": self.a11y_actions}
-        return json.dumps(a)
+        return self.toJSONStr(excluded_attributes=['xpath'])
 
 
 class NodesFactory:
@@ -231,6 +228,7 @@ class NodesFactory:
         extra attribute (a dictionary to contain exclusive information for passes), the children, and
         a map from each child node to its extra attribute.
     """
+
     def __init__(self):
         self.layout = None
         self.passes = []
@@ -248,6 +246,7 @@ class NodesFactory:
         """
         Creates xpath attribute for Nodes
         """
+
         def create_xpath(node: Node,
                          extra: Dict,
                          children_nodes: List[Node],
@@ -263,6 +262,7 @@ class NodesFactory:
                     child_node.xpath = "{}/{}[{}]".format(node.xpath,
                                                           child_node.class_name,
                                                           class_counter[child_node.class_name])
+
         self.passes.append(create_xpath)
         return self
 
@@ -270,16 +270,17 @@ class NodesFactory:
         """
             Detecting Ad nodes
         """
+
         def detect_ad(node: Node,
-                         extra: Dict,
-                         children_nodes: List[Node],
-                         child_to_extras_map: Dict[Node, Dict]) -> None:
+                      extra: Dict,
+                      children_nodes: List[Node],
+                      child_to_extras_map: Dict[Node, Dict]) -> None:
             resource_id = node.resource_id
             remaining = "" if len(resource_id.split("/")) < 1 else "/".join(resource_id.split("/")[1:])
             if resource_id.endswith("_ad") \
-                or resource_id.endswith("_ads") \
-                or '_ad_' in resource_id \
-                or resource_id.endswith("Ads") \
+                    or resource_id.endswith("_ads") \
+                    or '_ad_' in resource_id \
+                    or resource_id.endswith("Ads") \
                     or remaining.startswith('ad_') \
                     or remaining.startswith('ads'):
                 node.is_ad = True
@@ -365,12 +366,70 @@ class NodesFactory:
                 nodes.extend(dfs(child_node, child_to_extra_map[child_node]))
             return nodes
 
-        layout_utf8 = self.layout.encode('utf-8')
-        parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
-        root_xml = etree.fromstring(layout_utf8, parser).find('node')
-        root_node = Node.createNodeFromXmlElement(root_xml)
-        root_node.xpath = f"/{root_node.class_name}"
-        return dfs(root_node, {})
+        try:
+            layout_utf8 = self.layout.encode('utf-8')
+            parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
+            dummy_root_xml = etree.fromstring(layout_utf8, parser)
+            dummy_root_node = Node.createNodeFromXmlElement(dummy_root_xml)
+            dummy_root_node.xpath = f""
+            return dfs(dummy_root_node, {})[1:]
+        except Exception as e:
+            logger.error(f"Exception in building Nodes from Layout: {e}")
+        return []
+
+
+def is_in_same_state_with_nodes(nodes1: List[Node], nodes2: List[Node], extra_excluded_attributes: List[str] = None,
+                                package_name: str = None) -> bool:
+    filter_queries = [lambda node: not node.is_ad]
+    if package_name:
+        filter_queries.append(lambda node: node.belongs(package_name))
+    nodes1 = [x for x in nodes1 if all(query(x) for query in filter_queries)]
+    nodes2 = [x for x in nodes2 if all(query(x) for query in filter_queries)]
+    if len(nodes1) == 0 or len(nodes2) == 0:
+        return False
+    if len(nodes1) != len(nodes2):
+        return False
+    excluded_attributes = ['xpath', 'naf', 'focused', 'bounds', 'index', 'drawing_order',
+                           'a11y_actions', 'invalid']
+    if extra_excluded_attributes is not None:
+        excluded_attributes.extend(extra_excluded_attributes)
+    for node1, node2 in zip(nodes1, nodes2):
+        if not node1.practically_equal(node2, excluded_attrs=excluded_attributes):
+            return False
+    return True
+
+
+def is_in_same_state_layout(layout1: str, layout2: str, extra_excluded_attributes: List[str] = None,
+                            package_name: str = None) -> bool:
+    nodes1 = NodesFactory() \
+        .with_layout(layout1) \
+        .with_xpath_pass() \
+        .with_ad_detection() \
+        .build()
+    nodes2 = NodesFactory() \
+        .with_layout(layout2) \
+        .with_xpath_pass() \
+        .with_ad_detection() \
+        .build()
+    return is_in_same_state_with_nodes(nodes1, nodes2, extra_excluded_attributes=extra_excluded_attributes,
+                                       package_name=package_name)
+
+
+def is_in_same_state_with_layout_path(layout_path1: Union[Path, str], layout_path2: Union[Path, str],
+                                      extra_excluded_attributes: List[str] = None,
+                                      package_name: str = None) -> bool:
+    nodes1 = NodesFactory() \
+        .with_layout_path(layout_path1) \
+        .with_xpath_pass() \
+        .with_ad_detection() \
+        .build()
+    nodes2 = NodesFactory() \
+        .with_layout_path(layout_path2) \
+        .with_xpath_pass() \
+        .with_ad_detection() \
+        .build()
+    return is_in_same_state_with_nodes(nodes1, nodes2, extra_excluded_attributes=extra_excluded_attributes,
+                                       package_name=package_name)
 
 
 def get_xpath_from_xml_element(xml_element):
@@ -396,7 +455,7 @@ def get_xpath_from_xml_element(xml_element):
 
 
 def get_element_from_xpath(layout: str, xpath: str) -> Union[etree.ElementTree, None]:
-    possible_nodes = get_nodes(layout, filter_query= lambda node: node.xpath == xpath)
+    possible_nodes = get_nodes(layout, filter_query=lambda node: node.xpath == xpath)
     if len(possible_nodes) != 1:
         return None
     return possible_nodes[0].xml_element
@@ -481,13 +540,13 @@ def get_actions_from_layout(layout: str,
         visible_query = lambda node: node.visible
         action_queries.append(visible_query)
 
-    important_nodes = get_nodes(layout, filter_query=lambda node: all(q(node) for q in action_queries))
+    actionable_nodes = get_nodes(layout, filter_query=lambda node: all(q(node) for q in action_queries))
     visited_resource_ids = set()
-    refined_list = []
-    for node in important_nodes:
+    unique_resource_actionable_nodes = []
+    for node in actionable_nodes:
         if node.resource_id:
             if node.resource_id in visited_resource_ids:
                 continue
             visited_resource_ids.add(node.resource_id)
-        refined_list.append(node)
-    return refined_list
+        unique_resource_actionable_nodes.append(node)
+    return unique_resource_actionable_nodes

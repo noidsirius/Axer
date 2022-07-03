@@ -14,168 +14,24 @@ from json2html import json2html
 from flask import Flask, request, jsonify, send_from_directory, render_template, make_response
 
 from consts import BLIND_MONKEY_EVENTS_TAG
+from snapshot_search import SnapshotSearchManager, SnapshotSearchQuery
 
 sys.path.append(str(pathlib.Path(__file__).parent.resolve()))
 from results_utils import AddressBook, OAC
 from post_analysis import do_post_analysis, get_post_analysis, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, \
     XML_PROBLEM \
     , DIFFERENT_BEHAVIOR, UNREACHABLE, POST_ANALYSIS_PREFIX
-from search import get_search_manager, SearchQuery
+from action_search import get_search_manager, SearchActionQuery
 
 logger = logging.getLogger(__name__)
 flask_app = Flask(__name__, static_url_path='', )
 
-# ---------------------------- For Legacy Results ---------------------
-# ---------------------------- TODO: Will Be removed once the old results are analyzed ---------------------
-RESULT_STATIC_URI = '/old_result_jan_12/'
-RESULT_PATH = pathlib.Path("../old_result_jan_12")
-
-
-# RESULT_PATH = pathlib.Path("../old_result_jan_12")
-
-
-@flask_app.route(f'{RESULT_STATIC_URI}<path:path>')
-def send_result_static(path):
-    return send_from_directory(RESULT_PATH, path)
-
-
-@flask_app.route("/")
-def report_index():
-    app_list = defaultdict(list)
-    for snapshot_result_path in RESULT_PATH.iterdir():
-        snapshot_name = snapshot_result_path.name
-        if snapshot_result_path.is_dir() and '_' in snapshot_name:
-            app_name = ("_".join(snapshot_name.split('_')[:-1])).replace('.', '_')
-            address_book = AddressBook(snapshot_result_path)
-            # snapshot = Snapshot(snapshot_name, address_book)
-            different_behaviors, directional_unreachable \
-                , unlocatable, different_behaviors_directional_unreachable, pending = old_report_issues(address_book)
-            snapshot_info = {}
-            snapshot_info['id'] = snapshot_name
-            snapshot_info['different_behavior'] = "(pending)" if pending else len(different_behaviors) + len(
-                different_behaviors_directional_unreachable)
-            snapshot_info['unreachable'] = "(pending)" if pending else len(unlocatable) + len(directional_unreachable)
-            snapshot_info['last_update'] = datetime.datetime.fromtimestamp(
-                address_book.snapshot_result_path.stat().st_mtime)
-            app_list[app_name].append(snapshot_info)
-    apps = []
-    for app in app_list:
-        app_info = {}
-        app_info['name'] = app.replace(' ', '_')
-        app_info['snapshots'] = app_list[app]
-        app_info['different_behavior'] = sum(
-            [0] + [s['different_behavior'] for s in app_list[app] if str(s['different_behavior']).isdecimal()])
-        app_info['unreachable'] = sum(
-            [0] + [s['unreachable'] for s in app_list[app] if str(s['unreachable']).isdecimal()])
-        app_info['last_update'] = max(s['last_update'] for s in app_list[app])
-        apps.append(app_info)
-    apps.sort(key=lambda a: a['last_update'], reverse=True)
-    return render_template('index.html', apps=apps)
-
-
-# @app.route("/snapshot/diff/<name>/<index>", defaults={'stb': 'False'})
-@flask_app.route("/snapshot/diff/<name>/<index>")
-def xml_diff(name, index):
-    explore_path = RESULT_PATH.joinpath(name)
-    # xml_name = f"M_{index}.xml" if stb == 'True' else f"{index}.xml"
-    xml_name = f"{index}.xml"
-    tb_xml_path = explore_path.joinpath("TB").joinpath(xml_name)
-    reg_xml_path = explore_path.joinpath("REG").joinpath(xml_name)
-    cmd = f"diff --unified {tb_xml_path} {reg_xml_path}"
-    diff_string = subprocess.run(cmd.split(), stdout=subprocess.PIPE).stdout.decode('utf-8')
-    return render_template('xml_diff.html', diff_string=[diff_string])
-
-
-@flask_app.route("/snapshot/report/<name>")
-def report(name):
-    result_path = RESULT_PATH.joinpath(name)
-    if not result_path.exists():
-        return f"Snapshot {name} does not exist!"
-    explore_path = result_path.joinpath("explore.json")
-    tb_steps = []
-    errors = []
-    if not explore_path.exists():
-        errors.append("Explore result doesn't exist!")
-    else:
-        with open(explore_path, encoding="utf-8") as f:
-            explore_json = json.load(f)
-        for index in explore_json:
-            step = {}
-            step['index'] = index
-            step['action'] = explore_json[index]['command']
-            step['init_img'] = RESULT_STATIC_URI + os.path.relpath(
-                result_path.joinpath("EXP").joinpath(f"{index}_edited.png").absolute(), RESULT_PATH)
-            step['tb_img'] = RESULT_STATIC_URI + os.path.relpath(
-                result_path.joinpath("TB").joinpath(f"{index}.png").absolute(),
-                RESULT_PATH)
-            step['reg_img'] = RESULT_STATIC_URI + os.path.relpath(
-                result_path.joinpath("REG").joinpath(f"{index}.png").absolute(),
-                RESULT_PATH)
-            step['tb_result'] = explore_json[index]['tb_result']
-            step['reg_result'] = explore_json[index]['reg_result']
-            xml_name = f"{index}.xml"
-            tb_xml_path = result_path.joinpath("TB").joinpath(xml_name)
-            reg_xml_path = result_path.joinpath("REG").joinpath(xml_name)
-            xml_problem = False
-            with open(tb_xml_path, "r", encoding="utf-8") as f:
-                tb_xml = f.read()
-                if "PROBLEM_WITH_XML" in tb_xml:
-                    xml_problem = True
-            with open(reg_xml_path, "r", encoding="utf-8") as f:
-                reg_xml = f.read()
-                if "PROBLEM_WITH_XML" in reg_xml:
-                    xml_problem = True
-            step['status'] = 1 if (tb_xml == reg_xml) else 0
-            step['status_message'] = "Accessible"
-            if step['status'] == 0:
-                if "FAILED" in step['tb_result'][0]:
-                    step['status_message'] = "TalkBack Failed"
-                    step['status'] = 2
-                elif "FAILED" in step['reg_result'][0]:
-                    step['status_message'] = "Regular Failed"
-                    step['status'] = 2
-                elif xml_problem:
-                    step['status_message'] = "Problem with XML"
-                    step['status'] = 2
-                else:
-                    step['status_message'] = "Different Behavior"
-
-            tb_steps.append(step)
-    stb_result_path = result_path.joinpath("stb_result.json")
-    stb_steps = []
-    if not stb_result_path.exists():
-        errors.append("Sighted TalkBack result doesn't exist!")
-    else:
-        with open(stb_result_path, encoding="utf-8") as f:
-            stb_json = json.load(f)
-        for xpath in stb_json:
-            step = {}
-            index = stb_json[xpath]['index']
-            step['index'] = index
-            step['action'] = stb_json[xpath]['command']
-            step['init_img'] = RESULT_STATIC_URI + os.path.relpath(
-                result_path.joinpath("EXP").joinpath(f"I_{index}_RS.png").absolute(), RESULT_PATH)
-            step['tb_img'] = RESULT_STATIC_URI + os.path.relpath(
-                result_path.joinpath("TB").joinpath(f"M_{index}.png").absolute(),
-                RESULT_PATH)
-            step['reg_img'] = RESULT_STATIC_URI + os.path.relpath(
-                result_path.joinpath("REG").joinpath(f"M_{index}.png").absolute(),
-                RESULT_PATH)
-            step['status'] = stb_json[xpath].get('same', False)
-            step['stb_result'] = stb_json[xpath].get('stb_result', '')
-            step['reg_result'] = stb_json[xpath].get('reg_result', '')
-            stb_steps.append(step)
-    return render_template('report.html', tb_steps=tb_steps, name=name, stb_steps=stb_steps, errors=errors)
-
-
-# ---------------------------- End Legacy Results ---------------------
-
 mode_to_repr = defaultdict(lambda: 'UNKNOWN',
                            {
-                               'exp': 'Initial',
-                               'tb': 'TalkBack',
-                               'areg': 'A11y API',
-                               'reg': 'Touch'
+                               'base': 'Initial',
+                               'tb_touch': 'TalkBack',
+                               'a11y_api': 'A11y API',
+                               'touch': 'Touch'
                            })
 
 
@@ -378,6 +234,28 @@ def send_result_static_v2(path: str):
     return send_from_directory(path.parent.resolve(), path.name)
 
 
+@flask_app.route("/")
+def homepage():
+    return render_template('homepage.html', result_path="EMPTY_results")
+
+
+@flask_app.route("/v2/<result_path_str>/gh_summary")
+def gh_summary(result_path_str: str):
+    show_all = request.args.get('all', 'false')
+    show_all = show_all == 'true'
+    result_path = pathlib.Path(fix_path(result_path_str))
+    if not (result_path.is_dir() and result_path.exists()):
+        return "The result path is inccorrect!"
+    address_books = []
+    for app_path in result_path.iterdir():
+        if not app_path.is_dir():
+            continue
+        for snapshot_path in app_path.iterdir():
+            if snapshot_path.is_dir():
+                address_books.append(AddressBook(snapshot_path))
+    return render_template('gh_summary.html', address_books=address_books, result_path=result_path_str, show_all=show_all)
+
+
 @flask_app.route("/v2/<result_path_str>/")
 def report_index_v2(result_path_str: str):
     result_path = pathlib.Path(fix_path(result_path_str))
@@ -407,16 +285,46 @@ def report_app_v2(result_path: str, app_name: str):
     return render_template('v2_app.html', app=app, result_path=result_path_str)
 
 
+@flask_app.route("/v2/<result_path_str>/snapshot_search", methods=['GET', 'POST'])
+def snapshot_search(result_path_str: str):
+    app_name_field = request.args.get('appName', 'All')
+    xml_search_mode = request.args.get('xmlSearchMode', 'ALL')
+    xml_search_attrs = request.args.getlist('xmlSearchAttr[]')
+    xml_search_fields = request.args.getlist('xmlSearchQuery[]')
+    if len(xml_search_fields) == 0 or len(xml_search_fields) != len(xml_search_attrs):
+        xml_search_fields = [None]*5
+        xml_search_attrs = ['ALL']*5
+    snapshot_limit_field = request.args.get('snapshot_limit_field', '10')
+    if not snapshot_limit_field.isdecimal():
+        snapshot_limit_field = 1000
+    snapshot_limit_field = int(snapshot_limit_field)
+    result_path = pathlib.Path(fix_path(result_path_str))
+    if not (result_path.is_dir() and result_path.exists()):
+        return "The result path is incorrect!"
+    search_query = SnapshotSearchQuery().set_valid_app(app_name_field)
+
+    search_query.contains_node(attrs=xml_search_attrs, queries=xml_search_fields)
+
+    search_results = SnapshotSearchManager(result_path).search(search_query=search_query)
+    app_names = ['All']
+    for app_path in result_path.iterdir():
+        if not app_path.is_dir():
+            continue
+        app_names.append(app_path.name)
+
+    return render_template('snapshot_search.html',
+                           result_path=result_path_str,
+                           results=search_results,
+                           snapshot_limit_field=snapshot_limit_field,
+                           xml_search_fields=xml_search_fields,
+                           xml_search_mode=xml_search_mode,
+                           xml_search_attrs=xml_search_attrs,
+                           app_name_field=app_name_field,
+                           app_names=app_names)
+
+
 @flask_app.route("/v2/<result_path_str>/search", methods=['GET', 'POST'])
 def search_v2(result_path_str: str):
-    action_attr_names = ['text', 'contentDescription', 'class', 'resourceId']
-    action_attr_fields = []
-    for action_attr in action_attr_names:
-        action_attr_fields.append(request.args.get(action_attr, None))
-    action_xml_attr_names = ['clickable', 'NAF', 'clickableSpan', 'focused', 'focusable', 'enabled']
-    action_xml_attr_fields = []
-    for action_xml_attr in action_xml_attr_names:
-        action_xml_attr_fields.append(request.args.get(action_xml_attr, 'Any'))
     tb_type = request.args.get('tbType', 'both')
     post_analysis_result = request.args.get('postAnalysisResult', 'ANY')
     one_result_per_snapshot = request.args.get('oneResultPerSnapshot', 'off')
@@ -424,8 +332,18 @@ def search_v2(result_path_str: str):
     exclude_tags_field = request.args.get('excludeTags', '')
     app_name_field = request.args.get('appName', 'All')
     tb_result_field = request.args.get('tbResult', 'ALL')
-    reg_result_field = request.args.get('regResult', 'ALL')
-    areg_result_field = request.args.get('aregResult', 'ALL')
+    touch_result_field = request.args.get('regResult', 'ALL')
+    a11y_api_result_field = request.args.get('aregResult', 'ALL')
+    summary_names = request.args.getlist('summarySearchName[]')
+    summary_values = request.args.getlist('summarySearchValue[]')
+    if len(summary_names) == 0 or len(summary_names) != len(summary_values):
+        summary_names = ['ANY']*6
+        summary_values = [None]*6
+    action_attr_names = request.args.getlist('actionSearchAttr[]')
+    action_attr_values = request.args.getlist('actionSearchQuery[]')
+    if len(action_attr_names) == 0 or len(action_attr_names) != len(action_attr_values):
+        action_attr_names = ['ALL']*2
+        action_attr_values = [None]*2
     xml_search_mode = request.args.get('xmlSearchMode', 'ALL')
     xml_search_attrs = request.args.getlist('xmlSearchAttr[]')
     xml_search_fields = request.args.getlist('xmlSearchQuery[]')
@@ -462,62 +380,46 @@ def search_v2(result_path_str: str):
     result_path = pathlib.Path(fix_path(result_path_str))
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is inccorrect!"
-    search_query = SearchQuery()\
-        .talkback_mode(tb_type) \
+    search_query = SearchActionQuery()\
         .post_analysis(post_analysis_result=post_analysis_result)\
         .set_valid_app(app_name_field)\
 
-    for action_attr, value in zip(action_attr_names, action_attr_fields):
-        if value:
-            search_query.contains_action_attr(action_attr, value)
-
-    for action_attr, value in zip(action_xml_attr_names, action_xml_attr_fields):
-        if value and value != 'Any':
-            search_query.contains_action_xml_attr(action_attr, value)
+    # for action_attr, value in zip(action_attr_names, action_attr_fields):
+    #     if value:
+    #         search_query.contains_action_attr(action_attr, value)
+    #
+    # for action_attr, value in zip(action_xml_attr_names, action_xml_attr_fields):
+    #     if value and value != 'Any':
+    #         search_query.contains_action_xml_attr(action_attr, value)
 
     if len(include_tags) > 0 or len(exclude_tags) > 0:
-        search_query.contains_tags(include_tags, exclude_tags)
+        search_query.contains_tags(include_tags=include_tags, exclude_tags=exclude_tags)
     if tb_result_field:
         search_query.executor_result('tb', tb_result_field)
-    if reg_result_field:
-        search_query.executor_result('reg', reg_result_field)
-    if areg_result_field:
-        search_query.executor_result('areg', areg_result_field)
+    if touch_result_field:
+        search_query.executor_result('touch', touch_result_field)
+    if a11y_api_result_field:
+        search_query.executor_result('a11y_api', a11y_api_result_field)
+    if any(action_attr_values):
+        search_query.contains_action_with_attrs(attr_names=action_attr_names, attr_queries=action_attr_values)
     if any(xml_search_fields):
-        search_query.xml_search(xml_search_mode, attrs=xml_search_attrs, queries=xml_search_fields)
-
-    for (left_xml_field, op_xml_field, right_xml_field) in zip(left_xml_fields, op_xml_fields, right_xml_fields):
-        if left_xml_field != 'None' and right_xml_field != 'None':
-            search_query.compare_xml(left_xml_field, right_xml_field, should_be_same=op_xml_field == '=')
-
-    for (left_screen_field, op_screen_field, right_screen_field) in zip(left_screen_fields, op_screen_fields, right_screen_fields):
-        if left_screen_field != 'None' and right_screen_field != 'None':
-            search_query.compare_screen(left_screen_field, right_screen_field, should_be_same=op_screen_field == '=')
+        search_query.contains_layout_with_attrs(attr_names=xml_search_attrs, attr_queries=xml_search_fields)
+    if any(summary_values):
+        search_query.has_summary(summary_names=summary_names, summary_values=summary_values)
+    #
+    # for (left_xml_field, op_xml_field, right_xml_field) in zip(left_xml_fields, op_xml_fields, right_xml_fields):
+    #     if left_xml_field != 'None' and right_xml_field != 'None':
+    #         search_query.compare_xml(left_xml_field, right_xml_field, should_be_same=op_xml_field == '=')
+    #
+    # for (left_screen_field, op_screen_field, right_screen_field) in zip(left_screen_fields, op_screen_fields, right_screen_fields):
+    #     if left_screen_field != 'None' and right_screen_field != 'None':
+    #         search_query.compare_screen(left_screen_field, right_screen_field, should_be_same=op_screen_field == '=')
 
     search_results = get_search_manager(result_path).search(search_query=search_query,
-                                                            # limit=count_field,
-                                                            action_per_snapshot_limit= limit_per_snapshot)
-    all_action_result_count = sum(len(x.action_results) for x in search_results)
-    all_snapshots_result_count = len(search_results)
-    action_result_count = 0
-    results = []
-    for address_book, search_action_results in search_results:
-        if action_result_count >= action_limit_field:
-            break
-        if len(results) >= snapshot_limit_field:
-            break
-        snapshot_result = {'address_book': address_book, 'action_results': []}
-        for search_action_result in search_action_results:
-            action_result = create_step(address_book,
-                                        result_path.parent,
-                                        search_action_result.action,
-                                        search_action_result.post_analysis,
-                                        is_sighted=search_action_result.action['is_sighted'])
-            snapshot_result['action_results'].append(action_result)
-            action_result_count += 1
-            if action_result_count >= action_limit_field:
-                break
-        results.append(snapshot_result)
+                                                            action_limit=action_limit_field,
+                                                            action_per_snapshot_limit=limit_per_snapshot)
+    all_action_result_count = len(search_results)
+    all_snapshots_result_count = len(set([x.address_book.snapshot_name() for x in search_results]))
 
     app_names = ['All']
     for app_path in result_path.iterdir():
@@ -527,15 +429,19 @@ def search_v2(result_path_str: str):
 
     return render_template('search.html',
                            result_path=result_path_str,
-                           results=results,
+                           results=search_results,
                            all_action_result_count=all_action_result_count,
                            all_snapshots_result_count=all_snapshots_result_count,
-                           action_attrs=zip(action_attr_names, action_attr_fields),
-                           action_xml_attrs=zip(action_xml_attr_names, action_xml_attr_fields),
+                           action_attr_names=action_attr_names,
+                           action_attr_values=action_attr_values,
+                           summary_names=summary_names,
+                           summary_values=summary_values,
+                           # action_attrs=zip(action_attr_names, action_attr_fields),
+                           # action_xml_attrs=zip(action_xml_attr_names, action_xml_attr_fields),
                            tb_type=tb_type,
                            tb_result_field=tb_result_field,
-                           reg_result_field=reg_result_field,
-                           areg_result_field=areg_result_field,
+                           touch_result_field=touch_result_field,
+                           a11y_api_result_field=a11y_api_result_field,
                            post_analysis_result=post_analysis_result,
                            one_result_per_snapshot=one_result_per_snapshot,
                            action_limit_field=action_limit_field,
@@ -575,19 +481,29 @@ def post_analysis(result_path, app_name):
     return jsonify(result=f"{snapshot_count} snapshots of {app_name} are analyzed!")
 
 
-@flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/action/<index>/<is_sighted>/tag/<tag>")
-def tag_action(result_path, app_name, snapshot_name, index, is_sighted, tag):
+@flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/action/<index>/tag/<tag>")
+def tag_action(result_path, app_name, snapshot_name, index, tag):
     result_path = pathlib.Path(fix_path(result_path)).resolve()
     snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)
     if not snapshot_path.is_dir():
         return jsonify(result=False)
     tags = tag.split(',')
     address_book = AddressBook(snapshot_path)
-    is_sighted = is_sighted == 'sighted'
     index = int(index)
-    with open(address_book.tags_path, 'a', encoding="utf-8") as f:
-        for t in tags:
-            f.write(json.dumps({'index': index, 'is_sighted': is_sighted, 'tag': t.strip()}) + "\n")
+    address_book.whelper.add_tag(index, tags)
+    return jsonify(result=True)
+
+
+@flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/note", methods=['POST'])
+def snapshot_note(result_path, app_name, snapshot_name):
+    result_path = pathlib.Path(fix_path(result_path)).resolve()
+    snapshot_path = result_path.joinpath(app_name).joinpath(snapshot_name)
+    if not snapshot_path.is_dir():
+        return jsonify(result=False)
+    address_book = AddressBook(snapshot_path)
+    note = request.form.get('snapshot_note', None)
+    if note:
+        address_book.whelper.update_note(note)
     return jsonify(result=True)
 
 

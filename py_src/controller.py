@@ -60,7 +60,7 @@ class A11yAPIController(Controller):
         await send_commands_sequence_to_latte([("controller_set", "a11y_api")])
 
 
-class TalkBackDirectionalController(Controller):
+class TalkBackAPIController(Controller):
     async def setup(self):
         await A11yServiceManager.setup_latte_a11y_services(tb=True)
         await send_commands_sequence_to_latte([("controller_set", "tb_api")])

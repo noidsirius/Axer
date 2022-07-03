@@ -1,5 +1,5 @@
 import logging
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Dict
 from pathlib import Path
 from PIL import Image, ImageDraw
 
@@ -94,7 +94,6 @@ def annotate_elements(source_img: Union[str, Path],
                       scale: int = 5):
     if isinstance(target_img, str):
         target_img = Path(target_img)
-    is_gif = target_img.name.endswith(".gif")
     bounds_list = []
     outlines = []
     widths = []
@@ -132,23 +131,40 @@ def annotate_elements(source_img: Union[str, Path],
             widths.append(width)
             scales.append(scale)
 
-    if is_gif:
-        images = []
-        for bounds, outline, width, scale in zip(bounds_list, outlines, widths, scales):
-            img = annotate_rectangle(source_img=source_img,
-                                       target_img=None,
-                                       bounds=[bounds],
-                                       outline=outline,
-                                       width=width,
-                                       scale=scale)
-            images.append(img)
-        if len(images) > 0:
-            images[0].save(target_img,
-                           save_all=True, append_images=images[1:], optimize=False, duration=300, loop=0)
-    else:
-        annotate_rectangle(source_img=source_img,
-                           target_img=target_img,
-                           bounds=bounds_list,
-                           outline=outlines,
-                           width=widths,
-                           scale=scales)
+    annotate_rectangle(source_img=source_img,
+                       target_img=target_img,
+                       bounds=bounds_list,
+                       outline=outlines,
+                       width=widths,
+                       scale=scales)
+
+
+def create_gif(source_images: List[Union[str, Path]],
+               target_gif: Union[str, Path],
+               image_to_nodes: Dict[str, List[Union[Node, dict]]],
+               outline: Tuple[int, int, int] = (144, 238, 144),
+               width: int = 10,
+               scale: int = 5,
+               duration: int = 300):
+    images = []
+    for src_image in source_images:
+        if isinstance(src_image, Path):
+            src_image = src_image.resolve()
+        if src_image not in image_to_nodes:
+            images.append(Image.open(src_image))
+        else:
+            for node in image_to_nodes[src_image]:
+                if node is None:
+                    logger.debug(f"The bounds of element {node} is empty!")
+                    continue
+                if isinstance(node, dict):
+                    node = Node.createNodeFromDict(node)
+                bounds = node.bounds
+                img = annotate_rectangle(source_img=src_image,
+                                         target_img=None,
+                                         bounds=[bounds],
+                                         outline=outline,
+                                         width=width,
+                                         scale=scale)
+                images.append(img)
+    images[0].save(target_gif, save_all=True, append_images=images[1:], optimize=False, duration=duration, loop=0)

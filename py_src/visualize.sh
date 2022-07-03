@@ -7,4 +7,4 @@ elif [[ $DEV == "prod" ]]; then
   host="0.0.0.0"
 fi
 
-python -m flask run --host="$host"
+python -m flask run --host="$host" --port=5000

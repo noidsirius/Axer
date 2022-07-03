@@ -4,7 +4,7 @@ import logging
 
 from command import create_command_from_dict
 from consts import BLIND_MONKEY_TAG
-from controller import TouchController, TalkBackDirectionalController
+from controller import TouchController, TalkBackAPIController
 from padb_utils import ParallelADBLogger
 from results_utils import capture_current_state, AddressBook
 from snapshot import DeviceSnapshot
@@ -32,7 +32,7 @@ class ExecuteUsecaseTask(AppTask):
                 command = create_command_from_dict(json_command)
                 commands.append(command)
         padb_logger = ParallelADBLogger(self.device)
-        controller = TalkBackDirectionalController()
+        controller = TalkBackAPIController()
         for index, command in enumerate(commands):
             logger.info(f"Command {index}: {command}")
             address_book = AddressBook(self.app_path.joinpath(f"command_{index}"))

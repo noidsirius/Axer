@@ -126,7 +126,16 @@ public class LatteService extends AccessibilityService {
             Log.i(TAG, "Incomming event is null!");
             return;
         }
-        Log.i(A11Y_EVENT_TAG, "Event: " + AccessibilityEvent.eventTypeToString(event.getEventType()));
+
+        AccessibilityNodeInfo nodeInfo = event.getSource();
+        ActualWidgetInfo widgetInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo, false);
+        JSONObject jsonEelement = null;
+        if (widgetInfo != null)
+            jsonEelement = widgetInfo.getJSONCommand("", false, "");
+        JSONObject jsonEvent = new JSONObject();
+        jsonEvent.put("Element", jsonEelement);
+        Log.i(A11Y_EVENT_TAG, "Event: " + AccessibilityEvent.eventTypeToString(event.getEventType()) + " " + jsonEvent.toJSONString());
+
         if(event.getEventType() == AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED) {
             accessibilityFocusedNode = event.getSource();
         }
@@ -134,11 +143,6 @@ public class LatteService extends AccessibilityService {
             focusedNode = event.getSource();
         }
         else if(event.getEventType() == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
-            AccessibilityNodeInfo nodeInfo = event.getSource();
-            ActualWidgetInfo widgetInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo, false);
-            JSONObject jsonEelement = null;
-            if (widgetInfo != null)
-                jsonEelement = widgetInfo.getJSONCommand("", false, "");
             AccessibilityWindowInfo changedWindow = null;
             for(AccessibilityWindowInfo windowInfo : getWindows())
                 if(windowInfo.getId() == event.getWindowId()){
@@ -161,7 +165,6 @@ public class LatteService extends AccessibilityService {
             jsonWindowContentChange.put("Element", jsonEelement);
             Log.i(A11Y_EVENT_TAG, "WindowContentChange: " + jsonWindowContentChange.toJSONString());
         }
-//        Log.i(TAG, "   Type : " +AccessibilityEvent.eventTypeToString(event.getEventType()));
     }
 
     @Override

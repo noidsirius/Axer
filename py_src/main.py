@@ -11,10 +11,15 @@ from ppadb.client_async import ClientAsync as AdbClient
 from results_utils import AddressBook
 from logger_utils import ColoredFormatter
 from snapshot import EmulatorSnapshot, DeviceSnapshot, Snapshot
-from task.app_task import TakeSnapshotTask
+from task.app_task import TakeSnapshotTask, StoatSaveSnapshotTask
+from task.create_action_gif_task import CreateActionGifTask
 from task.execute_usecase_task import ExecuteUsecaseTask
+from task.extract_actions_task import ExtractActionsTask
 from task.oversight_static_task import OversightStaticTask
+from task.perform_actions_task import PerformActionsTask
+from task.process_screenshot_task import ProcessScreenshotTask
 from task.record_usecase_task import RecordUsecaseTask
+from task.snapshot_task import RemoveSummaryTask
 from task.talkback_explore_task import TalkBackExploreTask
 
 logger = logging.getLogger(__name__)
@@ -40,10 +45,24 @@ async def execute_snapshot_task(args, address_book: AddressBook):
         if args.snapshot_task == "talkback_explore":
             logger.info("Snapshot Task: TalkBack Explore")
             await TalkBackExploreTask(snapshot).execute()
+        elif args.snapshot_task == "extract_actions":
+            logger.info("Snapshot Task: Extract Actions")
+            await ExtractActionsTask(snapshot).execute()
+        elif args.snapshot_task == "remove_summary":
+            logger.info("Snapshot Task: Remove Summary")
+            await RemoveSummaryTask(snapshot).execute()
+        elif args.snapshot_task == "perform_actions":
+            logger.info("Snapshot Task: Perform Actions")
+            await PerformActionsTask(snapshot).execute()
+        elif args.snapshot_task == "create_action_gif":
+            logger.info("Snapshot Task: Create Action Gif")
+            await CreateActionGifTask(snapshot).execute()
         elif args.snapshot_task == "oversight_static":
             logger.info("Snapshot Task: Oversight Static")
             await OversightStaticTask(snapshot).execute()
-
+        elif args.snapshot_task == "process_screenshot":
+            logger.info("Snapshot Task: Process Screenshot")
+            await ProcessScreenshotTask(snapshot).execute()
     except Exception as e:
         logger.error("Exception happened in analyzing the snapshot", exc_info=e)
 
@@ -60,6 +79,13 @@ async def execute_app_task(args, app_path: Path):
         if args.app_task == "take_snapshot":
             logger.info("App Task: Take a snapshot")
             await TakeSnapshotTask(app_path=app_path, device=device).execute()
+        elif args.app_task == "stoat_save_snapshot":
+            logger.info("App Task: Save an Emulator Snapshot")
+            if not args.emulator or args.no_save_snapshot:
+                logger.error("The device should be an emulator")
+                return
+            await StoatSaveSnapshotTask(app_path=app_path, device=device).execute()
+
         elif args.app_task == "record_usecase":
             logger.info("App Task: Record a use case")
             await RecordUsecaseTask(app_path=app_path, device=device).execute()
