@@ -3,7 +3,8 @@
 import asyncio
 import json
 import logging
-
+from GUI_utils import Node
+from command import ClickCommand
 import websockets
 
 logger = logging.getLogger(__name__)
@@ -51,8 +52,30 @@ async def recorder_handler():
             continue
         message_str = await recorder_connection.recv()
         message = json.loads(message_str)
+
+        # Converting to the ClickCommand
+        text = message['Text'] if 'Text' in message else ''
+        class_name = message['Class_Name'] if 'Class_Name' in message else ''
+        resource_id = message['Resource_ID'] if 'Resource_ID' in message else ''
+        content_desc = message['Content_Desc'] if 'Content_Desc' in message else ''
+        pkg_name = message['Package_Name'] if 'Package_Name' in message else ''
+        xpath = message['Xpath'] if 'Xpath' in message else ''
+
+        node_dict = {
+            'text': text,
+            'class_name': class_name,
+            'resource_id': resource_id,
+            'content_desc': content_desc,
+            'pkg_name': pkg_name,
+            'xpath': xpath
+        }
+
+        node = Node.createNodeFromDict(node_dict)
+        command = ClickCommand(node)
+
         logger.info(f"Received a message from Recorder: Message: '{message_str},"
                     f" sending to all proxy users : {','.join(proxy_users_connections.keys())}")
+        logger.info(f"Generated the click command: Command: '{command.toJSONStr()}")
         websockets.broadcast(proxy_users_connections.values(), message_str)
 
 
