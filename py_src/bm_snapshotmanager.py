@@ -1,8 +1,10 @@
 import logging
 import asyncio
 import json
+import warnings
 from collections import defaultdict
 from typing import List, Tuple, Union, Dict
+
 from ppadb.client_async import ClientAsync as AdbClient
 
 from GUI_utils import get_nodes, get_actions_from_layout, is_clickable_element_or_none, \
@@ -31,6 +33,7 @@ class BM_SnapshotManager:
                  directional_action_limit: int = 1000,
                  point_action_limit: int = 1000,
                  device=None):
+        warnings.warn("Use the SnapshotTask and Controller instead", DeprecationWarning)
         self.initial_snapshot = snapshot_name
         self.tmp_snapshot = self.initial_snapshot + "_TMP"
         self.directional_action_limit = directional_action_limit
@@ -56,6 +59,7 @@ class BM_SnapshotManager:
         self.device = device
 
     def has_element_in_other_snapshots(self, node: Node) -> bool:
+        warnings.warn("Use the ExtractActionsSnapshotTask instead", DeprecationWarning)
         for other_node in self.visited_elements_in_app.get(node.xpath, []):
             if node.practically_equal(other_node):
                 logger.debug(f"Exclude the visited element in the app {node}")
@@ -69,6 +73,7 @@ class BM_SnapshotManager:
         Finally, it analyzes all elements in the screen and exclude the already seen (in other snapshots)
         :return: Whether the setup is succeeded or not
         """
+        warnings.warn("Use the SnapshotTask and Controller instead", DeprecationWarning)
         if not await load_snapshot(self.initial_snapshot, device_name=self.device.serial):
             logger.error("Error in loading snapshot")
             return False
@@ -153,6 +158,7 @@ class BM_SnapshotManager:
                 'Log Message' (the logs during the navigation) and
                 'Next Command' (the newly focused element). If Next Command is None, the navigation is finished.
         """
+        warnings.warn("Use the TalkBackExplore SnapshotTask and Controller instead", DeprecationWarning)
         logger.info("Navigating to the next element")
         if initialize:
             if not await load_snapshot(self.tmp_snapshot):
@@ -222,6 +228,7 @@ class BM_SnapshotManager:
         return all_log_message, next_command_str
 
     async def directed_explore(self) -> bool:
+        warnings.warn("Use the TalkBackExplore SnapshotTask and Controller instead", DeprecationWarning)
         if not await self.emulator_setup():
             logger.error("Error in emulator setup!")
             return False
@@ -260,6 +267,7 @@ class BM_SnapshotManager:
         return True
 
     async def point_action(self):
+        warnings.warn("Use the PerformAction SnapshotTask and Controller instead", DeprecationWarning)
         if not self.address_book.visited_elements_path.exists():
             if not await self.emulator_setup():
                 logger.error("Error in emulator setup!")
@@ -313,6 +321,7 @@ class BM_SnapshotManager:
         logger.info("Done validating remaining actions.")
 
     async def directed_explore_action(self) -> bool:
+        warnings.warn("Use the PerformAction and TalkBackEpxlore SnapshotTask and Controller instead", DeprecationWarning)
         if not await self.emulator_setup():
             logger.error("Error in emulator setup!")
             return False
@@ -425,6 +434,7 @@ class BM_SnapshotManager:
         return True
 
     async def get_important_actions(self, initialize: bool = True, layout: str = None) -> List[Node]:
+        warnings.warn("Use ExtractActions SnapshotTask instead", DeprecationWarning)
         if initialize:
             if not await load_snapshot(self.initial_snapshot):
                 logger.error("Error in loading snapshot")
@@ -452,6 +462,7 @@ class BM_SnapshotManager:
         return result
 
     def get_tb_done_elements(self) -> List[dict]:
+        warnings.warn("Use the SnapshotTask  instead", DeprecationWarning)
         result = []
         explore_result = []
         with open(self.address_book.action_path) as f:
@@ -462,6 +473,7 @@ class BM_SnapshotManager:
         return result
 
     async def sighted_explore_action(self):
+        warnings.warn("Use the PerformAction SnapshotTask and Controller instead", DeprecationWarning)
         logger.info("Validating remaining actions.")
         self.writer.start_stb()
         important_actions = await self.get_important_actions()

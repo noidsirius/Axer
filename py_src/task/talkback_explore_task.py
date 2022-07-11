@@ -41,7 +41,8 @@ class TalkBackExploreTask(SnapshotTask):
 
     async def execute(self):
         snapshot: DeviceSnapshot = self.snapshot
-        controller = TalkBackAPIController()
+        device = snapshot.device
+        controller = TalkBackAPIController(device_name=device.serial)
         await controller.setup()
         padb_logger = ParallelADBLogger(snapshot.device)
         is_next = True

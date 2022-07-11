@@ -96,7 +96,7 @@ class A11yServiceManager:
                 logger.warning(f"There was an issue with enabling services {requested_services}, Try: {i}")
         live_latte = False
         for i in range(10):
-            if await is_latte_live():
+            if await is_latte_live(device_name=device_name):
                 live_latte = True
                 break
             else:

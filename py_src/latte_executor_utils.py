@@ -5,18 +5,17 @@ from typing import Union, Tuple, List
 import logging
 import xmlformatter
 from collections import namedtuple
+import warnings
 
 from GUI_utils import Node
 from adb_utils import read_local_android_file
 from a11y_service import A11yServiceManager
 from consts import TB_NAVIGATE_RETRY_COUNT, ACTION_EXECUTION_RETRY_COUNT, TB_SELECT_TIMEOUT, TB_NAVIGATE_TIMEOUT, \
     REGULAR_EXECUTE_TIMEOUT_TIME, REGULAR_EXECUTOR_INTERVAL, TB_EXECUTOR_INTERVAL, LAYOUT_TIMEOUT_TIME, \
-    BLIND_MONKEY_TAG, TB_TREELIST_TAG
+    BLIND_MONKEY_TAG, TB_TREELIST_TAG, DEVICE_NAME
 from latte_utils import send_command_to_latte, send_commands_sequence_to_latte
 from utils import convert_bounds
 from padb_utils import ParallelADBLogger
-
-
 
 logger = logging.getLogger(__name__)
 
@@ -32,18 +31,20 @@ formatter = xmlformatter.Formatter(indent="1", indent_char="\t", encoding_output
 
 def get_unsuccessful_execution_result(state: str = "FAILED", bounds: Tuple = None) -> ExecutionResult:
     if bounds is None:
-        bounds = tuple([0]*4)
+        bounds = tuple([0] * 4)
     return ExecutionResult(state, "", "", "", "", "", "", bounds)
 
 
-async def latte_capture_layout() -> str:
+async def latte_capture_layout(device_name: str = DEVICE_NAME) -> str:
     layout = None
-    is_tb_enabled = await A11yServiceManager.is_enabled('tb')
+    is_tb_enabled = await A11yServiceManager.is_enabled('tb', device_name=device_name)
     for i in range(3):
         logger.debug(f"Capturing layout, Try: {i}")
-        await A11yServiceManager.setup_latte_a11y_services(tb=False)
-        await send_command_to_latte("capture_layout")
-        layout = await read_local_android_file(LAYOUT_FILE_PATH, wait_time=LAYOUT_TIMEOUT_TIME)
+        await A11yServiceManager.setup_latte_a11y_services(tb=False, device_name=device_name)
+        await send_command_to_latte("capture_layout", device_name=device_name)
+        layout = await read_local_android_file(LAYOUT_FILE_PATH,
+                                               wait_time=LAYOUT_TIMEOUT_TIME,
+                                               device_name=device_name)
         if layout:
             break
 
@@ -58,17 +59,19 @@ async def latte_capture_layout() -> str:
         layout = f"PROBLEM_WITH_XML {random.random()}"
 
     if is_tb_enabled:
-        await A11yServiceManager.setup_latte_a11y_services(tb=True)
+        await A11yServiceManager.setup_latte_a11y_services(tb=True, device_name=device_name)
     return layout
 
 
-async def report_atf_issues() -> List:
+async def report_atf_issues(device_name: str = DEVICE_NAME) -> List:
     report_jsonl = None
     for i in range(3):
         logger.debug(f"Reporting ATF issues, Try: {i}")
-        await A11yServiceManager.enable('latte')
-        await send_command_to_latte("report_a11y_issues")
-        report_jsonl = await read_local_android_file(ATF_ISSUES_FILE_PATH, wait_time=LAYOUT_TIMEOUT_TIME)
+        await A11yServiceManager.enable('latte', device_name=device_name)
+        await send_command_to_latte("report_a11y_issues", device_name=device_name)
+        report_jsonl = await read_local_android_file(ATF_ISSUES_FILE_PATH,
+                                                     wait_time=LAYOUT_TIMEOUT_TIME,
+                                                     device_name=device_name)
         if report_jsonl:
             break
     if report_jsonl is None:
@@ -81,7 +84,8 @@ async def report_atf_issues() -> List:
 
     return issues
 
-async def talkback_tree_nodes(padb_logger: ParallelADBLogger, verbose: bool = False) -> (dict, str):
+
+async def talkback_tree_nodes(padb_logger: ParallelADBLogger, verbose: bool = False, device_name: str = DEVICE_NAME) -> (dict, str):
     """
     First enables TalkBack and Latte, then send "tb_a11y_tree" command to Latte, and observes the logs
     from both Latte and TalkBack (which should contains the Virtual View Hierarchy). Finally, returns a
@@ -92,11 +96,13 @@ async def talkback_tree_nodes(padb_logger: ParallelADBLogger, verbose: bool = Fa
     information of window, e.g., title, and its elements. The elements is also a map from element id to
     the element's information such as class name, text, or actions.
     """
+
     async def send_a11y_tree_command():
-        await send_command_to_latte("tb_a11y_tree")
+        await send_command_to_latte("tb_a11y_tree", device_name=device_name)
         await asyncio.sleep(2)
+
     # TODO: At the end of this function, the a11y serviecs should be returned to the initial state
-    await A11yServiceManager.setup_latte_a11y_services(tb=True)
+    await A11yServiceManager.setup_latte_a11y_services(tb=True, device_name=device_name)
     logs, next_command_str = await padb_logger.execute_async_with_log(
         send_a11y_tree_command(),
         tags=[BLIND_MONKEY_TAG, TB_TREELIST_TAG])
@@ -108,17 +114,17 @@ async def talkback_tree_nodes(padb_logger: ParallelADBLogger, verbose: bool = Fa
             continue
         if not flag:
             continue
-        t_line = line[line.index(TB_TREELIST_TAG)+len(TB_TREELIST_TAG):].strip()
+        t_line = line[line.index(TB_TREELIST_TAG) + len(TB_TREELIST_TAG):].strip()
         if verbose:
             logger.info(t_line)
         window_tag = "Window: AccessibilityWindowInfo"
         if window_tag in t_line:
-            w_line = t_line[t_line.index(window_tag)+len(window_tag):]
+            w_line = t_line[t_line.index(window_tag) + len(window_tag):]
             window_attributes = ['title', 'id', 'type', 'bounds', 'focused', 'active']
             w_info = {}
             for attr in window_attributes:
                 delimiter = ')' if attr == 'bounds' else ','
-                w_info[attr] = w_line[w_line.index(f'{attr}=')+len(f'{attr}='):].split(delimiter)[0]
+                w_info[attr] = w_line[w_line.index(f'{attr}=') + len(f'{attr}='):].split(delimiter)[0]
                 if attr == 'bounds':
                     w_info[attr] += ')'
             windows_info[w_info['id']] = {
@@ -132,8 +138,9 @@ async def talkback_tree_nodes(padb_logger: ParallelADBLogger, verbose: bool = Fa
             cls_name = t_line.split('.')[1].split(':')[0]
             bounds = t_line.split(':')[1].split(')')[0] + ')'
             actions = t_line.split(')')[-1][1:].split(':')
-            text = '' if ':TEXT{' not in t_line else t_line[t_line.index(':TEXT{')+len(':TEXT{'):].split('}')[0]
-            content = '' if ':CONTENT{' not in t_line else t_line[t_line.index(':CONTENT{')+len(':CONTENT{'):].split('}')[0]
+            text = '' if ':TEXT{' not in t_line else t_line[t_line.index(':TEXT{') + len(':TEXT{'):].split('}')[0]
+            content = '' if ':CONTENT{' not in t_line else \
+            t_line[t_line.index(':CONTENT{') + len(':CONTENT{'):].split('}')[0]
             rest = ')'.join(t_line.split(')')[2:-1])
             if text:
                 rest = rest.replace(f':TEXT{{{text}}}', '')
@@ -154,15 +161,17 @@ async def talkback_tree_nodes(padb_logger: ParallelADBLogger, verbose: bool = Fa
     return windows_info, logs[BLIND_MONKEY_TAG]
 
 
-async def setup_talkback_executor():
-    await A11yServiceManager.setup_latte_a11y_services(tb=True)
+async def setup_talkback_executor(device_name: str = DEVICE_NAME):
+    warnings.warn("Use the Controller mechanism instead", DeprecationWarning)
+    await A11yServiceManager.setup_latte_a11y_services(tb=True, device_name=device_name)
     await send_commands_sequence_to_latte([("set_step_executor", "talkback"),
                                            ("set_delay", str(TB_EXECUTOR_INTERVAL)),
                                            ("set_physical_touch", "false"),
-                                           "enable"])
+                                           "enable"], device_name=device_name)
 
 
-async def setup_sighted_talkback_executor(api_focus:bool = False):
+async def setup_sighted_talkback_executor(api_focus: bool = False):
+    warnings.warn("Use the Controller mechanism instead", DeprecationWarning)
     await A11yServiceManager.setup_latte_a11y_services(tb=True)
     await send_commands_sequence_to_latte([("set_step_executor", "sighted_tb"),
                                            ("set_delay", str(TB_EXECUTOR_INTERVAL)),
@@ -172,6 +181,7 @@ async def setup_sighted_talkback_executor(api_focus:bool = False):
 
 
 async def setup_regular_executor(physical_touch=True):
+    warnings.warn("Use the Controller mechanism instead", DeprecationWarning)
     await A11yServiceManager.setup_latte_a11y_services(tb=False)
     await send_commands_sequence_to_latte([("set_step_executor", "regular"),
                                            ("set_delay", str(REGULAR_EXECUTOR_INTERVAL)),
@@ -180,17 +190,20 @@ async def setup_regular_executor(physical_touch=True):
 
 
 async def talkback_nav_command(command) -> bool:
+    warnings.warn("Use the Controller mechanism instead", DeprecationWarning)
     if not await send_command_to_latte(f"nav_clear_history"):
         return False
     return await send_command_to_latte(f"nav_{command}")
 
 
 async def do_step(json_cmd):
+    warnings.warn("Use the Controller mechanism instead", DeprecationWarning)
     await send_command_to_latte("step_clear")
     await send_command_to_latte("step_execute", json_cmd)
 
 
 async def tb_focused_node() -> Union[str, None]:
+    warnings.warn("Use the Controller mechanism instead", DeprecationWarning)
     for i in range(TB_NAVIGATE_RETRY_COUNT):
         logger.debug(f"Get Focused Node!, Try: {i}")
         await A11yServiceManager.setup_latte_a11y_services(tb=True)
@@ -205,6 +218,7 @@ async def tb_focused_node() -> Union[str, None]:
 
 
 async def tb_navigate_next(prev: bool = False) -> Union[str, None]:
+    warnings.warn("Use the Controller mechanism instead", DeprecationWarning)
     for i in range(TB_NAVIGATE_RETRY_COUNT):
         logger.debug(f"Perform {'Prev' if prev else 'Next'}!, Try: {i}")
         await A11yServiceManager.setup_latte_a11y_services(tb=True)
@@ -221,6 +235,7 @@ async def tb_navigate_next(prev: bool = False) -> Union[str, None]:
 
 
 async def tb_perform_select() -> ExecutionResult:
+    warnings.warn("Use the Controller mechanism instead", DeprecationWarning)
     logger.info("Perform Select!")
     await talkback_nav_command("select")
     result = await read_local_android_file(FINAL_ACITON_FILE, wait_time=TB_SELECT_TIMEOUT)
@@ -233,6 +248,7 @@ async def tb_perform_select() -> ExecutionResult:
 
 
 def analyze_execution_result(result: str, command: str = None) -> ExecutionResult:
+    warnings.warn("Use the Controller mechanism instead", DeprecationWarning)
     if not result or '$' not in result:
         bounds = None
         error_message = result if result else "FAILED"
@@ -249,11 +265,12 @@ def analyze_execution_result(result: str, command: str = None) -> ExecutionResul
     className = parts[4].split('CL=')[1].split(',')[0].strip() if 'CL=' in parts[4] else 'null'
     contentDescription = parts[4].split('CD=')[1].split(',')[0].strip() if 'CD=' in parts[4] else 'null'
     xpath = parts[4].split('xpath=')[1].split(',')[0].strip() if 'xpath=' in parts[4] else ''
-    bounds = convert_bounds(parts[4].split('bounds=')[1].strip()) if 'bounds=' in parts[4] else tuple([0]*4)
+    bounds = convert_bounds(parts[4].split('bounds=')[1].strip()) if 'bounds=' in parts[4] else tuple([0] * 4)
     return ExecutionResult(state, events, time, resourceId, className, contentDescription, xpath, bounds)
 
 
 async def execute_command(command: str, executor_name: str = "reg", api_focus: bool = False) -> ExecutionResult:
+    warnings.warn("Use the Controller mechanism instead", DeprecationWarning)
     result = ""
     for i in range(ACTION_EXECUTION_RETRY_COUNT):
         if executor_name == 'reg':
@@ -278,22 +295,27 @@ async def execute_command(command: str, executor_name: str = "reg", api_focus: b
 
 
 async def reg_execute_command(command: str) -> ExecutionResult:
+    warnings.warn("Use the Controller mechanism instead", DeprecationWarning)
     return await execute_command(command, 'reg')
 
 
 async def areg_execute_command(command: str) -> ExecutionResult:
+    warnings.warn("Use the Controller mechanism instead", DeprecationWarning)
     return await execute_command(command, 'areg')
 
 
 async def tb_execute_command(command: str) -> ExecutionResult:
+    warnings.warn("Use the Controller mechanism instead", DeprecationWarning)
     return await execute_command(command, 'tb')
 
 
 async def stb_execute_command(command: str) -> ExecutionResult:
+    warnings.warn("Use the Controller mechanism instead", DeprecationWarning)
     return await execute_command(command, 'stb')
 
 
 def get_missing_actions(important_nodes: List[Node], executed_elements: List[dict]) -> List[Node]:
+    warnings.warn("Use the SnapshotTask instead", DeprecationWarning)
     xpath_to_important_nodes = {}
     xpath_to_done_elements = {}
     for x in important_nodes:

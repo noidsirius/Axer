@@ -23,17 +23,18 @@ class PerformActionsTask(SnapshotTask):
 
     async def execute(self):
         snapshot: EmulatorSnapshot = self.snapshot
+        device = snapshot.device
         if not snapshot.address_book.audit_path_map[AddressBook.EXTRACT_ACTIONS].exists():
             logger.error("The actions should be extracted first!")
             return
         snapshot.address_book.initiate_perform_actions_task()
         controllers = {
-            'tb_touch': TalkBackTouchController(),
-            'tb_api': TalkBackAPIController(),
-            'a11y_api': A11yAPIController(),
-            'touch': TouchController()
+            'tb_touch': TalkBackTouchController(device_name=device.serial),
+            'tb_api': TalkBackAPIController(device_name=device.serial),
+            'a11y_api': A11yAPIController(device_name=device.serial),
+            'touch': TouchController(device_name=device.serial)
         }
-        padb_logger = ParallelADBLogger(snapshot.device)
+        padb_logger = ParallelADBLogger(device)
         await self.write_ATF_issues()
         selected_actionable_nodes = []
         with open(snapshot.address_book.extract_actions_nodes[Actionables.Selected]) as f:

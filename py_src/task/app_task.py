@@ -80,6 +80,6 @@ class StoatSaveSnapshotTask(AppTask):
             address_book = AddressBook(self.app_path.joinpath(snapshot_name))
             snapshot = tmp_snapshot.clone(address_book)
             await asyncio.sleep(5)
-            await save_snapshot(snapshot_name)
+            await save_snapshot(snapshot_name, device_name=self.device.serial)
             logger.info(f"The new snapshot is saved in {snapshot_name}!")
         await asyncio.sleep(1)

@@ -9,6 +9,8 @@ from collections import defaultdict, Counter, namedtuple
 from typing import Dict
 
 from ppadb.client_async import ClientAsync as AdbClient
+from ppadb.device_async import DeviceAsync
+
 from padb_utils import ParallelADBLogger, save_screenshot
 from latte_utils import is_latte_live
 from latte_executor_utils import talkback_nav_command, talkback_tree_nodes, latte_capture_layout, \
@@ -162,18 +164,18 @@ def get_data_set_info() -> Dict[str,AppInfo]:
     return apps
 
 
-async def execute_latte_command(device, command: str, extra: str):
+async def execute_latte_command(device: DeviceAsync, command: str, extra: str):
     padb_logger = ParallelADBLogger(device)
     if command == "tb_a11y_tree":
         windows_info, bm_logs = await talkback_tree_nodes(padb_logger, verbose=True)
         logger.info(f"Windows Info: {json.dumps(windows_info, indent=4)}")
         logger.info(f"Latte Logs: {bm_logs}")
     if command == "capture_layout":
-        _, layout = await padb_logger.execute_async_with_log(latte_capture_layout())
+        _, layout = await padb_logger.execute_async_with_log(latte_capture_layout(device_name=device.serial))
         with smart__write_open(extra) as f:
             print(layout, file=f)
     if command == "is_live":
-        logger.info(f"Is Latte live? {await is_latte_live()}")
+        logger.info(f"Is Latte live? {await is_latte_live(device_name=device.serial)}")
     if command == 'report_atf_issues':
         issues = await report_atf_issues()
         logger.info(f"Reported Issues: {len(issues)}")
@@ -181,7 +183,7 @@ async def execute_latte_command(device, command: str, extra: str):
             logger.info(f"\tType: {issue['ATFSeverity']} - {issue['ATFType']} - {issue['resourceId']} - {issue['bounds']}")
     if command == "get_actions":  # The extra is the output path
         await save_screenshot(device, extra)
-        log_map, layout = await padb_logger.execute_async_with_log(latte_capture_layout())
+        log_map, layout = await padb_logger.execute_async_with_log(latte_capture_layout(device_name=device.serial))
         if "Problem with XML" in layout:
             logger.error(layout)
             logger.error("Logs: " + log_map)
@@ -189,7 +191,7 @@ async def execute_latte_command(device, command: str, extra: str):
         actions = get_actions_from_layout(layout)
         annotate_elements(extra, extra, actions, outline=(255, 0, 255), width=15, scale=5)
     if command == "list_CI_elements":
-        log_map, layout = await padb_logger.execute_async_with_log(latte_capture_layout())
+        log_map, layout = await padb_logger.execute_async_with_log(latte_capture_layout(device_name=device.serial))
         if "Problem with XML" in layout:
             logger.error(layout)
             logger.error("Logs: " + log_map)
@@ -202,7 +204,7 @@ async def execute_latte_command(device, command: str, extra: str):
         for index, element in enumerate(ci_elements):
             logger.info(f"\tCI Elements {index}: {element}")
     if command == "click_CI_element":
-        log_map, layout = await padb_logger.execute_async_with_log(latte_capture_layout())
+        log_map, layout = await padb_logger.execute_async_with_log(latte_capture_layout(device_name=device.serial))
         if "Problem with XML" in layout:
             logger.error(layout)
             logger.error("Logs: " + log_map)
@@ -221,9 +223,11 @@ async def execute_latte_command(device, command: str, extra: str):
             logger.info(value)
 
     if command.startswith("nav_"):
-        await A11yServiceManager.setup_latte_a11y_services(tb=True)
+        await A11yServiceManager.setup_latte_a11y_services(tb=True, device_name=device.serial)
         await talkback_nav_command(command[len("nav_"):])
-        next_command_json = await read_local_android_file(FINAL_ACITON_FILE, wait_time=TB_NAVIGATE_TIMEOUT)
+        next_command_json = await read_local_android_file(FINAL_ACITON_FILE,
+                                                          wait_time=TB_NAVIGATE_TIMEOUT,
+                                                          device_name=device.serial)
         logger.info(f"Nav Result: '{next_command_json}'")
     if command.startswith("write_nodes"):
         layout_path = extra
