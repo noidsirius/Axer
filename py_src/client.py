@@ -11,6 +11,7 @@ from command import InfoCommand, create_command_from_dict
 
 
 async def recorder_client():
+    # uri = "ws://137.184.188.248:8765"
     uri = "ws://localhost:8765"
     async with websockets.connect(uri) as websocket:
         message = {'name': 'RECORDER'}
