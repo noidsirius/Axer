@@ -19,11 +19,11 @@
   </head>
   <script>
     function loadFile(filePath) {
-      var result = null;
-      var xmlhttp = new XMLHttpRequest();
+      let result = null;
+      let xmlhttp = new XMLHttpRequest();
       xmlhttp.open("GET", filePath, false);
       xmlhttp.send();
-      if (xmlhttp.status==200) {
+      if (xmlhttp.status===200) {
         result = xmlhttp.responseText;
       }
       return result;
@@ -32,7 +32,7 @@ diffString = {% autoescape false %}`{{ diff_string[0] }}`{% endautoescape %};
 
     document.addEventListener('DOMContentLoaded', () => {
       const targetElement = document.getElementById('myDiffElement');
-      var configuration = {
+      let configuration = {
           drawFileList: true,
           fileListToggle: false,
           fileListStartVisible: false,

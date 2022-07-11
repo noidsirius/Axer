@@ -1,17 +1,13 @@
-import json
-import logging
 import subprocess
-from collections import namedtuple, defaultdict
 from functools import lru_cache
 from pathlib import Path
 from typing import Union, List
 
 from GUI_utils import NodesFactory
-from results_utils import AddressBook, ActionResult
-from post_analysis import get_post_analysis, SUCCESS, A11Y_WARNING, OTHER, INEFFECTIVE, \
+from post_analysis import SUCCESS, A11Y_WARNING, OTHER, INEFFECTIVE, \
     CRASHED, API_SMELL, EXTERNAL_SERVICE, LOADING, TB_WEBVIEW_LOADING, API_A11Y_ISSUE, TB_A11Y_ISSUE
+from results_utils import AddressBook, ActionResult
 from search_utils import contains_node_with_attrs, compare_bool, compare_int
-from utils import convert_bounds
 
 
 class SearchActionResult:
@@ -89,7 +85,9 @@ class SearchActionQuery:
                 if name == 'ANY' or not value:
                     continue
                 if name == "only_touch_change_event":
-                    res = len(summary["changed_elements_touch"]) > 0 and len(summary["changed_elements_tb_touch"]) == 0 and len(summary["changed_elements_a11y_api"]) == 0
+                    res = len(summary["changed_elements_touch"]) > 0 and \
+                          len(summary["changed_elements_tb_touch"]) == 0 and \
+                          len(summary["changed_elements_a11y_api"]) == 0
                     if not res:
                         return False
                     continue
@@ -135,7 +133,8 @@ class SearchActionQuery:
             elif post_analysis_result == 'CRASHED':
                 return CRASHED in issue_status
             elif post_analysis_result == 'OTHER':
-                return OTHER in issue_status # or not any(x in [SUCCESS, UNREACHABLE, DIFFERENT_BEHAVIOR, EXEC_FAILURE] for x in issue_status)
+                return OTHER in issue_status
+                # or not any(x in [SUCCESS, UNREACHABLE, DIFFERENT_BEHAVIOR, EXEC_FAILURE] for x in issue_status)
             return False
         if post_analysis_result != 'ANY':
             self.filters.append(post_analysis_satisfies)
@@ -183,8 +182,10 @@ class SearchActionQuery:
             if first_mode not in modes or second_mode not in modes:
                 return True
             prefix = 's_' if is_sighted else ''
-            left_screen_path = address_book.get_screenshot_path(f"{prefix}{first_mode}", action['index'], should_exists=True)
-            right_screen_path = address_book.get_screenshot_path(f"{prefix}{second_mode}", action['index'], should_exists=True)
+            left_screen_path = address_book.get_screenshot_path(f"{prefix}{first_mode}", action['index'],
+                                                                should_exists=True)
+            right_screen_path = address_book.get_screenshot_path(f"{prefix}{second_mode}", action['index'],
+                                                                 should_exists=True)
             if left_screen_path is None or right_screen_path is None:
                 return False
             cmd = f"diff --unified {left_screen_path} {right_screen_path}"
@@ -225,7 +226,8 @@ class SearchActionManager:
                 if not address_book.perform_actions_results_path.exists():
                     continue
                 for action_result in address_book.whelper.get_actions():
-                    if len(search_action_result_list) >= action_limit or action_in_snapshot_count >= action_per_snapshot_limit:
+                    if len(search_action_result_list) >= action_limit or \
+                            action_in_snapshot_count >= action_per_snapshot_limit:
                         break
                     if not search_query.satisfies(address_book, action_result):
                         continue

@@ -121,7 +121,7 @@ def did_talkback_perform_click(events: List[Tuple[str, Node]]) -> bool:
     return state == 6
 
 
-def get_clicked_element(events: List[Tuple[str, Node]]) -> Node:
+def get_clicked_element(events: List[Tuple[str, Node]]) -> Union[Node, None]:
     for event_name, node in reversed(events):
         if event_name == "TYPE_VIEW_CLICKED":
             if node.toJSONStr() == Node().toJSONStr():
@@ -169,7 +169,7 @@ class WebHelper:
         with open(self.address_book.perform_actions_atf_issues_path) as f:
             return len(f.readlines())
 
-    def get_action(self, action_index: int) -> ActionResult:
+    def get_action(self, action_index: int) -> Union[ActionResult, None]:
         if not self.address_book.perform_actions_results_path.exists():
             return None
         with open(self.address_book.perform_actions_results_path) as f:
@@ -210,6 +210,7 @@ class WebHelper:
         return result
 
     def summarized_events(self, index: int) -> dict:
+        # TODO: Refactor
         cache: bool = True
         if cache:
             if self.address_book.perform_actions_summary.exists():
@@ -856,17 +857,17 @@ async def capture_current_state(address_book: AddressBook, device,
                                 use_adb_layout: bool = False) -> str:
     await asyncio.sleep(3)
     await save_screenshot(device, address_book.get_screenshot_path(mode, index))
-    activity_name = await get_current_activity_name()
+    activity_name = await get_current_activity_name(device_name=device.serial)
     with open(address_book.get_activity_name_path(mode, index), mode='w') as f:
         f.write(activity_name + "\n")
 
     layout = ""
     if has_layout:
         if use_adb_layout:
-            layout = await adb_capture_layout()
+            layout = await adb_capture_layout(device_name=device.serial)
         else:
             padb_logger = ParallelADBLogger(device)
-            log_map, layout = await padb_logger.execute_async_with_log(capture_layout())
+            log_map, layout = await padb_logger.execute_async_with_log(capture_layout(device_name=device.serial))
             with open(address_book.get_log_path(mode, index, extension="layout"), mode='w') as f:
                 f.write(log_map[BLIND_MONKEY_TAG])
         with open(address_book.get_layout_path(mode, index), mode='w') as f:
@@ -878,10 +879,10 @@ async def capture_current_state(address_book: AddressBook, device,
                 f.write(log_message)
 
     if dumpsys:
-        windows = await get_windows()
+        windows = await get_windows(device_name=device.serial)
         with open(address_book.get_log_path(mode, index, extension="WINDOWS"), mode='w') as f:
             f.write(windows + "\n")
-        activities = await get_activities()
+        activities = await get_activities(device_name=device.serial)
         with open(address_book.get_log_path(mode, index, extension="ACTIVITIES"), mode='w') as f:
             f.write(activities + "\n")
 

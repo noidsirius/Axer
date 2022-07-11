@@ -8,6 +8,6 @@ for SNAPSHOT in $(../scripts/list_snapshots.sh); do
   if [[ "$APP_NAME" != *"$APK_NAME"* ]]; then
     continue
   fi
-  ./run_snapshot.sh $SNAPSHOT $RESULT_PATH
+  ./run_snapshot.sh "$SNAPSHOT" "$RESULT_PATH"
 done
 

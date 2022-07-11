@@ -13,5 +13,5 @@ echo "Running APK $APK_NAME, the result will be written in $RESULT_PATH"
 ../scripts/load_snapshot.sh BASE
 echo "Sleep 5 seconds"
 sleep 5
-$STOAT_PATH/explore.sh "$APK_PATH" "$MAX_SNAPSHOT" "$MAX_EVENT"
-./run_my_snapshots.sh $APK_NAME $RESULT_PATH
+"$STOAT_PATH"/explore.sh "$APK_PATH" "$MAX_SNAPSHOT" "$MAX_EVENT"
+./run_my_snapshots.sh "$APK_NAME" "$RESULT_PATH"

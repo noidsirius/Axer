@@ -188,8 +188,8 @@
                 $.getJSON(path, {},
                     function(data) {
                         if (data.result) {
-                            for(var t of tag.split(',')) {
-                                new_tag = `<span class="btn btn-light rounded-pill m-1" style="display: inline-block;">
+                            for(let t of tag.split(',')) {
+                                let new_tag = `<span class="btn btn-light rounded-pill m-1" style="display: inline-block;">
                                             ${t}
                                         </span>`
                                 console.log("The tag container")

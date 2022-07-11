@@ -40,7 +40,8 @@ async def send_command_to_latte(command: str, extra: str = "NONE", device_name: 
     return r_code == 0
 
 
-async def send_commands_sequence_to_latte(command_sequence: List[Union[str, Tuple[str, str]]], device_name: str = DEVICE_NAME) -> bool:
+async def send_commands_sequence_to_latte(command_sequence: List[Union[str, Tuple[str, str]]],
+                                          device_name: str = DEVICE_NAME) -> bool:
     command_extra = []
     for item in command_sequence:
         command = item if isinstance(item, str) else item[0]

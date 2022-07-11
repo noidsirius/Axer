@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class A11yServiceManager:
     services = {"tb": "com.google.android.marvin.talkback/com.google.android.marvin.talkback.TalkBackService",
-                         "latte": "dev.navids.latte/dev.navids.latte.app.MyLatteService"}
+                "latte": "dev.navids.latte/dev.navids.latte.app.MyLatteService"}
 
     @staticmethod
     async def get_enabled_services(simplify: bool = False, device_name: str = DEVICE_NAME) -> List[str]:
@@ -96,7 +96,7 @@ class A11yServiceManager:
                 logger.warning(f"There was an issue with enabling services {requested_services}, Try: {i}")
         live_latte = False
         for i in range(10):
-            if await is_latte_live():
+            if await is_latte_live(device_name=device_name):
                 live_latte = True
                 break
             else:

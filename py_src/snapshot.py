@@ -93,7 +93,7 @@ class DeviceSnapshot(Snapshot):
         initial_layout = initial_screenshot = None
         if first_setup:
             if use_service:
-                await A11yServiceManager.setup_latte_a11y_services(tb=False)
+                await A11yServiceManager.setup_latte_a11y_services(tb=False, device_name=self.device.serial)
             initial_layout = await capture_current_state(self.address_book,
                                                          self.device,
                                                          mode=AddressBook.BASE_MODE,
@@ -119,7 +119,7 @@ class EmulatorSnapshot(DeviceSnapshot):
         await super().setup(first_setup=first_setup, **kwargs)
         if first_setup and not self.no_save_snapshot:
             await asyncio.sleep(3)
-            await save_snapshot(self.tmp_snapshot)
+            await save_snapshot(self.tmp_snapshot, device_name=self.device.serial)
 
     async def reload(self, hard: bool = False) -> bool:
         if hard:
@@ -127,7 +127,7 @@ class EmulatorSnapshot(DeviceSnapshot):
                 return False
             await asyncio.sleep(3)
             if not self.no_save_snapshot:
-                await save_snapshot(self.tmp_snapshot)
+                await save_snapshot(self.tmp_snapshot, device_name=self.device.serial)
             return True
         if self.no_save_snapshot:
             logger.error("There is no temporary snapshot saved!")

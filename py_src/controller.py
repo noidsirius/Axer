@@ -4,9 +4,8 @@ from abc import ABC, abstractmethod
 
 from a11y_service import A11yServiceManager
 from adb_utils import read_local_android_file
-from command import Command, CommandResponse, LocatableCommand, LocatableCommandResponse, NavigateCommand, \
-    NavigateCommandResponse, InfoCommand, InfoCommandResponse, create_command_response_from_dict
-from consts import ACTION_EXECUTION_RETRY_COUNT, REGULAR_EXECUTE_TIMEOUT_TIME
+from command import Command, CommandResponse, create_command_response_from_dict
+from consts import ACTION_EXECUTION_RETRY_COUNT, REGULAR_EXECUTE_TIMEOUT_TIME, DEVICE_NAME
 from latte_utils import send_commands_sequence_to_latte, send_command_to_latte
 
 logger = logging.getLogger(__name__)
@@ -15,8 +14,8 @@ logger = logging.getLogger(__name__)
 class Controller(ABC):
     CONTROLLER_RESULT_FILE_NAME = "controller_result.txt"
 
-    def __init__(self):
-        pass
+    def __init__(self, device_name: str = DEVICE_NAME):
+        self.device_name = device_name
 
     def name(self):
         return type(self).__name__
@@ -33,12 +32,16 @@ class Controller(ABC):
             if i > 0:
                 await self.setup()
             logger.debug(f"Execute Command using controller {self.name()}, Try: {i}")
-            await send_command_to_latte(command="controller_execute", extra=command.toJSONStr())
-            result = await read_local_android_file(Controller.CONTROLLER_RESULT_FILE_NAME, wait_time=REGULAR_EXECUTE_TIMEOUT_TIME)
+            await send_command_to_latte(command="controller_execute",
+                                        extra=command.toJSONStr(),
+                                        device_name=self.device_name)
+            result = await read_local_android_file(Controller.CONTROLLER_RESULT_FILE_NAME,
+                                                   wait_time=REGULAR_EXECUTE_TIMEOUT_TIME,
+                                                   device_name=self.device_name)
             if result is None:
                 logger.warning(f"Timeout, skipping {command} for controller {self.name()}")
                 result = {'state': 'timeout'}
-                await send_command_to_latte("controller_interrupt")
+                await send_command_to_latte("controller_interrupt", device_name=self.device_name)
             else:
                 result = json.loads(result)
                 break
@@ -50,23 +53,23 @@ class Controller(ABC):
 
 class TouchController(Controller):
     async def setup(self):
-        await A11yServiceManager.setup_latte_a11y_services(tb=False)
-        await send_commands_sequence_to_latte([("controller_set", "touch")])
+        await A11yServiceManager.setup_latte_a11y_services(tb=False, device_name=self.device_name)
+        await send_commands_sequence_to_latte([("controller_set", "touch")], device_name=self.device_name)
 
 
 class A11yAPIController(Controller):
     async def setup(self):
-        await A11yServiceManager.setup_latte_a11y_services(tb=False)
-        await send_commands_sequence_to_latte([("controller_set", "a11y_api")])
+        await A11yServiceManager.setup_latte_a11y_services(tb=False, device_name=self.device_name)
+        await send_commands_sequence_to_latte([("controller_set", "a11y_api")], device_name=self.device_name)
 
 
 class TalkBackAPIController(Controller):
     async def setup(self):
-        await A11yServiceManager.setup_latte_a11y_services(tb=True)
-        await send_commands_sequence_to_latte([("controller_set", "tb_api")])
+        await A11yServiceManager.setup_latte_a11y_services(tb=True, device_name=self.device_name)
+        await send_commands_sequence_to_latte([("controller_set", "tb_api")], device_name=self.device_name)
 
 
 class TalkBackTouchController(Controller):
     async def setup(self):
-        await A11yServiceManager.setup_latte_a11y_services(tb=True)
-        await send_commands_sequence_to_latte([("controller_set", "tb_touch")])
+        await A11yServiceManager.setup_latte_a11y_services(tb=True, device_name=self.device_name)
+        await send_commands_sequence_to_latte([("controller_set", "tb_touch")], device_name=self.device_name)

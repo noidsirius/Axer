@@ -24,8 +24,10 @@ def calculate_overlap(bounds: Tuple[int, int, int, int],
     dx = min(bounds[2], bounds1[2]) - max(bounds[0], bounds1[0])
     dy = min(bounds[3], bounds1[3]) - max(bounds[1], bounds1[1])
 
-    ov = tuple([max(bounds[0], bounds1[0]), max(bounds[1], bounds1[1]), min(bounds[2], bounds1[2]),
-                min(bounds[3], bounds1[3])])
+    ov = (max(bounds[0], bounds1[0]),
+          max(bounds[1], bounds1[1]),
+          min(bounds[2], bounds1[2]),
+          min(bounds[3], bounds1[3]))
     if dx >= 0 and dy >= 0 and ov[0] < ov[2] and ov[1] < ov[3]:
         return ov
     return None
@@ -355,8 +357,7 @@ class NodesFactory:
             return []
 
         def dfs(node: Node, extra: Dict) -> List[Node]:
-            nodes = []
-            nodes.append(node)
+            nodes = [node]
             children_xml_elements = node.xml_element.findall("node")
             children_nodes = [Node.createNodeFromXmlElement(child_element) for child_element in children_xml_elements]
             child_to_extra_map = defaultdict(dict)
@@ -433,19 +434,19 @@ def is_in_same_state_with_layout_path(layout_path1: Union[Path, str], layout_pat
 
 
 def get_xpath_from_xml_element(xml_element):
-    def __get_element_class(xml_element):
+    def __get_element_class(my_xml_element):
         # for XPATH we have to count only for nodes with same type!
         length = 0
         index = -1
-        if xml_element.getparent() is not None:
-            for x in xml_element.getparent().getchildren():
-                if xml_element.attrib.get('class', 'NONE1') == x.attrib.get('class', 'NONE2'):
+        if my_xml_element.getparent() is not None:
+            for x in my_xml_element.getparent().getchildren():
+                if my_xml_element.attrib.get('class', 'NONE1') == x.attrib.get('class', 'NONE2'):
                     length += 1
-                if x == xml_element:
+                if x == my_xml_element:
                     index = length
         if length > 1:
-            return f"{xml_element.attrib.get('class', '')}[{index}]"
-        return xml_element.attrib.get('class', '')
+            return f"{my_xml_element.attrib.get('class', '')}[{index}]"
+        return my_xml_element.attrib.get('class', '')
 
     node_class_name = __get_element_class(xml_element)
     path = '/' + node_class_name if node_class_name != "" else ""

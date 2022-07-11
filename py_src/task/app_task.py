@@ -72,7 +72,8 @@ class StoatSaveSnapshotTask(AppTask):
         should_be_saved = True
         for existing_snapshot in existing_snapshots:
             if tmp_snapshot.is_in_same_state_as(existing_snapshot):
-                logger.info(f"There is an existing snapshot in the same state: {existing_snapshot.address_book.snapshot_name()}")
+                logger.info(f"There is an existing snapshot in the same state: "
+                            f"{existing_snapshot.address_book.snapshot_name()}")
                 should_be_saved = False
                 break
         if should_be_saved:
@@ -80,6 +81,6 @@ class StoatSaveSnapshotTask(AppTask):
             address_book = AddressBook(self.app_path.joinpath(snapshot_name))
             snapshot = tmp_snapshot.clone(address_book)
             await asyncio.sleep(5)
-            await save_snapshot(snapshot_name)
+            await save_snapshot(snapshot_name, device_name=self.device.serial)
             logger.info(f"The new snapshot is saved in {snapshot_name}!")
         await asyncio.sleep(1)

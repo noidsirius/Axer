@@ -8,6 +8,7 @@ POINT_ACTION_LIMIT="--point-action-limit 2"
 #OVERSIGHT="--oversight"
 OVERSIGHT=""
 MODE=${3:-""}
+DEVICE_NAME="emulator-5554"
 APP_NAME=${SNAPSHOT%%.S_*}
 echo "Snapshot $SNAPSHOT in App $APP_NAME"
 
@@ -17,16 +18,16 @@ adb start-server
 sleep 2
 adb devices
 sleep 2
-python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --emulator --initial-load --no-save-snapshot --snapshot-task "talkback_explore"
-python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --emulator --initial-load --no-save-snapshot --snapshot-task "dummy"
-python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --static --snapshot-task "extract_actions"
+python main.py --debug --device "$DEVICE_NAME" --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --emulator --initial-load --no-save-snapshot --snapshot-task "talkback_explore"
+python main.py --debug --device "$DEVICE_NAME" --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --emulator --initial-load --no-save-snapshot --snapshot-task "dummy"
+python main.py --debug --device "$DEVICE_NAME" --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --static --snapshot-task "extract_actions"
 adb kill-server
 sleep 3
 adb start-server
 sleep 2
 adb devices
 sleep 2
-python main.py --debug --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --emulator --initial-load --snapshot-task "perform_actions"
+python main.py --debug --device "$DEVICE_NAME" --app-name "$APP_NAME" --output-path "$RESULT_PATH" --snapshot "$SNAPSHOT" --emulator --initial-load --snapshot-task "perform_actions"
 adb kill-server
 TMP_SNAPSHOT=$SNAPSHOT"_TMP"
 adb emu avd snapshot delete "$TMP_SNAPSHOT"
