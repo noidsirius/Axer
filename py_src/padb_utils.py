@@ -20,7 +20,6 @@ class ParallelADBLogger:
 
     async def _logcat(self) -> asyncio.coroutine:
         async def logcat_handler(connection):
-            global log_list
             while True:
                 data = await connection.read(1024)
                 if not data:

@@ -1,7 +1,7 @@
+{% extends "layout.html" %}
 {% from "action_macro.html" import action_row, action_tag_script with context %}
 {% from "utils_macro.html" import compare_layout_form with context %}
 {% from "snapshot_macro.html" import snapshot_summary, snapshot_bs_summary with context %}
-{% extends "layout.html" %}
 {% block title %}
     Search
 {% endblock %}
@@ -211,7 +211,7 @@
     <script>
         $(function () {
             $('#clear_form').on('click', function () {
-                if (confirm("Are you sure?") == true) {
+                if (confirm("Are you sure?") === true) {
                     $(':input', '#search_form')
                         .not(':button, :submit, :reset, :hidden')
                         .val('')

@@ -1,26 +1,24 @@
-import sys
+import datetime
 import json
 import logging
-import subprocess
-from typing import Union
-from itertools import cycle
-from collections import defaultdict
-import pathlib
-import os
 import math
-import datetime
+import pathlib
+import subprocess
+import sys
+from collections import defaultdict
+from itertools import cycle
+from typing import Union
+
 from ansi2html import Ansi2HTMLConverter
-from json2html import json2html
 from flask import Flask, request, jsonify, send_from_directory, render_template, make_response
+from json2html import json2html
 
 from consts import BLIND_MONKEY_EVENTS_TAG
 from snapshot_search import SnapshotSearchManager, SnapshotSearchQuery
 
 sys.path.append(str(pathlib.Path(__file__).parent.resolve()))
 from results_utils import AddressBook, OAC
-from post_analysis import do_post_analysis, get_post_analysis, old_report_issues, SUCCESS, TB_FAILURE, REG_FAILURE, \
-    XML_PROBLEM \
-    , DIFFERENT_BEHAVIOR, UNREACHABLE, POST_ANALYSIS_PREFIX
+from post_analysis import do_post_analysis, get_post_analysis, POST_ANALYSIS_PREFIX
 from action_search import get_search_manager, SearchActionQuery
 
 logger = logging.getLogger(__name__)
@@ -91,33 +89,27 @@ def create_app_info(app_path: pathlib.Path) -> Union[dict, None]:
         if snapshot_info is not None:
             snapshots_info.append(snapshot_info)
     snapshots_info.sort(key=lambda s: s['last_update'], reverse=True)
-    app_info = {}
-    app_info['name'] = app_name.replace(' ', '_')
-    app_info['snapshots'] = snapshots_info
-    app_info['has_unprocessed'] = any(s['state'] == 'Unprocessed' for s in snapshots_info)
-    app_info['actions'] = sum(
-        [0] + [s['actions'] for s in snapshots_info if s['state'] == 'Processed'])
-    app_info['failure'] = sum(
-        [0] + [s['failure'] for s in snapshots_info if s['state'] == 'Processed'])
-    app_info['warning'] = sum(
-        [0] + [s['warning'] for s in snapshots_info if s['state'] == 'Processed'])
-    app_info['other'] = sum(
-        [0] + [s['other'] for s in snapshots_info if s['state'] == 'Processed'])
-    app_info['last_update'] = max(s['last_update'] for s in snapshots_info)
+    app_info = {'name': app_name.replace(' ', '_'),
+                'snapshots': snapshots_info,
+                'has_unprocessed': any(s['state'] == 'Unprocessed' for s in snapshots_info),
+                'actions': sum([0] + [s['actions'] for s in snapshots_info if s['state'] == 'Processed']),
+                'failure': sum([0] + [s['failure'] for s in snapshots_info if s['state'] == 'Processed']),
+                'warning': sum([0] + [s['warning'] for s in snapshots_info if s['state'] == 'Processed']),
+                'other': sum([0] + [s['other'] for s in snapshots_info if s['state'] == 'Processed']),
+                'last_update': max(s['last_update'] for s in snapshots_info)}
     return app_info
 
 
 def create_step(address_book: AddressBook, static_root_path: pathlib.Path, action: dict,
                 action_post_analysis_results: dict, is_sighted: bool) -> dict:
     prefix = "s_" if is_sighted else ""
-    step = {}
-    step['index'] = action['index']
-    step['snapshot_info'] = {
-        'result_path': address_book.result_path(),
-        'app_name': address_book.app_name(),
-        'snapshot_name': address_book.snapshot_name()
-    }
-    step['action'] = action['element']
+    step = {'index': action['index'],
+            'snapshot_info': {
+                'result_path': address_book.result_path(),
+                'app_name': address_book.app_name(),
+                'snapshot_name': address_book.snapshot_name()
+            },
+            'action': action['element']}
     step['action']['node'] = action.get('node', 'null')
     step['tags'] = []
     if address_book.tags_path.exists():
@@ -133,8 +125,9 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
     for mode in modes:
         for right_mode in modes:
             if right_mode != mode:
-                step['xml_similar'][mode][right_mode] = all(action_post_analysis_results[ana_name]['xml_similar_map'][f"{mode}_{right_mode}"] for ana_name in
-                                                        action_post_analysis_results)
+                step['xml_similar'][mode][right_mode] = all(action_post_analysis_results[ana_name]['xml_similar_map']
+                                                            [f"{mode}_{right_mode}"] for ana_name in
+                                                            action_post_analysis_results)
             else:
                 step['xml_similar'][mode][right_mode] = True
         if mode == 'exp':
@@ -172,15 +165,16 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
     step['status_messages'] = []
     for ana_name in action_post_analysis_results:
         message = f"{ana_name}: {action_post_analysis_results[ana_name]['message']}"
-        for mode, repr in mode_to_repr.items():
-            message = message.replace(mode, f"{repr}")
+        for mode, representation in mode_to_repr.items():
+            message = message.replace(mode, f"{representation}")
         step['status_messages'].append(message)
     return step
+
 
 @flask_app.context_processor
 def inject_user():
     all_result_paths = []
-    parent_path = result_path = pathlib.Path(fix_path(""))
+    parent_path = pathlib.Path(fix_path(""))
     for result_path in parent_path.iterdir():
         if not result_path.is_dir():
             continue
@@ -245,7 +239,7 @@ def gh_summary(result_path_str: str):
     show_all = show_all == 'true'
     result_path = pathlib.Path(fix_path(result_path_str))
     if not (result_path.is_dir() and result_path.exists()):
-        return "The result path is inccorrect!"
+        return "The result path is incorrect!"
     address_books = []
     for app_path in result_path.iterdir():
         if not app_path.is_dir():
@@ -253,14 +247,17 @@ def gh_summary(result_path_str: str):
         for snapshot_path in app_path.iterdir():
             if snapshot_path.is_dir():
                 address_books.append(AddressBook(snapshot_path))
-    return render_template('gh_summary.html', address_books=address_books, result_path=result_path_str, show_all=show_all)
+    return render_template('gh_summary.html',
+                           address_books=address_books,
+                           result_path=result_path_str,
+                           show_all=show_all)
 
 
 @flask_app.route("/v2/<result_path_str>/")
 def report_index_v2(result_path_str: str):
     result_path = pathlib.Path(fix_path(result_path_str))
     if not (result_path.is_dir() and result_path.exists()):
-        return "The result path is inccorrect!"
+        return "The result path is incorrect!"
     apps = []
     for app_path in result_path.iterdir():
         app_info = create_app_info(app_path)
@@ -379,18 +376,10 @@ def search_v2(result_path_str: str):
     exclude_tags = exclude_tags_field.split(",")
     result_path = pathlib.Path(fix_path(result_path_str))
     if not (result_path.is_dir() and result_path.exists()):
-        return "The result path is inccorrect!"
+        return "The result path is incorrect!"
     search_query = SearchActionQuery()\
         .post_analysis(post_analysis_result=post_analysis_result)\
         .set_valid_app(app_name_field)\
-
-    # for action_attr, value in zip(action_attr_names, action_attr_fields):
-    #     if value:
-    #         search_query.contains_action_attr(action_attr, value)
-    #
-    # for action_attr, value in zip(action_xml_attr_names, action_xml_attr_fields):
-    #     if value and value != 'Any':
-    #         search_query.contains_action_xml_attr(action_attr, value)
 
     if len(include_tags) > 0 or len(exclude_tags) > 0:
         search_query.contains_tags(include_tags=include_tags, exclude_tags=exclude_tags)

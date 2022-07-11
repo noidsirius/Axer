@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class A11yServiceManager:
     services = {"tb": "com.google.android.marvin.talkback/com.google.android.marvin.talkback.TalkBackService",
-                         "latte": "dev.navids.latte/dev.navids.latte.app.MyLatteService"}
+                "latte": "dev.navids.latte/dev.navids.latte.app.MyLatteService"}
 
     @staticmethod
     async def get_enabled_services(simplify: bool = False, device_name: str = DEVICE_NAME) -> List[str]:

@@ -36,7 +36,7 @@ async def capture_layout(device_name: str = DEVICE_NAME) -> str:
     layout = f"PROBLEM_WITH_XML EMPTY {random.random()}"
     for i in range(3):
         result, stdout, stderr = await run_bash(cmd)
-        layout = stdout.replace("UI hierchary dumped to: /dev/tty", "")
+        layout = stdout.replace("UI hierarchy dumped to: /dev/tty", "")
         try:
             layout = formatter.format_string(layout).decode("utf-8")
             break
@@ -90,7 +90,9 @@ async def is_android_activity_on_top(device_name: str = DEVICE_NAME) -> bool:
     return False
 
 
-async def local_android_file_exists(file_path: str, pkg_name: str = LATTE_PKG_NAME, device_name: str = DEVICE_NAME) -> bool:
+async def local_android_file_exists(file_path: str,
+                                    pkg_name: str = LATTE_PKG_NAME,
+                                    device_name: str = DEVICE_NAME) -> bool:
     cmd = f"adb -s {device_name} exec-out run-as {pkg_name} ls files/{file_path}"
     _, stdout, _ = await run_bash(cmd)
     return "No such file or directory" not in stdout

@@ -132,7 +132,8 @@ class NavigateCommandResponse(CommandResponse):
     @classmethod
     def get_kwargs_from_response(cls, response: dict) -> dict:
         kwargs = super().get_kwargs_from_response(response)
-        kwargs['navigated_node'] = Node.createNodeFromDict(response.get('navigatedWidget', response.get('navigated_node', {})))
+        kwargs['navigated_node'] = Node.createNodeFromDict(response.get('navigatedWidget',
+                                                                        response.get('navigated_node', {})))
         return kwargs
 
 

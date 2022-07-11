@@ -72,7 +72,8 @@ class StoatSaveSnapshotTask(AppTask):
         should_be_saved = True
         for existing_snapshot in existing_snapshots:
             if tmp_snapshot.is_in_same_state_as(existing_snapshot):
-                logger.info(f"There is an existing snapshot in the same state: {existing_snapshot.address_book.snapshot_name()}")
+                logger.info(f"There is an existing snapshot in the same state: "
+                            f"{existing_snapshot.address_book.snapshot_name()}")
                 should_be_saved = False
                 break
         if should_be_saved:

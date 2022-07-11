@@ -121,7 +121,7 @@ def did_talkback_perform_click(events: List[Tuple[str, Node]]) -> bool:
     return state == 6
 
 
-def get_clicked_element(events: List[Tuple[str, Node]]) -> Node:
+def get_clicked_element(events: List[Tuple[str, Node]]) -> Union[Node, None]:
     for event_name, node in reversed(events):
         if event_name == "TYPE_VIEW_CLICKED":
             if node.toJSONStr() == Node().toJSONStr():
@@ -169,7 +169,7 @@ class WebHelper:
         with open(self.address_book.perform_actions_atf_issues_path) as f:
             return len(f.readlines())
 
-    def get_action(self, action_index: int) -> ActionResult:
+    def get_action(self, action_index: int) -> Union[ActionResult, None]:
         if not self.address_book.perform_actions_results_path.exists():
             return None
         with open(self.address_book.perform_actions_results_path) as f:
@@ -210,6 +210,7 @@ class WebHelper:
         return result
 
     def summarized_events(self, index: int) -> dict:
+        # TODO: Refactor
         cache: bool = True
         if cache:
             if self.address_book.perform_actions_summary.exists():
