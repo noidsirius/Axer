@@ -48,6 +48,9 @@ class Snapshot:
             .with_xpath_pass() \
             .with_ad_detection() \
             .build()
+        with open(self.address_book.snapshot_result_path.joinpath("nodes.jsonl"), "w") as f:
+            for node in self.nodes:
+                f.write(f"{node.toJSONStr()}\n")
 
         for node in self.nodes:
             self.xpath_to_node[node.xpath] = node
