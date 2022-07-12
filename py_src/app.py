@@ -18,7 +18,7 @@ from snapshot_search import SnapshotSearchManager, SnapshotSearchQuery
 
 sys.path.append(str(pathlib.Path(__file__).parent.resolve()))
 from results_utils import AddressBook, OAC
-from post_analysis import do_post_analysis, get_post_analysis, POST_ANALYSIS_PREFIX
+# from post_analysis import do_post_analysis, get_post_analysis, POST_ANALYSIS_PREFIX
 from action_search import get_search_manager, SearchActionQuery
 
 logger = logging.getLogger(__name__)
@@ -51,19 +51,19 @@ def create_snapshot_info(snapshot_path: pathlib.Path) -> Union[dict, None]:
         'other': 0,
     }
     analysis_count = 0
-    for post_result_path in snapshot_path.iterdir():
-        if post_result_path.name.startswith(POST_ANALYSIS_PREFIX):
-            analysis_count += 1
-            with open(str(post_result_path), "r", encoding="utf-8") as f:
-                for line in f.readlines():
-                    count_map['actions'] += 1
-                    result = json.loads(line)
-                    if 10 < result['issue_status'] <= 20:
-                        count_map['other'] += 1
-                    elif 0 < result['issue_status'] <= 10:
-                        count_map['warning'] += 1
-                    elif result['issue_status'] < 0:
-                        count_map['failure'] += 1
+    # for post_result_path in snapshot_path.iterdir():
+    #     if post_result_path.name.startswith(POST_ANALYSIS_PREFIX):
+    #         analysis_count += 1
+    #         with open(str(post_result_path), "r", encoding="utf-8") as f:
+    #             for line in f.readlines():
+    #                 count_map['actions'] += 1
+    #                 result = json.loads(line)
+    #                 if 10 < result['issue_status'] <= 20:
+    #                     count_map['other'] += 1
+    #                 elif 0 < result['issue_status'] <= 10:
+    #                     count_map['warning'] += 1
+    #                 elif result['issue_status'] < 0:
+    #                     count_map['failure'] += 1
 
     snapshot_info['id'] = snapshot_name
     snapshot_info['log_path'] = str(snapshot_path.relative_to(result_path.parent)) + ".log"
@@ -463,11 +463,11 @@ def xml_diff_v2(result_path, app_name, snapshot_name, index, sighted_str, left_m
     return render_template('xml_diff.html', diff_string=[diff_string])
 
 
-@flask_app.route("/v2/<result_path>/app/<app_name>/post_analysis")
-def post_analysis(result_path, app_name):
-    result_path = pathlib.Path(fix_path(result_path)).resolve()
-    snapshot_count = do_post_analysis(app_path=pathlib.Path(result_path).joinpath(app_name))
-    return jsonify(result=f"{snapshot_count} snapshots of {app_name} are analyzed!")
+# @flask_app.route("/v2/<result_path>/app/<app_name>/post_analysis")
+# def post_analysis(result_path, app_name):
+#     result_path = pathlib.Path(fix_path(result_path)).resolve()
+#     snapshot_count = do_post_analysis(app_path=pathlib.Path(result_path).joinpath(app_name))
+#     return jsonify(result=f"{snapshot_count} snapshots of {app_name} are analyzed!")
 
 
 @flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/action/<index>/tag/<tag>")
@@ -533,9 +533,9 @@ def report_v2(result_path, app_name, snapshot_name):
     #     for line in f.readlines():
     #         if line.startswith("ERROR:"):
     #             error_logs += line
-    post_analysis_results = get_post_analysis(snapshot_path=snapshot_path)
-    if len(post_analysis_results['unsighted']) == 0:
-        errors.append("No post-analysis result is available!")
+    # post_analysis_results = get_post_analysis(snapshot_path=snapshot_path)
+    # if len(post_analysis_results['unsighted']) == 0:
+    #     errors.append("No post-analysis result is available!")
 
     if not address_book.action_path.exists():
         errors.append("Explore data doesn't exist!")
@@ -546,7 +546,7 @@ def report_v2(result_path, app_name, snapshot_name):
                 explore_json.append(json.loads(line))
         for action in explore_json:
             step = create_step(address_book, result_path.parent, action,
-                               post_analysis_results['unsighted'][action['index']], is_sighted=False)
+                               {}, is_sighted=False)
             tb_steps.append(step)
     stb_steps = []
     if not address_book.s_action_path.exists():
@@ -558,7 +558,7 @@ def report_v2(result_path, app_name, snapshot_name):
                 explore_json.append(json.loads(line))
         for action in explore_json:
             step = create_step(address_book, result_path.parent, action,
-                               post_analysis_results['sighted'][action['index']], is_sighted=True)
+                               {}, is_sighted=True)
             stb_steps.append(step)
     all_steps = {'TalkBack Exploration': tb_steps, 'Sighted TalkBack Checks': stb_steps}
     return render_template('v2_report.html',

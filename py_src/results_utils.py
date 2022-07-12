@@ -13,7 +13,7 @@ from adb_utils import get_current_activity_name, get_windows, get_activities, ca
 from command import LocatableCommandResponse
 from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG
 from json_util import JSONSerializable
-from latte_executor_utils import ExecutionResult, latte_capture_layout as capture_layout
+from latte_executor_utils import latte_capture_layout as capture_layout
 from padb_utils import ParallelADBLogger, save_screenshot
 from utils import annotate_rectangle
 
@@ -925,56 +925,6 @@ class ResultWriter:
 
     def get_action_index(self):
         return len(self.actions)
-
-    def add_action(self,
-                   element: dict,
-                   tb_action_result: Union[str, ExecutionResult],
-                   reg_action_result: ExecutionResult,
-                   areg_action_result: ExecutionResult = None,
-                   node: Node = None,
-                   is_sighted: bool = False):
-        action_index = self.get_action_index()
-        if not is_sighted:
-            exp_screenshot_path = self.address_book.get_screenshot_path('exp', action_index, should_exists=True)
-            if exp_screenshot_path:
-                annotate_rectangle(source_img=exp_screenshot_path,
-                                   target_img=self.address_book.get_screenshot_path('exp', action_index,
-                                                                                    extension="edited"),
-                                   bounds=[reg_action_result.bound],
-                                   outline=(0, 255, 255),
-                                   scale=15,
-                                   width=15, )
-        else:
-            initial_path = self.address_book.get_screenshot_path('s_exp', 'INITIAL', should_exists=True)
-            if initial_path is not None:
-                if isinstance(tb_action_result, ExecutionResult):
-                    annotate_rectangle(source_img=initial_path,
-                                       target_img=self.address_book.get_screenshot_path('s_exp', action_index,
-                                                                                        extension="edited"),
-                                       bounds=[reg_action_result.bound, tb_action_result.bound],
-                                       outline=[(255, 0, 255), (255, 255, 0)],
-                                       width=[5, 15],
-                                       scale=[1, 20])
-                else:
-                    annotate_rectangle(source_img=initial_path,
-                                       target_img=self.address_book.get_screenshot_path('s_exp', action_index,
-                                                                                        extension="edited"),
-                                       bounds=[reg_action_result.bound],
-                                       outline=(255, 0, 255),
-                                       width=5,
-                                       scale=1)
-        new_action = {'index': action_index,
-                      'element': element,
-                      'tb_action_result': tb_action_result,
-                      'reg_action_result': reg_action_result,
-                      'areg_action_result': areg_action_result,
-                      'node': None if node is None else node.toJSON(),
-                      'is_sighted': is_sighted
-                      }
-        self.actions.append(new_action)
-        action_path = self.address_book.s_action_path if is_sighted else self.address_book.action_path
-        with open(action_path, "a") as f:
-            f.write(f"{json.dumps(new_action)}\n")
 
     def start_explore(self):
         self.address_book.initiate()

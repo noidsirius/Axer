@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Union, List
 
 from GUI_utils import NodesFactory
-from post_analysis import SUCCESS, A11Y_WARNING, OTHER, INEFFECTIVE, \
-    CRASHED, API_SMELL, EXTERNAL_SERVICE, LOADING, TB_WEBVIEW_LOADING, API_A11Y_ISSUE, TB_A11Y_ISSUE
+# from post_analysis import SUCCESS, A11Y_WARNING, OTHER, INEFFECTIVE, \
+#     CRASHED, API_SMELL, EXTERNAL_SERVICE, LOADING, TB_WEBVIEW_LOADING, API_A11Y_ISSUE, TB_A11Y_ISSUE
 from results_utils import AddressBook, ActionResult
 from search_utils import contains_node_with_attrs, compare_bool, compare_int
 
@@ -112,28 +112,28 @@ class SearchActionQuery:
             if post_analysis_result == 'PROCESSED':
                 return len(post_analysis_results) > 0
             issue_status = [result['issue_status'] for result in post_analysis_results.values()]
-            if post_analysis_result == 'ACCESSIBLE':
-                return SUCCESS in issue_status
-            elif post_analysis_result == 'TB_A11Y_ISSUE':
-                return TB_A11Y_ISSUE in issue_status
-            elif post_analysis_result == 'API_A11Y_ISSUE':
-                return API_A11Y_ISSUE in issue_status
-            elif post_analysis_result == 'A11Y_WARNING':
-                return A11Y_WARNING in issue_status
-            elif post_analysis_result == 'API_SMELL':
-                return API_SMELL in issue_status
-            elif post_analysis_result == 'EXTERNAL_SERVICE':
-                return EXTERNAL_SERVICE in issue_status
-            elif post_analysis_result == 'LOADING':
-                return LOADING in issue_status
-            elif post_analysis_result == 'INEFFECTIVE':
-                return INEFFECTIVE in issue_status
-            elif post_analysis_result == 'TB_WEBVIEW_LOADING':
-                return TB_WEBVIEW_LOADING in issue_status
-            elif post_analysis_result == 'CRASHED':
-                return CRASHED in issue_status
-            elif post_analysis_result == 'OTHER':
-                return OTHER in issue_status
+            # if post_analysis_result == 'ACCESSIBLE':
+            #     return SUCCESS in issue_status
+            # elif post_analysis_result == 'TB_A11Y_ISSUE':
+            #     return TB_A11Y_ISSUE in issue_status
+            # elif post_analysis_result == 'API_A11Y_ISSUE':
+            #     return API_A11Y_ISSUE in issue_status
+            # elif post_analysis_result == 'A11Y_WARNING':
+            #     return A11Y_WARNING in issue_status
+            # elif post_analysis_result == 'API_SMELL':
+            #     return API_SMELL in issue_status
+            # elif post_analysis_result == 'EXTERNAL_SERVICE':
+            #     return EXTERNAL_SERVICE in issue_status
+            # elif post_analysis_result == 'LOADING':
+            #     return LOADING in issue_status
+            # elif post_analysis_result == 'INEFFECTIVE':
+            #     return INEFFECTIVE in issue_status
+            # elif post_analysis_result == 'TB_WEBVIEW_LOADING':
+            #     return TB_WEBVIEW_LOADING in issue_status
+            # elif post_analysis_result == 'CRASHED':
+            #     return CRASHED in issue_status
+            # elif post_analysis_result == 'OTHER':
+            #     return OTHER in issue_status
                 # or not any(x in [SUCCESS, UNREACHABLE, DIFFERENT_BEHAVIOR, EXEC_FAILURE] for x in issue_status)
             return False
         if post_analysis_result != 'ANY':
