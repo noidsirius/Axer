@@ -9,6 +9,7 @@ from padb_utils import ParallelADBLogger
 from results_utils import capture_current_state, AddressBook
 from snapshot import DeviceSnapshot
 from task.app_task import AppTask
+from adb_utils import launch_specified_application
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,8 @@ class ExecuteUsecaseTask(AppTask):
         if not self.usecase_path.exists():
             logger.error(f"The usecase of app {self.app_name()} doesn't exist!")
             return
+        app_pkg_name=self.app_path.name
+        return_code=await launch_specified_application(app_pkg_name)
         commands = []
         with open(self.usecase_path) as f:
             for line in f.readlines():

@@ -27,3 +27,5 @@ DEVICE_NAME = "emulator-5554"
 ADB_HOST = "127.0.0.1"
 ADB_PORT = 5037
 UIED_PATH = os.getenv('UIED_PATH', None)
+dir_path = "edu.cmu.hcii.sugilite/scripts"
+dir_pref_path = "edu.cmu.hcii.sugilite/prefix"
