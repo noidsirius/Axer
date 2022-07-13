@@ -124,19 +124,18 @@ async def read_local_android_file(file_path: str,
     return content
 
 
-async def start_android_application(pkg_name: str, activity_name: str, device_name: str = DEVICE_NAME) -> bool:
-    cmd = f"adb -s {device_name} shell am start -n {pkg_name}/{pkg_name}.{activity_name}"
-    return_code, _, _ = await run_bash(cmd)
-    return return_code == 0
-
-
 async def get_file_nums(dir_path: str, device_name: str = DEVICE_NAME) -> int:
+    '''Takes the directory path in Android, returns the number of files in that directory.
+       Method uses for Sugilite'''
     cmd = f"adb -s {device_name} shell ls sdcard/{dir_path} | adb -s {device_name} shell grep . -c"
     _, stdout, _ = await run_bash(cmd)
     return stdout
 
 
 async def get_most_recent_file(dir_path: str, prev_num: int, sleep_time: int, device_name: str = DEVICE_NAME) -> str:
+    '''Takes the directory path in Android, the previous number of files in that directory, the sleep time between each check,
+       returns the name of the most recent file
+       Method uses for Sugilite'''
     cur_num = prev_num
     while (cur_num == prev_num):
         cur_num = await get_file_nums(dir_path)
@@ -147,18 +146,19 @@ async def get_most_recent_file(dir_path: str, prev_num: int, sleep_time: int, de
     return most_recent_name
 
 
-async def download_recent_file(dir_path: str, file_name: str, destination: str, device_name: str = DEVICE_NAME):
+async def download_android_file(dir_path: str, file_name: str, destination: str, device_name: str = DEVICE_NAME):
+    '''Takes the directory path in Android, the file name user wants to download and the destination
+       downloads the targeted file to the destination
+       Method uses for Sugilite'''
     cmd = f'adb -s {device_name} pull sdcard/{dir_path}/"{file_name}" "{destination}"'
     return_code, _, _ = await run_bash(cmd)
     return return_code==0
 
 
 async def launch_specified_application(pkg_name:str, device_name:str=DEVICE_NAME) -> bool:
+    ''' Starts the android application based on the provided package name
+        Method uses for Sugilite
+    '''
     cmd=f"adb -s {device_name} shell monkey -p {pkg_name} 1"
     return_code, _, _ = await run_bash(cmd)
     return return_code == 0
-
-async def download_android_file(dir_path: str, file_name: str, destination: str, device_name: str = DEVICE_NAME):
-    cmd = f'adb -s {device_name} pull sdcard/{dir_path}/"{file_name}" "{destination}"'
-    return_code, _, _ = await run_bash(cmd)
-    return return_code==0

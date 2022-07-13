@@ -9,6 +9,7 @@ from pathlib import Path
 from GUI_utils import Node
 from adb_utils import download_android_file
 from command import ClickCommand
+from consts import dir_path
 import websockets
 
 logger = logging.getLogger(__name__)
@@ -63,11 +64,10 @@ async def recorder_handler():
         if 'end recording' in message and 'scriptName' in message:
             logger.info(f"Recording is ended with the scriptName: {message['scriptName']}")
             # Download the script from the emulator
-            dir_path = "edu.cmu.hcii.sugilite/scripts"
             dest_path = Path(__file__).resolve().with_name('dev_results').joinpath(message['scriptName'])
             if not dest_path.exists():
-                os.makedirs(dest_path)
-            return_code = await download_android_file(dir_path, message['scriptName']+'.txt', dest_path)
+                dest_path.mkdir(parents=True)
+            await download_android_file(dir_path, message['scriptName']+'.jsonl', dest_path)
 
         # Converting to the ClickCommand
         text = message['Text'] if 'Text' in message else ''
@@ -101,5 +101,8 @@ async def main():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    # asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+    #comment the below code if you're running on MAC OS
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
     asyncio.run(main())
