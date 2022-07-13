@@ -555,6 +555,7 @@ class AddressBook:
     PROCESS_SCREENSHOT = "process_screenshot"
     EXTRACT_ACTIONS = "extract_actions"
     PERFORM_ACTIONS = "perform_actions"
+    EXECUTE_SINGLE_ACTION = "execute_single_action"
 
     def __init__(self, snapshot_result_path: Union[Path, str]):
         if isinstance(snapshot_result_path, str):
@@ -608,6 +609,9 @@ class AddressBook:
             "atf_elements.png")
         self.perform_actions_summary = self.audit_path_map[AddressBook.PERFORM_ACTIONS].joinpath(
             "summary_of_actions_v2.jsonl")
+        # ----------- Audit: execute_single_action ----------
+        self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION] = self.snapshot_result_path.joinpath("ExecuteSingleAction")
+        self.execute_single_action_results_path = self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION].joinpath("result.jsonl")
         # ---------------------------------------------------
         # TODO: Needs to find a more elegant solution
         navigate_modes = [AddressBook.BASE_MODE, "tb_touch", "touch", "a11y_api"]
@@ -678,6 +682,11 @@ class AddressBook:
             if path.exists():
                 shutil.rmtree(path.resolve())
             path.mkdir()
+
+    def initiate_execute_single_action_task(self):
+        if self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION].exists():
+            shutil.rmtree(self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION].resolve())
+        self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION].mkdir()
 
     def initiate_oversight_static_task(self):
         if self.audit_path_map[AddressBook.OVERSIGHT_STATIC].exists():

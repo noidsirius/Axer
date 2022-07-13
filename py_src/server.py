@@ -51,12 +51,17 @@ async def register(websocket):
 
 
 async def recorder_handler():
+    print("In Recorder Handler!")
     while True:
         if recorder_connection is None:
             await asyncio.sleep(3)
             continue
         message_str = await recorder_connection.recv()
-        message = json.loads(message_str)
+        try:
+            message = json.loads(message_str)
+        except Exception as e:
+            logger.error(f"The received message was not in JSON format, message: '{message_str}'")
+            break
 
         if 'start recording' in message and 'packageName' in message:
             logger.info(f"Recording is started with the packageName: '{message['packageName']}")
@@ -94,6 +99,19 @@ async def recorder_handler():
         # logger.info(f"Generated the click command: Command: '{command.toJSONStr()}")
         websockets.broadcast(proxy_users_connections.values(), message_str)
 
+    proxy_connection_items = list(proxy_users_connections.items())
+    for name, proxy_users_connection in proxy_connection_items:
+        if not proxy_users_connection.closed:
+            try:
+                await proxy_users_connection.close()
+            except Exception as e:
+                logger.error(f"Failed to close connection of {name}, Exception: '{e}'")
+    if recorder_connection is not None and not recorder_connection.closed:
+        try:
+            await recorder_connection.close()
+        except Exception as e:
+            logger.error(f"Failed to close RECORDER connection, Exception: '{e}'")
+
 
 async def main():
     async with websockets.serve(register, "localhost", 8765):
@@ -101,8 +119,6 @@ async def main():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-
-    #comment the below code if you're running on MAC OS
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-
+    if os.name == 'nt':
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
     asyncio.run(main())

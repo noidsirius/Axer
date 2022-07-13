@@ -35,7 +35,7 @@ class PerformActionsTask(SnapshotTask):
             'touch': TouchController(device_name=device.serial)
         }
         padb_logger = ParallelADBLogger(device)
-        await self.write_ATF_issues()
+        await self.write_ATF_issues()  # TODO: Need to moved to another task
         selected_actionable_nodes = []
         with open(snapshot.address_book.extract_actions_nodes[Actionables.Selected]) as f:
             for line in f.readlines():

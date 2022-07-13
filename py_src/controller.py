@@ -1,6 +1,7 @@
 import json
 import logging
 from abc import ABC, abstractmethod
+from typing import Union
 
 from a11y_service import A11yServiceManager
 from adb_utils import read_local_android_file
@@ -17,8 +18,12 @@ class Controller(ABC):
     def __init__(self, device_name: str = DEVICE_NAME):
         self.device_name = device_name
 
-    def name(self):
+    def name(self) -> str:
         return type(self).__name__
+
+    @abstractmethod
+    def mode(self) -> str:
+        return 'base'
 
     @abstractmethod
     async def setup(self):
@@ -52,24 +57,48 @@ class Controller(ABC):
 
 
 class TouchController(Controller):
+    def mode(self) -> str:
+        return 'touch'
+
     async def setup(self):
         await A11yServiceManager.setup_latte_a11y_services(tb=False, device_name=self.device_name)
-        await send_commands_sequence_to_latte([("controller_set", "touch")], device_name=self.device_name)
+        await send_commands_sequence_to_latte([("controller_set", self.mode())], device_name=self.device_name)
 
 
 class A11yAPIController(Controller):
+    def mode(self) -> str:
+        return 'a11y_api'
+
     async def setup(self):
         await A11yServiceManager.setup_latte_a11y_services(tb=False, device_name=self.device_name)
-        await send_commands_sequence_to_latte([("controller_set", "a11y_api")], device_name=self.device_name)
+        await send_commands_sequence_to_latte([("controller_set", self.mode())], device_name=self.device_name)
 
 
 class TalkBackAPIController(Controller):
+    def mode(self) -> str:
+        return 'tb_api'
+
     async def setup(self):
         await A11yServiceManager.setup_latte_a11y_services(tb=True, device_name=self.device_name)
-        await send_commands_sequence_to_latte([("controller_set", "tb_api")], device_name=self.device_name)
+        await send_commands_sequence_to_latte([("controller_set", self.mode())], device_name=self.device_name)
 
 
 class TalkBackTouchController(Controller):
+    def mode(self) -> str:
+        return 'tb_touch'
+
     async def setup(self):
         await A11yServiceManager.setup_latte_a11y_services(tb=True, device_name=self.device_name)
-        await send_commands_sequence_to_latte([("controller_set", "tb_touch")], device_name=self.device_name)
+        await send_commands_sequence_to_latte([("controller_set", self.mode())], device_name=self.device_name)
+
+
+def create_controller(mode: str, device_name: str) -> Union[Controller, None]:
+    if mode == 'tb_touch':
+        return TalkBackTouchController(device_name=device_name)
+    elif mode == 'tb_api':
+        return TalkBackAPIController(device_name=device_name)
+    elif mode == 'a11y_api':
+        return A11yAPIController(device_name=device_name)
+    elif mode == 'touch':
+        return TouchController(device_name=device_name)
+    return None

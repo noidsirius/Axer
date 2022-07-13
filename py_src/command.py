@@ -6,6 +6,9 @@ class Command(JSONSerializable):
     def __init__(self, action: str = "NOP"):
         self.action = action
 
+    def name(self) -> str:
+        return type(self).__name__
+
     @classmethod
     def create_from_dict(cls, json_command: dict):
         return cls(json_command.get('action', "NOP"))
