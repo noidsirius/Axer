@@ -1,7 +1,7 @@
 import os
 
 # Timeout Time
-LAYOUT_TIMEOUT_TIME = 1
+LAYOUT_TIMEOUT_TIME = 3
 TB_NAVIGATE_TIMEOUT = 4
 TB_SELECT_TIMEOUT = 4
 REGULAR_EXECUTE_TIMEOUT_TIME = 6
@@ -26,6 +26,8 @@ MAX_DIRECTIONAL_NAVIGATION = 70
 DEVICE_NAME = "emulator-5554"
 ADB_HOST = "127.0.0.1"
 ADB_PORT = 5037
+WS_IP = "0.0.0.0"
+WS_PORT = 8765
 UIED_PATH = os.getenv('UIED_PATH', None)
 dir_path = "edu.cmu.hcii.sugilite/scripts"
 dir_pref_path = "edu.cmu.hcii.sugilite/prefix"

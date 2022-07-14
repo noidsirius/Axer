@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-
+import sys
+sys.path.append("..")  # TODO: Need to refactor
 import asyncio
 import json
 import logging
@@ -7,6 +7,7 @@ import os
 from enum import Enum
 import websockets
 
+from consts import WS_IP, WS_PORT
 from socket_utils import create_socket_message_from_dict, RegisterSM, StartRecordSM, SendCommandSM, EndRecordSM
 
 logger = logging.getLogger(__name__)
@@ -165,7 +166,7 @@ async def server_main_loop():
 
 
 async def main():
-    async with websockets.serve(register_handler, "localhost", 8765):
+    async with websockets.serve(register_handler, WS_IP, WS_PORT):
         await server_main_loop()
 
 

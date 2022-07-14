@@ -9,7 +9,7 @@ from typing import Union
 from consts import DEVICE_NAME, ADB_HOST, ADB_PORT
 from ppadb.client_async import ClientAsync as AdbClient
 from results_utils import AddressBook
-from logger_utils import ColoredFormatter
+from logger_utils import ColoredFormatter, initialize_logger
 from snapshot import EmulatorSnapshot, DeviceSnapshot, Snapshot
 from task.app_task import TakeSnapshotTask, StoatSaveSnapshotTask
 from task.create_action_gif_task import CreateActionGifTask
@@ -95,27 +95,6 @@ async def execute_app_task(args, app_path: Path):
 
     except Exception as e:
         logger.error("Exception happened in analyzing the snapshot", exc_info=e)
-
-
-def initialize_logger(log_path: Union[str, Path], quiet: bool = False, debug: bool = True):
-    if debug:
-        level = logging.DEBUG
-    else:
-        level = logging.INFO
-
-    logger_handlers = [logging.FileHandler(log_path, mode='w')]
-    logger_handlers[0].setFormatter(ColoredFormatter(detailed=True, use_color=True))
-    if not quiet:
-        logger_handlers.append(logging.StreamHandler())
-        logger_handlers[-1].setFormatter(ColoredFormatter(detailed=False, use_color=True))
-    logging.basicConfig(handlers=logger_handlers)
-    # ---------------- Start Hack -----------
-    py_src_path = Path(sys.argv[0]).parent
-    py_src_file_names = [p.name[:-len(".py")] for p in py_src_path.rglob('*.py')]
-    for name in logging.root.manager.loggerDict:
-        if name.split('.')[-1] in py_src_file_names or name == "__main__":
-            logging.getLogger(name).setLevel(level)
-    # ----------------- End Hack ------------
 
 
 if __name__ == "__main__":

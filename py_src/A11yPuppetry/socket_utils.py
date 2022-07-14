@@ -1,3 +1,5 @@
+import sys
+sys.path.append("..")  # TODO: Need to refactor
 from command import Command, create_command_from_dict
 from json_util import JSONSerializable
 
