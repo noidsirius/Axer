@@ -22,7 +22,6 @@ from task.execute_single_action_task import ExecuteSingleActionTask
 
 logger = logging.getLogger(__name__)
 
-
 # TODO: Need to be moved to a config file
 pkg_name_to_apk_path = {
     'com.colpit.diamondcoming.isavemoney': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.colpit.diamondcoming.isavemoney.apk'
