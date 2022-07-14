@@ -1,3 +1,4 @@
+import argparse
 import sys
 sys.path.append("..")  # TODO: Need to refactor
 import asyncio
@@ -165,13 +166,17 @@ async def server_main_loop():
             logger.error(f"Failed to close RECORDER connection, Exception: '{e}'")
 
 
-async def main():
-    async with websockets.serve(register_handler, WS_IP, WS_PORT):
+async def main(ws_ip: str = WS_IP, ws_port: str = WS_PORT):
+    async with websockets.serve(register_handler, ws_ip, ws_port):
         await server_main_loop()
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--ws-ip', type=str, default=WS_IP, help='The ip address of WebSocket Server')
+    parser.add_argument('--ws-port', type=int, default=WS_PORT, help='The port number of WebSocket Server')
+    args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
     if os.name == 'nt':
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-    asyncio.run(main())
+    asyncio.run(main(args.ws_ip, args.ws_port))
