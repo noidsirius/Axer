@@ -129,7 +129,6 @@ async def server_main_loop():
             logger.error(f"Failed to close RECORDER connection, Exception: '{e}'")
 
 
-
 async def main(ws_ip: str = WS_IP, ws_port: str = WS_PORT):
     async with websockets.serve(register_handler, ws_ip, ws_port):
         await server_main_loop()
