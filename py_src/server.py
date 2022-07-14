@@ -62,7 +62,7 @@ async def register_handler(websocket: websockets.WebSocketClientProtocol):
         else:
             recorder_connection = None
             # TODO: need to update the proxy users the recorder connection is closed!
-    logger.info(f"Connection to {socket_message['name']} is closed!")
+    logger.info(f"Connection to {socket_message.name} is closed!")
 
 
 async def server_main_loop():
