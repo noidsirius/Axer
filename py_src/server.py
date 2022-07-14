@@ -4,100 +4,151 @@ import asyncio
 import json
 import logging
 import os
-from pathlib import Path
-
-from GUI_utils import Node
-from adb_utils import download_android_file
-from command import ClickCommand
-from consts import dir_path
+from enum import Enum
 import websockets
+
+from socket_utils import create_socket_message_from_dict, RegisterSM, StartRecordSM, SendCommandSM, EndRecordSM
 
 logger = logging.getLogger(__name__)
 
 proxy_users_connections = {}
-recorder_connection = None
+recorder_connection: websockets.WebSocketClientProtocol = None
 message_queue = asyncio.queues.Queue
 
 
-async def register(websocket):
-    global recorder_connection
+class ServerState(Enum):  # The state of the Server
+    REGISTERING = 1
+    WAITING_TO_START = 2
+    RECORDING = 3
+    CLEANING_UP = 4
+
+
+server_state = ServerState.REGISTERING
+server_running = True
+
+
+async def register_handler(websocket: websockets.WebSocketClientProtocol):
+    global recorder_connection, server_state
     message_str = await websocket.recv()
-    message = json.loads(message_str)
-    if 'name' not in message:
-        logger.error(f"The register message was broken! Message: '{message_str}'")
+    socket_message = create_socket_message_from_dict(json.loads(message_str))
+    if not isinstance(socket_message, RegisterSM):
+        logger.error(f"The receive message was not a RegisterSM! Message: '{message_str}'")
         return
-    if message['name'] == 'RECORDER':
+    if socket_message.name == 'RECORDER':
         if recorder_connection is not None:
+            assert server_state != ServerState.REGISTERING
             logger.error(f"The recorder connection exists! Message: '{message_str}'")
             return
         else:
+            assert server_state == ServerState.REGISTERING
             logger.info("A new recorder is registered!")
             recorder_connection = websocket
-    elif message['name'] in proxy_users_connections:
-        logger.error(f"A proxy user with the same name {message['name']} already exists! Message: '{message_str}'")
+            server_state = ServerState.WAITING_TO_START
+    elif server_state not in [ServerState.REGISTERING, ServerState.WAITING_TO_START]:
+        logger.error(f"The recording process is already started! Message: '{message_str}'")
+        return
+    elif socket_message.name in proxy_users_connections:
+        logger.error(f"A proxy user with the same name {socket_message.name} already exists! Message: '{message_str}'")
         return
     else:
-        logger.info(f"A new proxy user {message['name']} is registered!")
-        proxy_users_connections[message['name']] = websocket
+        logger.info(f"A new proxy user {socket_message.name} is registered!")
+        proxy_users_connections[socket_message.name] = websocket
+
     try:
         await websocket.wait_closed()
     finally:
-        if message['name'] != 'RECORDER':
-            proxy_users_connections.pop(message['name'])
+        if socket_message.name != 'RECORDER':
+            proxy_users_connections.pop(socket_message.name)
         else:
             recorder_connection = None
             # TODO: need to update the proxy users the recorder connection is closed!
-    logger.info(f"Connection to {message['name']} is closed!")
+    logger.info(f"Connection to {socket_message['name']} is closed!")
 
 
-async def recorder_handler():
-    print("In Recorder Handler!")
-    while True:
-        if recorder_connection is None:
+async def server_main_loop():
+    global server_state
+    logger.info("In Server Main Loop!")
+    while server_running:
+        if server_state == ServerState.CLEANING_UP:
+            if recorder_connection is None and len(proxy_users_connections) == 0:
+                server_state = ServerState.REGISTERING
+            else:
+                await asyncio.sleep(5)
+                continue
+        if server_state == ServerState.REGISTERING:
             await asyncio.sleep(3)
             continue
+        assert recorder_connection is not None
+        logger.info("Waiting for message from the recorder...")
         message_str = await recorder_connection.recv()
         try:
-            message = json.loads(message_str)
+            socket_message = create_socket_message_from_dict(json.loads(message_str))
         except Exception as e:
             logger.error(f"The received message was not in JSON format, message: '{message_str}'")
-            break
+            continue
+        if server_state == ServerState.WAITING_TO_START:
+            if not isinstance(socket_message, StartRecordSM):
+                logger.error(f"The server is in state {ServerState.WAITING_TO_START} "
+                             f"expecting to receive a StartRecordSM, Message: {message_str}")
+                break  # TODO: It can be more flexible than breaking the process
 
-        if 'start recording' in message and 'packageName' in message:
-            logger.info(f"Recording is started with the packageName: '{message['packageName']}")
+            package_name = socket_message.package_name
+            logger.info(f"The recording is started for package {package_name}!")
+            server_state = ServerState.RECORDING
+        elif server_state == ServerState.RECORDING:
+            if isinstance(socket_message, SendCommandSM):
+                command = socket_message.command
+                logger.info(f"The next command is '{command}'")
+            elif isinstance(socket_message, EndRecordSM):
+                logger.info(f"The recording is finished!")
+                server_state = ServerState.CLEANING_UP
+            else:
+                logger.error(f"The server is in state {ServerState.RECORDING} "
+                             f"expecting to receive a SendCommandSM, Message: {message_str}")
+                break  # TODO: It can be more flexible than breaking the process
+        else:
+            logger.error(f"The server is in a wrong state {server_state}!, Message: {message_str}")
+            break  # TODO: It can be more flexible than breaking the process
 
-        if 'end recording' in message and 'scriptName' in message:
-            logger.info(f"Recording is ended with the scriptName: {message['scriptName']}")
-            # Download the script from the emulator
-            dest_path = Path(__file__).resolve().with_name('dev_results').joinpath(message['scriptName'])
-            if not dest_path.exists():
-                dest_path.mkdir(parents=True)
-            await download_android_file(dir_path, message['scriptName']+'.jsonl', dest_path)
-
-        # Converting to the ClickCommand
-        text = message['Text'] if 'Text' in message else ''
-        class_name = message['Class_Name'] if 'Class_Name' in message else ''
-        resource_id = message['Resource_ID'] if 'Resource_ID' in message else ''
-        content_desc = message['Content_Desc'] if 'Content_Desc' in message else ''
-        pkg_name = message['Package_Name'] if 'Package_Name' in message else ''
-        xpath = message['Xpath'] if 'Xpath' in message else ''
-
-        node_dict = {
-            'text': text,
-            'class_name': class_name,
-            'resource_id': resource_id,
-            'content_desc': content_desc,
-            'pkg_name': pkg_name,
-            'xpath': xpath
-        }
-
-        node = Node.createNodeFromDict(node_dict)
-        command = ClickCommand(node)
-
-        logger.info(f"Received a message from Recorder: Message: '{message_str},"
-                    f" sending to all proxy users : {','.join(proxy_users_connections.keys())}")
-        # logger.info(f"Generated the click command: Command: '{command.toJSONStr()}")
+        logger.info(f"Broadcasting the message to proxy users: {','.join(proxy_users_connections.keys())}")
         websockets.broadcast(proxy_users_connections.values(), message_str)
+
+
+        # if 'start recording' in socket_message and 'packageName' in socket_message:
+        #     logger.info(f"Recording is started with the packageName: '{socket_message['packageName']}")
+        #
+        # if 'end recording' in socket_message and 'scriptName' in socket_message:
+        #     logger.info(f"Recording is ended with the scriptName: {socket_message['scriptName']}")
+        #     # Download the script from the emulator
+        #     dest_path = Path(__file__).resolve().with_name('dev_results').joinpath(socket_message['scriptName'])
+        #     if not dest_path.exists():
+        #         dest_path.mkdir(parents=True)
+        #     await download_android_file(dir_path, socket_message['scriptName']+'.jsonl', dest_path)
+        #
+        # # Converting to the ClickCommand
+        # text = socket_message['Text'] if 'Text' in socket_message else ''
+        # class_name = socket_message['Class_Name'] if 'Class_Name' in socket_message else ''
+        # resource_id = socket_message['Resource_ID'] if 'Resource_ID' in socket_message else ''
+        # content_desc = socket_message['Content_Desc'] if 'Content_Desc' in socket_message else ''
+        # pkg_name = socket_message['Package_Name'] if 'Package_Name' in socket_message else ''
+        # xpath = socket_message['Xpath'] if 'Xpath' in socket_message else ''
+        #
+        # node_dict = {
+        #     'text': text,
+        #     'class_name': class_name,
+        #     'resource_id': resource_id,
+        #     'content_desc': content_desc,
+        #     'pkg_name': pkg_name,
+        #     'xpath': xpath
+        # }
+        #
+        # node = Node.createNodeFromDict(node_dict)
+        # command = ClickCommand(node)
+        #
+        # logger.info(f"Received a message from Recorder: Message: '{message_str},"
+        #             f" sending to all proxy users : {','.join(proxy_users_connections.keys())}")
+        # # logger.info(f"Generated the click command: Command: '{command.toJSONStr()}")
+        # websockets.broadcast(proxy_users_connections.values(), message_str)
 
     proxy_connection_items = list(proxy_users_connections.items())
     for name, proxy_users_connection in proxy_connection_items:
@@ -114,8 +165,9 @@ async def recorder_handler():
 
 
 async def main():
-    async with websockets.serve(register, "localhost", 8765):
-        await recorder_handler()
+    async with websockets.serve(register_handler, "localhost", 8765):
+        await server_main_loop()
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

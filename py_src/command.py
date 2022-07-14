@@ -168,15 +168,14 @@ def create_command_from_dict(json_command: dict) -> Command:
     if 'action' not in json_command:
         return Command()
     action = json_command['action']
-    if action == 'click':
-        return ClickCommand.create_from_dict(json_command)
-    elif action == 'info':
-        return InfoCommand.create_from_dict(json_command)
-    elif action == 'next':
-        return NextCommand.create_from_dict(json_command)
-    elif action == 'previous':
-        return PreviousCommand.create_from_dict(json_command)
-    elif action == 'select':
-        return SelectCommand.create_from_dict(json_command)
+    action_to_command_map = {
+        'click': ClickCommand,
+        'info': InfoCommand,
+        'next': NextCommand,
+        'previous': PreviousCommand,
+        'select': SelectCommand
+    }
+    if action in action_to_command_map:
+        return action_to_command_map[action].create_from_dict(json_command)
     else:
         return Command()
