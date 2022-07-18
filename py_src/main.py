@@ -21,6 +21,7 @@ from task.process_screenshot_task import ProcessScreenshotTask
 from task.record_usecase_task import RecordUsecaseTask
 from task.snapshot_task import RemoveSummaryTask
 from task.talkback_explore_task import TalkBackExploreTask
+from utils import synch_run
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +143,7 @@ if __name__ == "__main__":
             initialize_logger(log_path=log_path, quiet=args.quiet, debug=args.debug)
             logger.info(f"Executing {args.snapshot_task} for Snapshot '{snapshot_name}' in app '{args.app_name}'...")
             address_book = AddressBook(snapshot_result_path)
-            asyncio.get_event_loop().run_until_complete(execute_snapshot_task(args=args, address_book=address_book))
+            synch_run(execute_snapshot_task(args=args, address_book=address_book))
             logger.info(f"Done executing {args.snapshot_task} for Snapshot '{snapshot_name}' in app '{args.app_name}'")
     elif args.app_task is not None:
         if not app_result_path.exists() or not app_result_path.is_dir():
@@ -150,7 +151,7 @@ if __name__ == "__main__":
         log_path = app_result_path.joinpath(f"app_{args.app_task}.log")
         initialize_logger(log_path=log_path, quiet=args.quiet, debug=args.debug)
         logger.info(f"Executing {args.app_task} for app '{args.app_name}'...")
-        asyncio.get_event_loop().run_until_complete(execute_app_task(args=args, app_path=app_result_path))
+        synch_run(execute_app_task(args=args, app_path=app_result_path))
         logger.info(f"Done executing {args.app_task}  in app '{args.app_name}'")
     else:
         print("Either app_task or snapshot_task should be provided!")

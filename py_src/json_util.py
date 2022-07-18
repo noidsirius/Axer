@@ -1,4 +1,5 @@
 import json
+from enum import Enum
 from typing import List, Union
 
 
@@ -21,6 +22,8 @@ class JSONSerializable:
                     continue
                 if issubclass(type(v), JSONSerializable) and v != self:  # TODO: Possible infinite recursion
                     v = v.toJSON()
+                if issubclass(type(v), Enum):
+                    v = v.name
                 res[k] = v
             return res
 
