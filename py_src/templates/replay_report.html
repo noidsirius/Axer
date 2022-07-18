@@ -1,22 +1,16 @@
 {% extends "layout.html" %}
 {% from "snapshot_macro.html" import note_form_script, action_tag_script, snapshot_row, talkback_explore, oversight_static, snapshot_action, snapshot_summary with context %}
-{% from "action_macro.html" import  action_row with context %}
+{% from "action_macro.html" import  action_info with context %}
 {% block title %}
     Replay report {{ app_name }}
 {% endblock %}
 {% block content %}
-    {{ snapshot_row(address_book) }}
-    {{ oversight_static(address_book) }}
     <hr>
-        <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" id="tb_steps_switch" checked>
-            <label class="form-check-label" for="flexSwitchCheckDefault">Hide passed actions</label>
-        </div>
-        <a class="btn btn-info copyer">
-            Copy Path
-            <input type="hidden" class="text-to-copy"
-                   value="{{ result_path }}/{{ app_name }}/{{ name }}">
-        </a>
+    <a class="btn btn-info copyer">
+        Copy Path
+        <input type="hidden" class="text-to-copy"
+               value="{{ result_path }}/{{ app_name }}/">
+    </a>
     <hr>
     <div class="row">
         <div class="col-8">
@@ -25,37 +19,85 @@
         <div class="col-4">
         </div>
     </div>
-    {% for snapshot_name in snapshot_names %}
-        <div class="row">
-            <table class="table table-bordered">
-                <thead>
-                <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Action</th>
-                    <th scope="col">State0</th>
-                    {% for rd_manager in rd_managers %}
-                        <th scope="col">{{ rd_manager.controller_mode }}</th>
-                    {% endfor %}
-                    <th scope="col">Result</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for snapshot_name in snapshot_names %}
-                    <tr>
-                        <td> {{ snapshot_name }} </td>
-                        <td>{{ action_index() }}</td>
 
-                        {% for rd_manager in rd_managers %}
-                            <td>State0</td>
-                            <td>{{ rd_manager.controller_mode }}</td>
-                        {% endfor %}
-                        <td>Result</td>
-                    </tr>
+    <div class="row">
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Action</th>
+                <th scope="col">Recorder</th>
+                {% for rd_manager in rd_managers %}
+                    <th scope="col">{{ rd_manager.controller_mode }}</th>
                 {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% endfor %}
+                <th scope="col">Result</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for snapshot_index in snapshot_indices %}
+                {% if snapshot_index != 'END' %}
+                    {% set command = command_messages[snapshot_index].command %}
+                {% endif %}
+                <tr>
+                    <td> {{ snapshot_index }} </td>
+                    <td style="max-width: 7em">
+                        {% if snapshot_index != 'END' %}
+                            {{ action_info(command.target) }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <img src="{{ url_for('send_result_static_v2', path='404.png') }}"
+                             class="rounded d-block mx-auto"
+                             style="width: 10rem;">
+                        <hr>
+                        <div class="d-flex justify-content-center">
+                            TODO Recorder
+                        </div>
+                    </td>
+                    {% for rd_manager in rd_managers %}
+                        {% set step_info = rd_manager.get_step_info(snapshot_index) %}
+                        {% if step_info %}
+                            <td>
+                                <a class="enlarge">
+                                    <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(step_info['screenshot'], result_path)) }}"
+                                         class="rounded d-block mx-auto"
+                                         style="width: 10rem;"
+                                         alt="Result of {{ rd_manager.controller_mode }} Selection">
+                                </a>
+                                <hr>
+                                <div class="d-flex justify-content-center">
+                                    {% if snapshot_index != 'END' %}
+                                        <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(step_info['logs'], result_path)) }}">
+                                            Log
+                                        </a>
+                                        -
+                                        <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(step_info['event_logs'], result_path)) }}">
+                                            EventLog
+                                        </a>
+                                        -
+                                    {% endif %}
+                                    <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(step_info['layout'], result_path)) }}">Layout</a>
+                                </div>
+                            </td>
+                        {% else %}
+                            <td>
+                                <img src="{{ url_for('send_result_static_v2', path='404.png') }}"
+                                     class="rounded d-block mx-auto"
+                                     style="width: 10rem;">
+                                <hr>
+                                <div class="d-flex justify-content-center">
+                                    No info available
+                                </div>
+                            </td>
+                        {% endif %}
+                    {% endfor %}
+                    <td>Result</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {#    {% endfor %}#}
 
 
 {% endblock %}

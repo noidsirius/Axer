@@ -4,6 +4,7 @@ from typing import List
 
 from app import App
 from command import Command, create_command_response_from_dict, create_command_from_dict
+from consts import BLIND_MONKEY_EVENTS_TAG
 from snapshot import Snapshot
 
 
@@ -50,22 +51,32 @@ class ReplayDataManager:
                 snapshots.append(self.app.get_snapshot(snapshot_info['snapshot_name']))
         return snapshots
 
-    def get_step_info(self, name: str) -> dict:
-        snapshot = self.app.get_snapshot(name=name)
+    def get_step_info(self, index: str) -> dict:
+        snapshot = self.app.get_snapshot(name=f"{self.controller_mode}.S_{index}")
         step_info = {
             'controller': self.controller_mode,
             'command': Command(),
             'response': create_command_response_from_dict(command=Command(), result={}),
         }
 
-        if not snapshot.address_book.execute_single_action_results_path.exists():
+        if snapshot is None:
             return step_info
+        if index != 'END':
+            if not snapshot.address_book.execute_single_action_results_path.exists():
+                return step_info
+            with open(snapshot.address_book.execute_single_action_results_path) as f:
+                step_info_json = json.load(f)
 
-        with open(snapshot.address_book.execute_single_action_results_path) as f:
-            step_info_json = json.load(f)
+            step_info['command'] = create_command_from_dict(step_info_json.get('command', {}))
+            step_info['response'] = create_command_response_from_dict(step_info['command'],
+                                                                  step_info_json.get('response', {}))
+            step_info['logs'] = snapshot.address_book.get_log_path(mode=self.controller_mode, index=0)
+            step_info['event_logs'] = snapshot.address_book.get_log_path(mode=self.controller_mode, index=0,
+                                                                     extension=BLIND_MONKEY_EVENTS_TAG)
 
-        step_info['command'] = create_command_from_dict(step_info_json.get('command', {}))
-        step_info['response'] = create_command_response_from_dict(step_info_json.get('response', {}))
+        step_info['layout'] = snapshot.address_book.get_layout_path(mode=self.controller_mode, index=0)
+        step_info['screenshot'] = snapshot.initial_screenshot
+
         return step_info
 
 

@@ -13,6 +13,7 @@ from ansi2html import Ansi2HTMLConverter
 from flask import Flask, request, jsonify, send_from_directory, render_template, make_response
 from json2html import json2html
 
+from A11yPuppetry.socket_utils import create_socket_message_from_dict, SendCommandSM
 from app import App
 from consts import BLIND_MONKEY_EVENTS_TAG
 from data_utils import ReplayDataManager
@@ -94,12 +95,13 @@ def create_app_info(app_path: pathlib.Path) -> Union[dict, None]:
     snapshots_info.sort(key=lambda s: s['last_update'], reverse=True)
     app_info = {'name': app_name.replace(' ', '_'),
                 'snapshots': snapshots_info,
+                'has_replay': 'SERVER' in list(x.name for x in app.app_path.iterdir()),
                 'has_unprocessed': any(s['state'] == 'Unprocessed' for s in snapshots_info),
                 'actions': sum([0] + [s['actions'] for s in snapshots_info if s['state'] == 'Processed']),
                 'failure': sum([0] + [s['failure'] for s in snapshots_info if s['state'] == 'Processed']),
                 'warning': sum([0] + [s['warning'] for s in snapshots_info if s['state'] == 'Processed']),
                 'other': sum([0] + [s['other'] for s in snapshots_info if s['state'] == 'Processed']),
-                'last_update': max(s['last_update'] for s in snapshots_info)}
+                'last_update': max([datetime.datetime(1980,1,1)]+ [s['last_update'] for s in snapshots_info])}
     return app_info
 
 
@@ -581,19 +583,30 @@ def replay_report(result_path, app_name):
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is incorrect!"
     app = App(app_name=app_name, result_path=result_path)
-    snapshot_names = set()
+    command_messages = {}
+    other_socket_messages = []
+    snapshot_indices = []
+    with open(app.app_path.joinpath("SERVER").joinpath("messages.json")) as f:
+        for line in f.readlines():
+            message = create_socket_message_from_dict(json.loads(line))
+            if isinstance(message, SendCommandSM):
+                snapshot_indices.append(message.index)
+                command_messages[message.index] = message
+            else:
+                other_socket_messages.append(message)
+    snapshot_indices.append("END")
     rd_managers = []
     for controller in ReplayDataManager.get_existing_controllers(app):
         rd_manager = ReplayDataManager(app=app, controller_mode=controller)
         rd_managers.append(rd_manager)
-        for snapshot in rd_manager.get_snapshots():
-            snapshot_names.add(snapshot.name)
-    snapshot_names = list(sorted(snapshot_names, key=lambda name: int(name[len("M_"):])))
+
     #  TODO: Add recorder steps as baseline
     return render_template('replay_report.html',
                            result_path=result_path_str,
                            app_name=app_name,
-                           snapshot_names=snapshot_names,
+                           command_messages=command_messages,
+                           other_socket_messages=other_socket_messages,
+                           snapshot_indices=snapshot_indices,
                            rd_managers=rd_managers)
 
 @flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/report_sb")
