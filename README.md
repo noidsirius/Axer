@@ -36,7 +36,39 @@ python3 replayer.py --debug --output-path "<OUTPUT_DIRECTORY>" --app-name "<APP_
 ```
 `<CONTROLLER_MODE>` can be `touch`, `tb_touch`, `tb_api`, or `a11y_api`. You can find the name of the device by `adb devices`. Note that, the replayer machine must be connected to the device beforehand. Also, the results will be stored in `<OTUPUT_DIRECTORY>/<APP_NAME>(<UsecaseIdentifier>)`. After running replayer, the server should log a new replayer is connected.
 
-- If using realtime recording, run Sugilite on your device. **TODO: Stephan please complete this part.**
+- If using realtime recording, run Sugilite on your device. 
+
+  1. Install the Sugilite either by dragging the **Sugilite.apk** file in Setup folder to your emulator or typing the following command at your terminal
+
+     ```shell
+     adb install -r -g Sugilite.apk
+     ```
+
+  2. Grant the storage access (Go to **Phone Settings -> Apps -> Sugilite -> Permissions**)
+
+  3. Grant the overlay permission (Go to **Phone Settings -> Apps -> Sugilite -> Display over other apps **)
+
+  4. Enable the accessibility service (Go to **Phone Settings -> Accessibility -> Sugilite**)
+
+  5. Make sure that you can see a duck icon on the screen
+
+- Use Sugilite to record your interactions with apps
+
+  - Click the duck icon on the screen and select **New Recording**
+
+  -  Specify the name of the script (default is **Untitled Script**), select the app name you want to record, specify the IP Address of the server (default is **localhost**). Then click Start Recording.
+
+    ![Start Recording Pop Up Window](Docs/Start%20Recording.png)
+
+  - Click an element shown on the current screen. The pop up window will appear to show you the corresponding information of the clicked element. If the information matches your clicked node, click **Yes** (The click operation will be executed **on behalf of you**). Otherwise, click **Cancel** and re-click your intended element.
+
+    ![Sugilite Confirmation Dialog](Docs/Confirmation%20Dialog.png)
+
+  - If you previsoaly clicked **Yes button** but Sugilite **failed** to perform the click operation on behalf of you, you can **re-click** your intended element and then click **Skip**(The click operation will be executed on behalf of you but **will not be reflected on the final script**)
+
+  - Please record you interactions slowly. The interval between each recording should be greater than 5 seconds. 
+  - If you want to end recording, click the duck icon on the screen and select **End Recording**
+
 - If using pre-recorded usecase, run the MockRecorder by
 ```
 python3 replayer.py --debug --usecase-path "<USECASE_PATH>" --package-name "<PKG_NAME>" --ws-ip "<SERVER_IP>"
