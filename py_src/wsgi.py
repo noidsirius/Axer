@@ -86,7 +86,7 @@ def create_app_info(app_path: pathlib.Path) -> Union[dict, None]:
         return None
     app_name = app_path.name
     snapshots_info = []
-    app = App(app_name=app_name, result_path=app_path.parent, already_exists=True)
+    app = App(app_name=app_name, result_path=app_path.parent, recreate=False)
     for snapshot in app.snapshots:
         snapshot_info = create_snapshot_info(snapshot.address_book.snapshot_result_path)
         if snapshot_info is not None:
@@ -247,7 +247,7 @@ def gh_summary(result_path_str: str):
     for app_path in result_path.iterdir():
         if not app_path.is_dir():
             continue
-        app = App(app_name=app_path.name, result_path=result_path, already_exists=True)
+        app = App(app_name=app_path.name, result_path=result_path, recreate=False)
         for snapshot in app.snapshots:
             address_books.append(snapshot.address_book)
     return render_template('gh_summary.html',

@@ -42,7 +42,7 @@ class Snapshot:
                                                                index=AddressBook.INITIAL,
                                                                should_exists=True)
             if layout_path is None:
-                raise Exception("The layout is not provided!")
+                raise Exception(f"The layout is not provided for snapshot {self.name}!")
         if layout_path is not None:
             with open(layout_path) as f:
                 layout = f.read()

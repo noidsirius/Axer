@@ -11,7 +11,7 @@ class ReplayDataManager:
     def __init__(self, app: App, controller_mode: str):
         self.app = app
         self.controller_mode = controller_mode
-        self.replay_path = app.app_path.joinpath(f"REPLAYED_{controller_mode}")
+        self.replay_path = app.app_path.joinpath(f"REPLAY_{controller_mode}")
         if self.replay_path.exists():
             shutil.rmtree(self.replay_path)
         self.replay_path.mkdir(parents=True, exist_ok=False)
@@ -24,8 +24,8 @@ class ReplayDataManager:
     def get_existing_controllers(app: App) -> List[str]:
         controllers = []
         for subdir in app.app_path.iterdir():
-            if subdir.is_dir() and subdir.name.startswith("REPLAYED_"):
-                controllers.append(subdir.name[len("REPLAYED_"):])
+            if subdir.is_dir() and subdir.name.startswith("REPLAY_"):
+                controllers.append(subdir.name[len("REPLAY_"):])
         return controllers
 
     def add_new_action(self, snapshot: Snapshot):
