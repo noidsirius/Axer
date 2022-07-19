@@ -11,7 +11,7 @@ from typing import Optional, Union, Dict, List, Tuple
 from GUI_utils import Node, bounds_included, is_in_same_state_with_layout_path, NodesFactory
 from adb_utils import get_current_activity_name, get_windows, get_activities, capture_layout as adb_capture_layout
 from command import LocatableCommandResponse
-from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG
+from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG, CAPTURE_STATE_DELAY
 from json_util import JSONSerializable
 from latte_executor_utils import latte_capture_layout as capture_layout
 from padb_utils import ParallelADBLogger, save_screenshot
@@ -555,6 +555,7 @@ class AddressBook:
     PROCESS_SCREENSHOT = "process_screenshot"
     EXTRACT_ACTIONS = "extract_actions"
     PERFORM_ACTIONS = "perform_actions"
+    EXECUTE_SINGLE_ACTION = "execute_single_action"
 
     def __init__(self, snapshot_result_path: Union[Path, str]):
         if isinstance(snapshot_result_path, str):
@@ -608,6 +609,9 @@ class AddressBook:
             "atf_elements.png")
         self.perform_actions_summary = self.audit_path_map[AddressBook.PERFORM_ACTIONS].joinpath(
             "summary_of_actions_v2.jsonl")
+        # ----------- Audit: execute_single_action ----------
+        self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION] = self.snapshot_result_path.joinpath("ExecuteSingleAction")
+        self.execute_single_action_results_path = self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION].joinpath("result.jsonl")
         # ---------------------------------------------------
         # TODO: Needs to find a more elegant solution
         navigate_modes = [AddressBook.BASE_MODE, "tb_touch", "touch", "a11y_api"]
@@ -678,6 +682,11 @@ class AddressBook:
             if path.exists():
                 shutil.rmtree(path.resolve())
             path.mkdir()
+
+    def initiate_execute_single_action_task(self):
+        if self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION].exists():
+            shutil.rmtree(self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION].resolve())
+        self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION].mkdir()
 
     def initiate_oversight_static_task(self):
         if self.audit_path_map[AddressBook.OVERSIGHT_STATIC].exists():
@@ -855,7 +864,7 @@ async def capture_current_state(address_book: AddressBook, device,
                                 dumpsys: bool = False,
                                 log_message_map: Optional[dict] = None,
                                 use_adb_layout: bool = False) -> str:
-    await asyncio.sleep(3)
+    await asyncio.sleep(CAPTURE_STATE_DELAY)
     await save_screenshot(device, address_book.get_screenshot_path(mode, index))
     activity_name = await get_current_activity_name(device_name=device.serial)
     with open(address_book.get_activity_name_path(mode, index), mode='w') as f:

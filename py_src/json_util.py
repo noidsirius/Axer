@@ -8,6 +8,7 @@ def unsafe_json_load(content: str) -> Union[dict, None]:
     except Exception as e:
         return None
 
+
 class JSONSerializable:
     def toJSONStr(self, excluded_attributes: List[str] = None) -> str:
         if excluded_attributes is None:

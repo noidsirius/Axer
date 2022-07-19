@@ -1,4 +1,4 @@
-# BlindMonkey
+# Latte Library
 ## Setup
 - For OS X
   - Install coreutils "brew install coreutils"
@@ -11,15 +11,15 @@
 
 - run `source env` or `venv\Scripts\activate` (Windows 10)
 - Install python packages `pip install -r requirements.txt`
-- Initialize an Android Virtual Device (AVD) with SDK +28 and name it `testAVD_1`
-- Disable soft main keys and virtual keyboard by adding `hw.mainKeys=yes` and `hw.kayboard=yes`  to `~/.android/avd/testAVD_1.avd/config.ini`
+- Either use a physical device, or initialize an Android Virtual Device (AVD) with SDK +28. For BlindMonkey, you must use VM.
+- If using a VM, disable soft main keys and virtual keyboard by adding `hw.mainKeys=yes` and `hw.kayboard=yes`  to `~/.android/avd/testAVD_1.avd/config.ini`
     - If virtual device is not disabled, please follow this [link](https://support.honeywellaidc.com/s/article/CN51-Android-How-to-prevent-virtual-keyboard-from-popping-up)
 - Enable "Do not disturb" in the emulator to avoid notifications during testing (it can be found at the top menu)
 - Install TalkBack, the latest version (12) can be found in `Setup/X86/TB_12_*.apk` (`adb install-multiple Setup/X86/TB_12_*.apk`)
 - Build Latte Service APK by running `./build_latte_lib.sh`, then install it (`adb install -r -g Setup/latte.apk`) or install from Android Studio
     - To check if the installation is correct, first run the emulator and then execute `./scripts/enable-talkback.sh` (by clicking on a GUI element it should be highlighted).
     - Also, execute `./scripts/send-command.sh log` and check Android logs to see if Latte prints the AccessibilityNodeInfos of GUI element on the screen (`adb logcat | grep "LATTE_SERVICE"`)
-- Save the base snapshot by `./scripts/save_snapshot.sh BASE`
+- If using a VM, save the base snapshot by `./scripts/save_snapshot.sh BASE`
 
 ### TalkBack TreeNode
 - Go to TalkBack Settings > Advanced > Developer Settings and select "Enable node tree debugging", also set the Log output level to VERBOSE
@@ -27,6 +27,55 @@
 - Update the BASE snapshot `./scripts/save_snapshot.sh BASE`
 - To verify the TreeNode lists are captured correctly run `python py_src/demo.py --command tb_a11y_tree`
 
+## A11yPuppetry
+- Go to `A11yPuppetry` directory.
+- In the server machine, run server by `python3 server.py`, by default the server ip is `0.0.0.0` and websocket port is 8765.
+- In the replayer machine, run a replayer by 
+```
+python3 replayer.py --debug --output-path "<OUTPUT_DIRECTORY>" --app-name "<APP_NAME>(<UsecaseIdentifier>)" --controller "<CONTROLLER_MODE>" --device "<DEVICE_NAME>" --ws-ip "<SERVER_IP>"
+```
+`<CONTROLLER_MODE>` can be `touch`, `tb_touch`, `tb_api`, or `a11y_api`. You can find the name of the device by `adb devices`. Note that, the replayer machine must be connected to the device beforehand. Also, the results will be stored in `<OTUPUT_DIRECTORY>/<APP_NAME>(<UsecaseIdentifier>)`. After running replayer, the server should log a new replayer is connected.
+
+- If using realtime recording, run Sugilite on your device. 
+
+  1. Install the Sugilite either by dragging the **Sugilite.apk** file in Setup folder to your emulator or typing the following command at your terminal
+
+     ```shell
+     adb install -r -g Sugilite.apk
+     ```
+
+  2. Grant the storage access (Go to **Phone Settings -> Apps -> Sugilite -> Permissions**)
+
+  3. Grant the overlay permission (Go to **Phone Settings -> Apps -> Sugilite -> Display over other apps**)
+
+  4. Enable the accessibility service (Go to **Phone Settings -> Accessibility -> Sugilite**)
+
+  5. Make sure that you can see a duck icon on the screen
+
+- Use Sugilite to record your interactions with apps
+
+  - Click the duck icon on the screen and select **New Recording**
+
+  -  Specify the name of the script (default is **Untitled Script**), select the app name you want to record, specify the IP Address of the server (default is **localhost**). Then click Start Recording.
+
+    ![Start Recording Pop Up Window](Docs/Start%20Recording.png)
+
+  - Click an element shown on the current screen. The pop up window will appear to show you the corresponding information of the clicked element. If the information matches your clicked node, click **Yes** (The click operation will be executed **on behalf of you**). Otherwise, click **Cancel** and re-click your intended element.
+
+    ![Sugilite Confirmation Dialog](Docs/Confirmation%20Dialog.png)
+
+  - If you previsoaly clicked **Yes button** but Sugilite **failed** to perform the click operation on behalf of you, you can **re-click** your intended element and then click **Skip**(The click operation will be executed on behalf of you but **will not be reflected on the final script**)
+
+  - Please record you interactions slowly. The interval between each recording should be greater than 5 seconds. 
+  - If you want to end recording, click the duck icon on the screen and select **End Recording**
+
+- If using pre-recorded usecase, run the MockRecorder by
+```
+python3 replayer.py --debug --usecase-path "<USECASE_PATH>" --package-name "<PKG_NAME>" --ws-ip "<SERVER_IP>"
+```
+The `<USECASE_PATH>` is a `.jsonl` file where each line is the JSON format of a `Command`, and the `<PKG_NAME>` is the package name of the app that is going to be replayed. Please update `pkg_name_to_apk_path` in `replayer.py` file to associate correct address to the package names since they will be installed in the replayer devices. 
+- After running the recorder, it first sends the package_name to the server, then send the commands from the given usecase path one by one, then finishes the usecase by informing the server. The replayer will receive these commands and use the given controller (proxy user) to execute the commands.
+![Server State Diagram](Docs/AP-StateDiagram.png)
 
 ## Latte CLI
 You can interact with Latte by sending commands to its Broadcast Receiver or receive generated information from Latte by reading files from the local storage. First, you need to enable Latte by running `./scritps/enable-service.sh`, then you can send command by running `./scripts/send-command.sh <COMMAND> <EXTRA>`. If you want to work with TalkBack, first you need to enable it by running `./scritps/enable-talkback.sh`. If any command has an output written in a file, you can use `./scripts/wait_for_file.sh <FILE_NAME>` which prints the content of the file and removes it. It's encouraged to watch the logs in a separate terminal `adb logcat | grep "LATTE_SERVICE"`. Here is the list of all commands:
