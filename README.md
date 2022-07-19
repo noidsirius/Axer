@@ -46,7 +46,7 @@ python3 replayer.py --debug --output-path "<OUTPUT_DIRECTORY>" --app-name "<APP_
 
   2. Grant the storage access (Go to **Phone Settings -> Apps -> Sugilite -> Permissions**)
 
-  3. Grant the overlay permission (Go to **Phone Settings -> Apps -> Sugilite -> Display over other apps **)
+  3. Grant the overlay permission (Go to **Phone Settings -> Apps -> Sugilite -> Display over other apps**)
 
   4. Enable the accessibility service (Go to **Phone Settings -> Accessibility -> Sugilite**)
 

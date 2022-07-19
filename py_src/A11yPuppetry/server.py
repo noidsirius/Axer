@@ -115,43 +115,6 @@ async def server_main_loop():
         logger.info(f"Broadcasting the message to proxy users: {','.join(proxy_users_connections.keys())}")
         websockets.broadcast(proxy_users_connections.values(), message_str)
 
-
-        # if 'start recording' in socket_message and 'packageName' in socket_message:
-        #     logger.info(f"Recording is started with the packageName: '{socket_message['packageName']}")
-        #
-        # if 'end recording' in socket_message and 'scriptName' in socket_message:
-        #     logger.info(f"Recording is ended with the scriptName: {socket_message['scriptName']}")
-        #     # Download the script from the emulator
-        #     dest_path = Path(__file__).resolve().with_name('dev_results').joinpath(socket_message['scriptName'])
-        #     if not dest_path.exists():
-        #         dest_path.mkdir(parents=True)
-        #     await download_android_file(dir_path, socket_message['scriptName']+'.jsonl', dest_path)
-        #
-        # # Converting to the ClickCommand
-        # text = socket_message['Text'] if 'Text' in socket_message else ''
-        # class_name = socket_message['Class_Name'] if 'Class_Name' in socket_message else ''
-        # resource_id = socket_message['Resource_ID'] if 'Resource_ID' in socket_message else ''
-        # content_desc = socket_message['Content_Desc'] if 'Content_Desc' in socket_message else ''
-        # pkg_name = socket_message['Package_Name'] if 'Package_Name' in socket_message else ''
-        # xpath = socket_message['Xpath'] if 'Xpath' in socket_message else ''
-        #
-        # node_dict = {
-        #     'text': text,
-        #     'class_name': class_name,
-        #     'resource_id': resource_id,
-        #     'content_desc': content_desc,
-        #     'pkg_name': pkg_name,
-        #     'xpath': xpath
-        # }
-        #
-        # node = Node.createNodeFromDict(node_dict)
-        # command = ClickCommand(node)
-        #
-        # logger.info(f"Received a message from Recorder: Message: '{message_str},"
-        #             f" sending to all proxy users : {','.join(proxy_users_connections.keys())}")
-        # # logger.info(f"Generated the click command: Command: '{command.toJSONStr()}")
-        # websockets.broadcast(proxy_users_connections.values(), message_str)
-
     proxy_connection_items = list(proxy_users_connections.items())
     for name, proxy_users_connection in proxy_connection_items:
         if not proxy_users_connection.closed:
