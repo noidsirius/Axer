@@ -23,7 +23,7 @@ class JSONSerializable:
                 if issubclass(type(v), JSONSerializable) and v != self:  # TODO: Possible infinite recursion
                     v = v.toJSON()
                 if issubclass(type(v), Enum):
-                    v = v.name
+                    v = v.value
                 res[k] = v
             return res
 

@@ -22,7 +22,7 @@ class SocketMessageAction(Enum):
     @staticmethod
     def get(name: str) -> 'SocketMessageAction':
         for action in SocketMessageAction:
-            if action.name == name:
+            if action.value == name:
                 return action
         return SocketMessageAction.NOP
 
