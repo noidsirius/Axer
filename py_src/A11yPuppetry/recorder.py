@@ -1,6 +1,7 @@
 import sys
 sys.path.append("..")  # TODO: Need to refactor
 import argparse
+
 import asyncio
 import json
 import logging
@@ -11,6 +12,7 @@ from typing import Union
 
 import websockets
 
+from utils import synch_run
 from A11yPuppetry.socket_utils import RegisterSM, StartRecordSM, SendCommandSM, EndRecordSM
 from consts import WS_IP, WS_PORT
 
@@ -28,9 +30,9 @@ async def recorder_client(usecase_path: Union[str, Path], package_name: str, ws_
         await websocket.send(StartRecordSM(package_name=package_name).toJSONStr())
         await asyncio.sleep(5)
         with open(usecase_path) as f:
-            for line in f:
+            for index, line in enumerate(f):
                 d = json.loads(line)
-                await websocket.send(SendCommandSM(command=d).toJSONStr())
+                await websocket.send(SendCommandSM(command=d, index=index).toJSONStr())
                 await asyncio.sleep(1 + random()*3)  # TODO: A more elegant solution for simulating delay between steps
         logger.info("End recording...")
         await websocket.send(EndRecordSM().toJSONStr())
@@ -40,6 +42,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--usecase-path', type=str, required=True, help='The path to the usecase that will'
                                                                         ' be transmitted to the replayers')
+    # TODO: Add data to RECORDER directory in address_book
     parser.add_argument('--package-name', type=str, required=True, help='Package name of the app')
     parser.add_argument('--ws-ip', type=str, default=WS_IP, help='The ip address of WebSocket Server')
     parser.add_argument('--ws-port', type=int, default=WS_PORT, help='The port number of WebSocket Server')
@@ -50,7 +53,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     if os.name == 'nt':
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-    asyncio.run(recorder_client(usecase_path=args.usecase_path,
+    synch_run(recorder_client(usecase_path=args.usecase_path,
                                 package_name=args.package_name,
                                 ws_ip=args.ws_ip,
                                 ws_port=args.ws_port))

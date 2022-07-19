@@ -6,6 +6,7 @@ import logging
 from results_utils import AddressBook
 from search_utils import contains_node_with_attrs
 from snapshot import Snapshot
+from utils import synch_run
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ class SnapshotSearchManager:
                 address_book = AddressBook(snapshot_path)
                 try:
                     snapshot = Snapshot(address_book)
-                    asyncio.run(snapshot.setup())
+                    synch_run(snapshot.setup())
                     if search_query.satisfies(snapshot):
                         results.append(snapshot)
                 except Exception as e:

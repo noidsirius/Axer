@@ -11,6 +11,7 @@ from a11y_service import A11yServiceManager
 from adb_utils import save_snapshot, load_snapshot
 from consts import DEVICE_NAME, ADB_HOST, ADB_PORT
 from results_utils import AddressBook, capture_current_state
+from utils import synch_run
 
 logger = logging.getLogger(__name__)
 
@@ -19,16 +20,20 @@ class Snapshot:
     def __init__(self, address_book: AddressBook):
         address_book.initiate()
         self.address_book = address_book
+        self.name = address_book.snapshot_name()
         self.initial_layout = None
         self.initial_screenshot = None
         self.nodes = []
         self.xpath_to_node = {}
+        self._setup_completed = False
 
     async def setup(self,
                     layout: str = None,
                     layout_path: Union[str, Path] = None,
                     screenshot: Union[str, Path] = None,
                     **kwargs):
+        if self._setup_completed:
+            return
         if layout is None and layout_path is None:
             layout_path = self.address_book.get_layout_path(mode=AddressBook.BASE_MODE,
                                                             index=AddressBook.INITIAL,
@@ -37,7 +42,7 @@ class Snapshot:
                                                                index=AddressBook.INITIAL,
                                                                should_exists=True)
             if layout_path is None:
-                raise Exception("The layout is not provided!")
+                raise Exception(f"The layout is not provided for snapshot {self.name}!")
         if layout_path is not None:
             with open(layout_path) as f:
                 layout = f.read()
@@ -52,9 +57,13 @@ class Snapshot:
         for node in self.nodes:
             self.xpath_to_node[node.xpath] = node
 
-        with open(self.address_book.snapshot_result_path.joinpath("nodes.jsonl"), "w") as f:
-            for node in self.nodes:
-                f.write(f"{node.toJSONStr()}\n")
+        # TODO: should not be here
+        if not self.address_book.snapshot_result_path.joinpath("nodes.jsonl").exists():
+            with open(self.address_book.snapshot_result_path.joinpath("nodes.jsonl"), "w") as f:
+                for node in self.nodes:
+                    f.write(f"{node.toJSONStr()}\n")
+
+        self._setup_completed = True
 
     def clone(self, target_address_book: AddressBook) -> 'Snapshot':
         shutil.copytree(self.address_book.snapshot_result_path, target_address_book.snapshot_result_path, )
@@ -86,7 +95,7 @@ class DeviceSnapshot(Snapshot):
         super().__init__(address_book=address_book)
         if device is None:
             client = AdbClient(host=ADB_HOST, port=ADB_PORT)
-            device = asyncio.run(client.device(DEVICE_NAME))
+            device = synch_run(client.device(DEVICE_NAME))
         self.device = device
 
     async def setup(self, first_setup: bool = True, dumpsys: bool = True, use_service: bool = True, **kwargs):

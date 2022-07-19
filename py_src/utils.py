@@ -1,5 +1,6 @@
+import asyncio
 import logging
-from typing import List, Union, Tuple, Dict
+from typing import List, Union, Tuple, Dict, Any, Coroutine
 from pathlib import Path
 from PIL import Image, ImageDraw
 
@@ -7,6 +8,20 @@ from GUI_utils import Node
 
 logger = logging.getLogger(__name__)
 
+
+def synch_run(coroutine: Coroutine) -> Any:
+    return asyncio.run(coroutine)
+    # try:
+    #     loop = asyncio.get_running_loop()
+    # except RuntimeError:
+    #     loop = None
+    #
+    # if loop and loop.is_running():
+    #     task = loop.create_task(coroutine)
+    #     task.add_done_callback(lambda t: logger.info(f"The task {coroutine} is done. Result: {t.result()}"))
+    #     return task
+    # else:
+    #     return asyncio.run(coroutine)
 
 def convert_bounds(bounds_str: str) -> Tuple[int, ...]:
     return tuple(

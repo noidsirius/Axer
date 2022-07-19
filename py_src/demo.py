@@ -20,7 +20,7 @@ from latte_executor_utils import talkback_tree_nodes, latte_capture_layout, \
 from latte_utils import is_latte_live
 from padb_utils import ParallelADBLogger, save_screenshot
 from results_utils import AddressBook
-from utils import annotate_elements
+from utils import annotate_elements, synch_run
 
 logger = logging.getLogger(__name__)
 
@@ -360,11 +360,11 @@ if __name__ == "__main__":
         logging.basicConfig(level=logging.DEBUG)
         try:
             client = AdbClient(host=args.adb_host, port=args.adb_port)
-            device = asyncio.run(client.device(args.device))
+            device = synch_run(client.device(args.device))
             logger.debug(f"Device {device.serial} is connected!")
         except Exception as e:
             logger.error(f"The device is not connected to {args.device}")
             device = None
 
     if command:
-        asyncio.run(execute_latte_command(device, command, extra))
+        synch_run(execute_latte_command(device, command, extra))
