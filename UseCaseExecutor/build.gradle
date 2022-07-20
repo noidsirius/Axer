@@ -1,12 +1,12 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 30
+    compileSdkVersion 31
     buildToolsVersion "29.0.3"
 
     defaultConfig {
         minSdkVersion 26
-        targetSdkVersion 30
+        targetSdkVersion 31
         versionCode 1
         versionName "1.0"
 
@@ -28,8 +28,10 @@ android {
 
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
-    implementation 'com.google.android.apps.common.testing.accessibility.framework:accessibility-test-framework:3.1'
-    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'com.google.android.apps.common.testing.accessibility.framework:accessibility-test-framework:4.0.0'
+    implementation 'androidx.appcompat:appcompat:1.4.2'
+    implementation 'com.google.android.material:material:1.6.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     testImplementation 'junit:junit:4.12'
     implementation 'com.google.guava:guava:24.1-jre'
     implementation (group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1') {

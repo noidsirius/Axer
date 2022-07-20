@@ -25,9 +25,11 @@ import dev.navids.latte.controller.TalkBackActionPerformer;
 import dev.navids.latte.controller.TalkBackTouchLocator;
 import dev.navids.latte.controller.TouchActionPerformer;
 import dev.navids.latte.controller.TouchLocator;
+import dev.navids.latte.recorder.FloatingHelperManager;
 
 public class LatteService extends AccessibilityService {
     private static LatteService instance;
+    private FloatingHelperManager floatingHelperManager;
 
     public AccessibilityNodeInfo getAccessibilityFocusedNode() {
         return accessibilityFocusedNode;
@@ -111,12 +113,15 @@ public class LatteService extends AccessibilityService {
         addController("tb_api", new Controller(new TalkBackAPILocator(), new TalkBackActionPerformer()));
         addController("tb_touch", new Controller(new TalkBackTouchLocator(), new TalkBackActionPerformer()));
         selectedController = getController("touch");
+        floatingHelperManager = new FloatingHelperManager();
+        floatingHelperManager.addStatusIcon();
     }
 
     @Override
     public void onDestroy() {
         connected = false;
         unregisterReceiver(receiver);
+        floatingHelperManager.removeStatusIcon();
         super.onDestroy();
     }
 
