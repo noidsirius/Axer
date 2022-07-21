@@ -1,6 +1,15 @@
 {% extends "layout.html" %}
 {% from "snapshot_macro.html" import note_form_script, action_tag_script, snapshot_row, talkback_explore, oversight_static, snapshot_action, snapshot_summary with context %}
 {% from "action_macro.html" import  action_info with context %}
+{% macro next_step_arrow(snapshot_index) %}
+    {% if snapshot_index != 'END' %}
+        <div class="d-flex justify-content-center fs-1  mt-2" style="position: relative">
+            <a href="#step_{{ snapshot_index+1 }} ">
+                <i class="fa fa-arrow-down" style="position: absolute;top: -0.3rem;" ></i>
+            </a>
+        </div>
+    {% endif %}
+{% endmacro %}
 {% block title %}
     Replay report {{ app_name }}
 {% endblock %}
@@ -24,13 +33,13 @@
         <table class="table table-bordered">
             <thead>
             <tr>
-                <th scope="col">#</th>
-                <th scope="col">Action</th>
-                <th scope="col">Recorder</th>
+                <th scope="col" style="width: 2rem">#</th>
+                <th scope="col" class="d-none d-lg-block" >Action</th>
+                <th scope="col" class="col-2">Recorder</th>
                 {% for rd_manager in rd_managers %}
-                    <th scope="col">{{ rd_manager.controller_mode }}</th>
+                    <th scope="col" class="col-2">{{ rd_manager.controller_mode }}</th>
                 {% endfor %}
-                <th scope="col">Result</th>
+                <th scope="col" class="col-2">Result</th>
             </tr>
             </thead>
             <tbody>
@@ -38,21 +47,22 @@
                 {% if snapshot_index != 'END' %}
                     {% set command = command_messages[snapshot_index].command %}
                 {% endif %}
-                <tr>
+                <tr id="step_{{ snapshot_index }}">
                     <td> {{ snapshot_index }} </td>
-                    <td style="max-width: 7em">
+                    <td class="d-none d-lg-block">
                         {% if snapshot_index != 'END' %}
                             {{ action_info(command.target) }}
                         {% endif %}
                     </td>
                     <td>
                         <img src="{{ url_for('send_result_static_v2', path='404.png') }}"
-                             class="rounded d-block mx-auto"
-                             style="width: 10rem;">
+                             class="rounded d-block mx-auto mt-4"
+                             style="width: 100%;">
                         <hr>
                         <div class="d-flex justify-content-center">
                             TODO Recorder
                         </div>
+                        {{ next_step_arrow(snapshot_index) }}
                     </td>
                     {% for rd_manager in rd_managers %}
                         {% set step_info = rd_manager.get_step_info(snapshot_index) %}
@@ -60,24 +70,30 @@
                             <td>
                                 <a class="enlarge">
                                     <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(step_info['screenshot'], result_path)) }}"
-                                         class="rounded d-block mx-auto"
-                                         style="width: 10rem;"
+                                         class="rounded d-block mx-auto mt-4"
+                                         style="width: 100%;"
                                          alt="Result of {{ rd_manager.controller_mode }} Selection">
                                 </a>
                                 <hr>
-                                <div class="d-flex justify-content-center">
+                                <div style="display: block; overflow-x: auto; white-space:nowrap; width: 100%">
                                     {% if snapshot_index != 'END' %}
-                                        <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(step_info['logs'], result_path)) }}">
-                                            Log
-                                        </a>
-                                        -
-                                        <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(step_info['event_logs'], result_path)) }}">
-                                            EventLog
-                                        </a>
-                                        -
+                                        <span style="display: inline-block;">
+                                            <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(step_info['logs'], result_path)) }}">
+                                                Log
+                                            </a>
+                                        </span>
+                                        <span style="display: inline-block;">
+                                            <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(step_info['event_logs'], result_path)) }}">
+                                                EventLog
+                                            </a>
+                                        </span>
                                     {% endif %}
-                                    <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(step_info['layout'], result_path)) }}">Layout</a>
+                                    <span style="display: inline-block;">
+                                        <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(step_info['layout'], result_path)) }}">Layout</a>
+                                    </span>
                                 </div>
+                                {{ next_step_arrow(snapshot_index) }}
+
                             </td>
                         {% else %}
                             <td>
