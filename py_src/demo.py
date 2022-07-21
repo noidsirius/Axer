@@ -14,7 +14,9 @@ from ppadb.device_async import DeviceAsync
 from GUI_utils import get_actions_from_layout, NodesFactory
 from a11y_service import A11yServiceManager
 from adb_utils import read_local_android_file
+from command import BackCommand, NextCommand, PreviousCommand, SelectCommand
 from consts import TB_NAVIGATE_TIMEOUT, DEVICE_NAME, ADB_HOST, ADB_PORT
+from controller import TalkBackTouchController
 from latte_executor_utils import talkback_tree_nodes, latte_capture_layout, \
     FINAL_ACITON_FILE, report_atf_issues
 from latte_utils import is_latte_live
@@ -200,13 +202,23 @@ async def execute_latte_command(device: DeviceAsync, command: str, extra: str):
         annotate_elements(extra, extra, actions, outline=(255, 0, 255), width=15, scale=5)
 
     if command.startswith("nav_"):
-        # TODO: It doesn't work, rewrite it this with Controller
-        await A11yServiceManager.setup_latte_a11y_services(tb=True, device_name=device.serial)
-        # await talkback_nav_command(command[len("nav_"):])
-        next_command_json = await read_local_android_file(FINAL_ACITON_FILE,
-                                                          wait_time=TB_NAVIGATE_TIMEOUT,
-                                                          device_name=device.serial)
-        logger.info(f"Nav Result: '{next_command_json}'")
+        controller = TalkBackTouchController(device_name=device.serial)
+        await controller.setup()
+        action = command[len("nav_"):]
+        latte_command = None
+        if action == 'back':
+            latte_command = BackCommand()
+        elif action == 'next':
+            latte_command = NextCommand()
+        elif action == 'previous':
+            latte_command = PreviousCommand()
+        elif action == 'select':
+            latte_command = SelectCommand()
+        if latte_command:
+            command_response = await controller.execute(latte_command)
+            logger.info(f"Response: {command_response}")
+        else:
+            logger.error(f"Navigation action '{action}' is unknown")
     if command.startswith("write_nodes"):
         layout_path = extra
         nodes = NodesFactory() \

@@ -49,6 +49,8 @@ public abstract class Command {
                 command = new PreviousCommand(commandJSON);
             else if (SelectCommand.isSelectCommand(action))
                 command = new SelectCommand(commandJSON);
+            else if (BackCommand.isBackAction(action))
+                command = new BackCommand(commandJSON);
             else if (InfoCommand.isInfo(action))
                 command = new InfoCommand(commandJSON);
             else
