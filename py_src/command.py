@@ -110,17 +110,19 @@ class BackCommand(NavigateCommand):
 
 
 class SleepCommand(Command):
-    def __init__(self, delay: int = 0):
+    def __init__(self, delay: int = None):
         """
         SleepCommand asks the proxy user to sleep (not doing anything) for delay milliseconds
         :param delay: the sleep time in milliseconds
         """
+        if delay is None or delay <= 0:
+            delay = 0
         super().__init__(action='sleep')
         self.delay = delay
 
     @classmethod
     def create_from_dict(cls, json_command: dict):
-        delay = json_command.get('delay', 0)
+        delay = int(json_command.get('delay', 0))
         return cls(delay=delay)
 
 
