@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from abc import ABC, abstractmethod
@@ -5,7 +6,7 @@ from typing import Union
 
 from a11y_service import A11yServiceManager
 from adb_utils import read_local_android_file
-from command import Command, CommandResponse, create_command_response_from_dict
+from command import Command, CommandResponse, create_command_response_from_dict, SleepCommand
 from consts import ACTION_EXECUTION_RETRY_COUNT, REGULAR_EXECUTE_TIMEOUT_TIME, DEVICE_NAME
 from latte_utils import send_commands_sequence_to_latte, send_command_to_latte
 
@@ -30,6 +31,14 @@ class Controller(ABC):
         pass
 
     async def execute(self, command: Command, first_setup: bool = False) -> CommandResponse:
+        if isinstance(command, SleepCommand):
+            if command.delay > 0:
+                logger.info(f"Sleeping for {command.delay}ms!")
+                await asyncio.sleep(command.delay/1000)
+                return CommandResponse(command_type='SleepCommand', state='COMPLETED', duration=command.delay)
+            logger.info(f"The delay is invalid: {command.delay}")
+            return CommandResponse(command_type='SleepCommand', state='FAILED', duration=0)
+
         if first_setup:
             await self.setup()
         result = {}

@@ -109,6 +109,21 @@ class BackCommand(NavigateCommand):
         return cls()
 
 
+class SleepCommand(Command):
+    def __init__(self, delay: int = 0):
+        """
+        SleepCommand asks the proxy user to sleep (not doing anything) for delay milliseconds
+        :param delay: the sleep time in milliseconds
+        """
+        super().__init__(action='sleep')
+        self.delay = delay
+
+    @classmethod
+    def create_from_dict(cls, json_command: dict):
+        delay = json_command.get('delay', 0)
+        return cls(delay=delay)
+
+
 class CommandResponse(JSONSerializable):
     def __init__(self, command_type: str, state: str, duration: int, **kwargs):
         self.type = command_type
@@ -196,7 +211,9 @@ def create_command_from_dict(json_command: dict) -> Command:
         'info': InfoCommand,
         'next': NextCommand,
         'previous': PreviousCommand,
-        'select': SelectCommand
+        'select': SelectCommand,
+        'back': BackCommand,
+        'sleep': SleepCommand,
     }
     if action in action_to_command_map:
         return action_to_command_map[action].create_from_dict(json_command)

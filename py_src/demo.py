@@ -14,7 +14,7 @@ from ppadb.device_async import DeviceAsync
 from GUI_utils import get_actions_from_layout, NodesFactory
 from a11y_service import A11yServiceManager
 from adb_utils import read_local_android_file
-from command import BackCommand, NextCommand, PreviousCommand, SelectCommand
+from command import BackCommand, NextCommand, PreviousCommand, SelectCommand, SleepCommand
 from consts import TB_NAVIGATE_TIMEOUT, DEVICE_NAME, ADB_HOST, ADB_PORT
 from controller import TalkBackTouchController
 from latte_executor_utils import talkback_tree_nodes, latte_capture_layout, \
@@ -201,10 +201,10 @@ async def execute_latte_command(device: DeviceAsync, command: str, extra: str):
         actions = get_actions_from_layout(layout)
         annotate_elements(extra, extra, actions, outline=(255, 0, 255), width=15, scale=5)
 
-    if command.startswith("nav_"):
+    if command.startswith("command_"):
         controller = TalkBackTouchController(device_name=device.serial)
         await controller.setup()
-        action = command[len("nav_"):]
+        action = command[len("command_"):]
         latte_command = None
         if action == 'back':
             latte_command = BackCommand()
@@ -214,6 +214,8 @@ async def execute_latte_command(device: DeviceAsync, command: str, extra: str):
             latte_command = PreviousCommand()
         elif action == 'select':
             latte_command = SelectCommand()
+        elif action == 'sleep':
+            latte_command = SleepCommand(delay=int(extra))
         if latte_command:
             command_response = await controller.execute(latte_command)
             logger.info(f"Response: {command_response}")
