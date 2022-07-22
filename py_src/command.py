@@ -16,6 +16,10 @@ class Command(JSONSerializable):
 
 class LocatableCommand(Command):
     def __init__(self, action: str, node: Node):
+        """
+            LocatableCommand asks the proxy user to locate an element, then (optionally) perform an operation on it.
+            Clicking, long pressing, typing are examples of LocatableCommand.
+        """
         super().__init__(action)
         self.target = node
 
@@ -29,6 +33,11 @@ class LocatableCommand(Command):
 
 class InfoCommand(Command):
     def __init__(self, question: str):
+        """
+            InfoCommand works like a query from the Android device, it consists of a question about the system, e.g., what is
+            the current focused element? or what are the elements with accessibility issues by ATF?, and system responds with
+            the answer without performing any action or changing the state of the app or device.
+        """
         super().__init__('info')
         self.question = question
 
@@ -51,6 +60,11 @@ class ClickCommand(LocatableCommand):
 
 class NavigateCommand(Command):
     def __init__(self, action: str):
+        """
+        NavigateCommand represents a single navigation action, e.g., focus on next/previous/top/bottom element or select
+        an element.
+        :param action: Determine the navigation action
+        """
         super().__init__(action)
 
     @classmethod
@@ -84,6 +98,32 @@ class SelectCommand(NavigateCommand):
     @classmethod
     def create_from_dict(cls, json_command: dict):
         return cls()
+
+
+class BackCommand(NavigateCommand):
+    def __init__(self):
+        super().__init__('back')
+
+    @classmethod
+    def create_from_dict(cls, json_command: dict):
+        return cls()
+
+
+class SleepCommand(Command):
+    def __init__(self, delay: int = None):
+        """
+        SleepCommand asks the proxy user to sleep (not doing anything) for delay milliseconds
+        :param delay: the sleep time in milliseconds
+        """
+        if delay is None or delay <= 0:
+            delay = 0
+        super().__init__(action='sleep')
+        self.delay = delay
+
+    @classmethod
+    def create_from_dict(cls, json_command: dict):
+        delay = int(json_command.get('delay', 0))
+        return cls(delay=delay)
 
 
 class CommandResponse(JSONSerializable):
@@ -173,7 +213,9 @@ def create_command_from_dict(json_command: dict) -> Command:
         'info': InfoCommand,
         'next': NextCommand,
         'previous': PreviousCommand,
-        'select': SelectCommand
+        'select': SelectCommand,
+        'back': BackCommand,
+        'sleep': SleepCommand,
     }
     if action in action_to_command_map:
         return action_to_command_map[action].create_from_dict(json_command)

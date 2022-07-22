@@ -3,6 +3,7 @@ package dev.navids.latte.controller;
 import android.util.Log;
 import dev.navids.latte.ActualWidgetInfo;
 import dev.navids.latte.LatteService;
+import dev.navids.latte.UseCase.BackCommand;
 import dev.navids.latte.UseCase.ClickCommand;
 import dev.navids.latte.UseCase.FocusCommand;
 import dev.navids.latte.UseCase.LocatableCommand;
@@ -23,6 +24,8 @@ public abstract class AbstractActionPerformer implements ActionPerformer {
             navigatePrevious((PreviousCommand) navigateCommand, callback);
         else if (navigateCommand instanceof SelectCommand)
             navigateSelect((SelectCommand) navigateCommand, callback);
+        else if (navigateCommand instanceof BackCommand)
+            navigateBack((BackCommand) navigateCommand, callback);
         else {
             Log.e(LatteService.TAG, "This navigate step is unrecognizable " + navigateCommand);
             callback.onError("Unrecognizable Action");
@@ -70,4 +73,5 @@ public abstract class AbstractActionPerformer implements ActionPerformer {
     public abstract void navigateNext(NextCommand nextStep, ExecutorCallback callback);
     public abstract void navigatePrevious(PreviousCommand previousStep, ExecutorCallback callback);
     public abstract void navigateSelect(SelectCommand selectCommand, ExecutorCallback callback);
+    public abstract void navigateBack(BackCommand selectCommand, ExecutorCallback callback);
 }

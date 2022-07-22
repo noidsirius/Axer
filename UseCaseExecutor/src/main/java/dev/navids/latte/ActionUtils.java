@@ -141,6 +141,10 @@ public class ActionUtils {
         return new Pair<>(x,y);
     }
 
+    public static boolean performBack(){
+        return LatteService.getInstance().performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK);
+    }
+
     public static boolean performTap(Pair<Integer, Integer> coordinates){ return performTap(coordinates.first, coordinates.second); }
     public static boolean performTap(int x, int y){ return performTap(x, y, Config.v().TAP_DURATION); }
     public static boolean performTap(int x, int y, int duration){ return performTap(x, y, 0, duration); }

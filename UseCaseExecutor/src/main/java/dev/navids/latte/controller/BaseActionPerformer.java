@@ -1,10 +1,13 @@
 package dev.navids.latte.controller;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import dev.navids.latte.ActionUtils;
 import dev.navids.latte.ActualWidgetInfo;
+import dev.navids.latte.LatteService;
+import dev.navids.latte.UseCase.BackCommand;
 import dev.navids.latte.UseCase.ClickCommand;
 import dev.navids.latte.UseCase.FocusCommand;
 import dev.navids.latte.UseCase.NextCommand;
@@ -44,5 +47,16 @@ public class BaseActionPerformer extends AbstractActionPerformer {
     @Override
     public void navigateSelect(SelectCommand selectCommand, ExecutorCallback callback) {
         
+    }
+
+    @Override
+    public void navigateBack(BackCommand selectCommand, ExecutorCallback callback) {
+        boolean result = ActionUtils.performBack();
+        if(callback != null){
+            if(result)
+                callback.onCompleted();
+            else
+                callback.onError("The back action could not be performed!");
+        }
     }
 }
