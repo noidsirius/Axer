@@ -8,6 +8,8 @@ from command import Command, ClickCommand, NextCommand, PreviousCommand, SelectC
 class TestCommand(unittest.TestCase):
     def test_command_constructors(self):
         self.assertEqual("NOP", Command().action)
+        unknown_command = create_command_from_dict({'action': 'unknown', 'attribute': 34})
+        self.assertEqual("NOP", unknown_command.action)
 
     def test_click_command(self):
         node = Node(text="dummy_text", checked=True)
