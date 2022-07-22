@@ -24,10 +24,10 @@ public class ConceivedWidgetInfo extends WidgetInfo {
     public static ConceivedWidgetInfo createFromJson(JSONObject cmd) {
         if(cmd == null)
             return null;
-        String resourceId = (String) cmd.getOrDefault("resourceId", ""); // TODO: Inconsistency -> resource_id
-        String contentDescription = (String) cmd.getOrDefault("contentDescription", ""); // TODO: Inconsistency -> content_desc
+        String resourceId = (String) cmd.getOrDefault("resource_id", "");
+        String contentDescription = (String) cmd.getOrDefault("content_desc", "");
         String text = (String) cmd.getOrDefault("text", "");
-        String clsName = (String) cmd.getOrDefault("class", ""); // TODO: Inconsistency -> class_name
+        String clsName = (String) cmd.getOrDefault("class_name", "");
         String xpath = (String) cmd.getOrDefault("xpath", "");
         String locatedBy = (String) cmd.getOrDefault("located_by", "");
         // TODO: Context

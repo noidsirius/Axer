@@ -18,7 +18,7 @@ import java.util.Map;
 // TODO: Why WidgetInfo is Serializable?
 public abstract class WidgetInfo implements Serializable {
     List<String> attributeNames = Arrays.asList(
-            "resourceId", "contentDescription", "text", "class", "xpath");
+            "resource_id", "content_desc", "text", "class_name", "xpath");
     Map<String, String> attributes = new HashMap<>();
 
     public WidgetInfo(String resourceId) {
@@ -48,7 +48,7 @@ public abstract class WidgetInfo implements Serializable {
         return this.isSimilar((WidgetInfo) obj);
     }
 
-    protected String getAttr(String attributeName){
+    public String getAttr(String attributeName){
         return attributes.getOrDefault(attributeName, "");
     }
 
@@ -88,11 +88,10 @@ public abstract class WidgetInfo implements Serializable {
 
     public String completeToString(boolean has_xpath){
         String xpath = has_xpath? " xpath= " + getXpath() : "";
-        String id = hasAttr("resourceId") ? " ID= "+getAttr("resourceId")+", ": "";
-        String cd = hasAttr("contentDescription") ? " CD= "+getAttr("contentDescription")+", ": "";
+        String id = hasAttr("resourceId") ? " ID= "+getAttr("resource_id")+", ": "";
+        String cd = hasAttr("contentDescription") ? " CD= "+getAttr("content_desc")+", ": "";
         String tx = hasAttr("text") ? " TX= "+getAttr("text")+", ": "";
-        String cl = hasAttr("class") ? " CL= "+getAttr("class")+", ": "";
-        String bound = hasAttr("class") ? " CL= "+getAttr("class")+", ": "";
+        String cl = hasAttr("class") ? " CL= "+getAttr("class_name")+", ": "";
         return id + cd + tx + cl + xpath;
     }
 
