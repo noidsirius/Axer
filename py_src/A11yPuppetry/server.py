@@ -140,8 +140,7 @@ async def server_main_loop(result_path: Union[str, Path]):
             elif isinstance(socket_message, EndRecordSM):
                 logger.info(f"The recording is finished!")
                 server_state = ServerState.CLEANING_UP
-                await download_report(websocket=recorder_connection, result_path= result_path, client_name= 'RECORDER')
-                # TODO: Add download_task to get Recorder reports
+                download_tasks.append(asyncio.create_task(download_report(websocket=recorder_connection, result_path=result_path, client_name='RECORDER')))
             else:
                 logger.error(f"The server is in state {ServerState.RECORDING} "
                              f"expecting to receive a SendCommandSM, Message: {message_str}")
