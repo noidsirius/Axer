@@ -4,6 +4,15 @@ python:
 before_install:
   - python --version
   - pip install -U pip
+  - pip install codecov
+  - pip install coverage
   - pip install -r requirements.txt
-script:
-  - cd py_src && python -m unittest test.test_command && cd - # TODO: https://github.com/noidsirius/LatteLibrary/issues/24 
+script: cd py_src &&
+  coverage run -m unittest test.test_command &&
+  mv .coverage .. &&
+  cd - # TODO: https://github.com/noidsirius/LatteLibrary/issues/24 
+env:
+    - CODECOV_TOKEN=d9615b91-c123-4003-ac18-2df188e88470
+after_success:
+#  - bash < (curl -s https://codecov.io/bash)
+  - codecov # submit coverage
