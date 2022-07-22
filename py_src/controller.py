@@ -105,11 +105,22 @@ class TalkBackTouchController(Controller):
         await send_commands_sequence_to_latte([("controller_set", self.mode())], device_name=self.device_name)
 
 
+class TalkBackDirectionalController(Controller):
+    def mode(self) -> str:
+        return 'tb_dir'
+
+    async def setup(self):
+        await A11yServiceManager.setup_latte_a11y_services(tb=True, device_name=self.device_name)
+        await send_commands_sequence_to_latte([("controller_set", self.mode())], device_name=self.device_name)
+
+
 def create_controller(mode: str, device_name: str) -> Union[Controller, None]:
     if mode == 'tb_touch':
         return TalkBackTouchController(device_name=device_name)
     elif mode == 'tb_api':
         return TalkBackAPIController(device_name=device_name)
+    elif mode == 'tb_dir':
+        return TalkBackDirectionalController(device_name=device_name)
     elif mode == 'a11y_api':
         return A11yAPIController(device_name=device_name)
     elif mode == 'touch':
