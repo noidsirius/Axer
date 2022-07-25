@@ -15,20 +15,20 @@ class Command(JSONSerializable):
 
 
 class LocatableCommand(Command):
-    def __init__(self, action: str, node: Node):
+    def __init__(self, action: str, target: Node):
         """
             LocatableCommand asks the proxy user to locate an element, then (optionally) perform an operation on it.
             Clicking, long pressing, typing are examples of LocatableCommand.
         """
         super().__init__(action)
-        self.target = node
+        self.target = target
 
     @classmethod
     def create_from_dict(cls, json_command: dict):
         action = json_command.get('action', "NOP")
         json_target_node = json_command.get('target', {})
         target_node = Node.createNodeFromDict(json_target_node)
-        return cls(action, target_node)
+        return cls(action=action, target=target_node)
 
 
 class InfoCommand(Command):
@@ -48,14 +48,26 @@ class InfoCommand(Command):
 
 
 class ClickCommand(LocatableCommand):
-    def __init__(self, node: Node):
-        super().__init__('click', node)
+    def __init__(self, target: Node):
+        super().__init__('click', target)
 
     @classmethod
     def create_from_dict(cls, json_command: dict):
         json_target_node = json_command.get('target', {})
         target_node = Node.createNodeFromDict(json_target_node)
         return cls(target_node)
+
+
+class TypeCommand(LocatableCommand):
+    def __init__(self, target: Node, text: str):
+        super().__init__('type', target)
+        self.text = text
+
+    @classmethod
+    def create_from_dict(cls, json_command: dict):
+        json_target_node = json_command.get('target', {})
+        target_node = Node.createNodeFromDict(json_target_node)
+        return cls(target=target_node, text=json_command.get('text', ''))
 
 
 class NavigateCommand(Command):
@@ -210,6 +222,7 @@ def create_command_from_dict(json_command: dict) -> Command:
     action = json_command['action']
     action_to_command_map = {
         'click': ClickCommand,
+        'type': TypeCommand,
         'info': InfoCommand,
         'next': NextCommand,
         'previous': PreviousCommand,
