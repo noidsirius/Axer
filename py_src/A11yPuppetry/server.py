@@ -75,13 +75,13 @@ async def register_handler(websocket: websockets.WebSocketClientProtocol):
 
 
 async def download_report(websocket: websockets.WebSocketClientProtocol,
-                          result_path: Path,
+                          output_directory: Path,
                           client_name: str = "UNKNOWN"):
     data = await websocket.recv()
     tar_file_path = write_bytes_to_file(data=data)
     with tarfile.open(tar_file_path, "r:*") as tar:
-        tar.extractall(result_path)
-    logger.info(f"The report of {client_name} has been added to {result_path}")
+        tar.extractall(output_directory)
+    logger.info(f"The report of {client_name} has been added to {output_directory}")
     try:
         tar_file_path.unlink()
     except OSError as e:
@@ -140,7 +140,9 @@ async def server_main_loop(result_path: Union[str, Path]):
             elif isinstance(socket_message, EndRecordSM):
                 logger.info(f"The recording is finished!")
                 server_state = ServerState.CLEANING_UP
-                download_tasks.append(asyncio.create_task(download_report(websocket=recorder_connection, result_path=result_path, client_name='RECORDER')))
+                download_tasks.append(asyncio.create_task(download_report(websocket=recorder_connection,
+                                                                          output_directory=result_path,
+                                                                          client_name='RECORDER')))
             else:
                 logger.error(f"The server is in state {ServerState.RECORDING} "
                              f"expecting to receive a SendCommandSM, Message: {message_str}")
@@ -156,7 +158,7 @@ async def server_main_loop(result_path: Union[str, Path]):
             # to the server. The report is a tar.gz file of the directory of the app in replayers' machines
             for name, connection in proxy_users_connections.items():
                 download_tasks.append(asyncio.create_task(download_report(websocket=connection,
-                                                                          result_path=result_path,
+                                                                          output_directory=result_path,
                                                                           client_name=name)))
 
     proxy_connection_items = list(proxy_users_connections.items())

@@ -101,7 +101,7 @@ def create_app_info(app_path: pathlib.Path) -> Union[dict, None]:
                 'failure': sum([0] + [s['failure'] for s in snapshots_info if s['state'] == 'Processed']),
                 'warning': sum([0] + [s['warning'] for s in snapshots_info if s['state'] == 'Processed']),
                 'other': sum([0] + [s['other'] for s in snapshots_info if s['state'] == 'Processed']),
-                'last_update': max([datetime.datetime(1980,1,1)]+ [s['last_update'] for s in snapshots_info])}
+                'last_update': max([datetime.datetime(1980, 1, 1)] + [s['last_update'] for s in snapshots_info])}
     return app_info
 
 
@@ -153,7 +153,9 @@ def create_step(address_book: AddressBook, static_root_path: pathlib.Path, actio
             step['mode_info'][f'{mode}_log'] = address_book.get_log_path(f'{prefix}{mode}',
                                                                          action['index']).relative_to(static_root_path)
             step['mode_info'][f'{mode}_event_log'] = address_book.get_log_path(f'{prefix}{mode}',
-                                                                         action['index'], extension=BLIND_MONKEY_EVENTS_TAG).relative_to(static_root_path)
+                                                                               action['index'],
+                                                                               extension=BLIND_MONKEY_EVENTS_TAG).relative_to(
+                static_root_path)
             step['mode_info'][f'{mode}_layout'] = address_book.get_layout_path(f'{prefix}{mode}',
                                                                                action['index']).relative_to(
                 static_root_path)
@@ -294,8 +296,8 @@ def snapshot_search(result_path_str: str):
     xml_search_attrs = request.args.getlist('xmlSearchAttr[]')
     xml_search_fields = request.args.getlist('xmlSearchQuery[]')
     if len(xml_search_fields) == 0 or len(xml_search_fields) != len(xml_search_attrs):
-        xml_search_fields = [None]*5
-        xml_search_attrs = ['ALL']*5
+        xml_search_fields = [None] * 5
+        xml_search_attrs = ['ALL'] * 5
     snapshot_limit_field = request.args.get('snapshot_limit_field', '10')
     if not snapshot_limit_field.isdecimal():
         snapshot_limit_field = 1000
@@ -339,19 +341,19 @@ def search_v2(result_path_str: str):
     summary_names = request.args.getlist('summarySearchName[]')
     summary_values = request.args.getlist('summarySearchValue[]')
     if len(summary_names) == 0 or len(summary_names) != len(summary_values):
-        summary_names = ['ANY']*6
-        summary_values = [None]*6
+        summary_names = ['ANY'] * 6
+        summary_values = [None] * 6
     action_attr_names = request.args.getlist('actionSearchAttr[]')
     action_attr_values = request.args.getlist('actionSearchQuery[]')
     if len(action_attr_names) == 0 or len(action_attr_names) != len(action_attr_values):
-        action_attr_names = ['ALL']*2
-        action_attr_values = [None]*2
+        action_attr_names = ['ALL'] * 2
+        action_attr_values = [None] * 2
     xml_search_mode = request.args.get('xmlSearchMode', 'ALL')
     xml_search_attrs = request.args.getlist('xmlSearchAttr[]')
     xml_search_fields = request.args.getlist('xmlSearchQuery[]')
     if len(xml_search_fields) == 0 or len(xml_search_fields) != len(xml_search_attrs):
-        xml_search_fields = [None]*2
-        xml_search_attrs = ['ALL']*2
+        xml_search_fields = [None] * 2
+        xml_search_attrs = ['ALL'] * 2
     # xml_search_field = request.args.get('xmlSearchQuery', None)
     # xml_search_attr = request.args.get('xmlSearchAttr', 'ALL')
     left_xml_fields = request.args.getlist('leftXML[]')
@@ -382,9 +384,9 @@ def search_v2(result_path_str: str):
     result_path = pathlib.Path(fix_path(result_path_str))
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is incorrect!"
-    search_query = SearchActionQuery()\
-        .post_analysis(post_analysis_result=post_analysis_result)\
-        .set_valid_app(app_name_field)\
+    search_query = SearchActionQuery() \
+        .post_analysis(post_analysis_result=post_analysis_result) \
+        .set_valid_app(app_name_field)
 
     if len(include_tags) > 0 or len(exclude_tags) > 0:
         search_query.contains_tags(include_tags=include_tags, exclude_tags=exclude_tags)
@@ -451,7 +453,8 @@ def search_v2(result_path_str: str):
                            app_names=app_names)
 
 
-@flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/action/<index>/<sighted_str>/diff/<left_mode>/<right_mode>")
+@flask_app.route(
+    "/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/action/<index>/<sighted_str>/diff/<left_mode>/<right_mode>")
 def xml_diff_v2(result_path, app_name, snapshot_name, index, sighted_str, left_mode, right_mode):
     is_sighted = sighted_str == "sighted"
     result_path = pathlib.Path(fix_path(result_path))
@@ -595,6 +598,10 @@ def replay_report(result_path, app_name):
             else:
                 other_socket_messages.append(message)
     snapshot_indices.append("END")
+    recorder_screenshot_map = {index: app.app_path.joinpath("RECORDER").joinpath(f"S_{index}.png")
+                           for index in snapshot_indices}
+    recorder_layout_map = {index: app.app_path.joinpath("RECORDER").joinpath(f"S_{index}.xml")
+                           for index in snapshot_indices}
     rd_managers = []
     for controller in ReplayDataManager.get_existing_controllers(app):
         rd_manager = ReplayDataManager(app=app, controller_mode=controller)
@@ -607,7 +614,10 @@ def replay_report(result_path, app_name):
                            command_messages=command_messages,
                            other_socket_messages=other_socket_messages,
                            snapshot_indices=snapshot_indices,
+                           recorder_layout_map=recorder_layout_map,
+                           recorder_screenshot_map=recorder_screenshot_map,
                            rd_managers=rd_managers)
+
 
 @flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/report_sb")
 def report_sb_v2(result_path, app_name, snapshot_name):

@@ -34,7 +34,6 @@ class TestCommand(unittest.TestCase):
         self.assertIsInstance(type_command, TypeCommand)
         self.assertEqual("my_new_text", type_command.text)
 
-
     def test_navigate_commands(self):
         self.assertEqual("next", NextCommand().action)
         self.assertEqual("previous", PreviousCommand().action)

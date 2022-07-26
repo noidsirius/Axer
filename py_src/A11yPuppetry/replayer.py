@@ -56,19 +56,24 @@ async def proxy_user_client(controller_mode: str,
             logger.info(f"The replaying for package {message.package_name} is started!")
             app = App(app_name=message.package_name, result_path=result_path)
             rd_manager = ReplayDataManager(app=app, controller_mode=controller_mode)
-            # Reinstall the application, then start it
+            # Reset the application or Reinstall it, then start it
             package_name = app.package_name
-            if package_name not in pkg_name_to_apk_path:
-                logger.error(f"The package name {package_name} is unknown!")
-                return
-            await run_bash(f"adb -s {device_name} uninstall {package_name}")
-            ret_value, stdout, stderr = await run_bash(f"adb -s {device_name} install -r -g {pkg_name_to_apk_path[package_name]}")
-            logger.debug(f"Installing logs:\n\tOUT: '{stdout}'\n\tErr: '{stderr}'")
+            ret_value, stdout, stderr = await run_bash(f"adb -s {device_name} shell pm clear {package_name}")
             if ret_value != 0:
-                logger.error(f"The APK {pkg_name_to_apk_path[package_name]} could not be installed!")
-                return
+                logger.error(f"The package {package_name} could not be cleared! STDOUT: {stdout}, STD:ERR: {stderr}")
+                if package_name not in pkg_name_to_apk_path:
+                    logger.error(f"The package name {package_name} is unknown!")
+                    return
+                await run_bash(f"adb -s {device_name} uninstall {package_name}")
+                ret_value, stdout, stderr = await run_bash(f"adb -s {device_name} install -r -g {pkg_name_to_apk_path[package_name]}")
+                if ret_value != 0:
+                    logger.debug(f"Installing logs:\n\tOUT: '{stdout}'\n\tErr: '{stderr}'")
+                    logger.error(f"The APK {pkg_name_to_apk_path[package_name]} could not be installed!")
+                    return
             await launch_specified_application(pkg_name=package_name, device_name=device_name)
-            await asyncio.sleep(3)
+            logger.info(f"App {package_name} is started!")
+            await asyncio.sleep(60)
+            logger.info(f"Listening for commands!")
             # Replaying the commands from server
             i = 0
             while True:

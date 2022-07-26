@@ -64,7 +64,7 @@ public abstract class LocatableCommand extends Command {
     }
 
     public static boolean isLocatableAction(String action) {
-        return action.equals("click") || action.equals("send_keys");
+        return action.equals("click") || action.equals("type");
     }
 
     public ConceivedWidgetInfo getTargetWidgetInfo() {

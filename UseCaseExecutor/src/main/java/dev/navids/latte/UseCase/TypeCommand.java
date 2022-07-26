@@ -17,17 +17,13 @@ public class TypeCommand extends LocatableCommand {
 
     TypeCommand(JSONObject stepJson) {
         super(stepJson);
-        String text = "";
-        if (stepJson.containsKey("action_args")) {
-            JSONArray args = (JSONArray) stepJson.get("action_args");
-            text = String.valueOf(args.get(0));
-        }
-        this.text = text;
+        this.text = (String) stepJson.getOrDefault("text", "");
+
         Log.i(LatteService.TAG, "Type Step: " + this.getTargetWidgetInfo() + " " + this.text);
     }
 
     public static boolean isTypeStep(String action){
-        return action.equals("send_keys");
+        return action.equals("type");
     }
 
     @Override

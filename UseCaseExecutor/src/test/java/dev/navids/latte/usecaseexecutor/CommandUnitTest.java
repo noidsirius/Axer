@@ -1,6 +1,7 @@
 package dev.navids.latte.usecaseexecutor;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.json.simple.JSONObject;
@@ -16,6 +17,7 @@ import dev.navids.latte.ConceivedWidgetInfo;
 import dev.navids.latte.UseCase.BackCommand;
 import dev.navids.latte.UseCase.ClickCommand;
 import dev.navids.latte.UseCase.Command;
+import dev.navids.latte.UseCase.LocatableCommand;
 import dev.navids.latte.UseCase.NextCommand;
 import dev.navids.latte.UseCase.PreviousCommand;
 import dev.navids.latte.UseCase.SelectCommand;
@@ -39,6 +41,15 @@ public class CommandUnitTest {
         Command select_command = Command.createCommandFromJSON(jsonCommand);
         Assert.assertTrue(select_command instanceof SelectCommand);
         Assert.assertTrue(select_command.isNotStarted());
+    }
+
+    @Test
+    public void locatable_command_test(){
+        assertTrue(LocatableCommand.isLocatableAction("click"));
+        assertTrue(LocatableCommand.isLocatableAction("type"));
+        assertFalse(LocatableCommand.isLocatableAction("back"));
+        assertFalse(LocatableCommand.isLocatableAction("next"));
+        assertFalse(LocatableCommand.isLocatableAction("select"));
     }
 
     @Test
