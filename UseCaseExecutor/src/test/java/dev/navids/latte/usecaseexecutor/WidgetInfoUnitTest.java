@@ -43,5 +43,4 @@ public class WidgetInfoUnitTest {
         assertEquals("/a/b/c2", widgetJson.get("xpath"));
 
     }
-
 }
