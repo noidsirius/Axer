@@ -4,7 +4,6 @@ from GUI_utils import Node
 import json
 
 node1_json_str = '{"a11y_actions": ["4", "8", "64", "16908342"], "action": "click", "bounds": [540, 214, 540, 281], "checkable": false, "checked": false, "class_name": "android.widget.TextView", "clickable": false, "clickable_span": false, "content_desc": "my_content", "context_clickable": false, "covered": false, "drawing_order": 1, "enabled": true, "focusable": false, "focused": false, "important_for_accessibility": true, "index": 0, "invalid": false, "is_ad": false, "located_by": "xpath", "long_clickable": false, "naf": false, "pkg_name": "au.gov.nsw.newcastle.app.android", "resource_id": "my_res", "skip": false, "text": "my_text", "visible": false, "xpath": "/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.view.ViewGroup/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.TextView"}'
-# TODO: Add a node which is captured from Latte
 
 # TODO: Add a node which is captured from Latte
 
