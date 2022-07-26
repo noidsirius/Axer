@@ -76,7 +76,7 @@ public class CommandUnitTest {
 
     @Test
     public void type_command_test(){
-        String typeCommandStr = "{\"action\": \"click\", \"text\": \"NewText\", \"target\": " + targetNodeStr + "}";
+        String typeCommandStr = "{\"action\": \"type\", \"text\": \"NewText\", \"target\": " + targetNodeStr + "}";
         Command command = Command.createCommandFromJSON(typeCommandStr);
         assertTrue(command instanceof TypeCommand);
         TypeCommand typeCommand = (TypeCommand) command;
