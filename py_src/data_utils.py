@@ -82,7 +82,10 @@ class ReplayDataManager:
                                                                      extension=BLIND_MONKEY_EVENTS_TAG)
 
         step_info['layout'] = snapshot.address_book.get_layout_path(mode=self.controller_mode, index=0)
-        step_info['screenshot'] = snapshot.initial_screenshot
+        if self.controller_mode == 'tb_dir' and snapshot.address_book.tb_explore_visited_nodes_gif.exists():
+            step_info['screenshot'] = snapshot.address_book.tb_explore_visited_nodes_gif
+        else:
+            step_info['screenshot'] = snapshot.initial_screenshot
 
         return step_info
 
