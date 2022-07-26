@@ -50,7 +50,7 @@ public abstract class LocatableCommand extends Command {
         return numberOfActingAttempts >= Config.v().MAX_ACTING_ATTEMPT;
     }
 
-    LocatableCommand(JSONObject stepJson) {
+    public LocatableCommand(JSONObject stepJson) {
         super(stepJson);
         Object obj = stepJson.getOrDefault("target", null);
         if (obj != null)

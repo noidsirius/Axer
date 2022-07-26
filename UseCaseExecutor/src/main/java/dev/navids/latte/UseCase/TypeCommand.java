@@ -12,7 +12,7 @@ public class TypeCommand extends LocatableCommand {
         return text;
     }
 
-    private String text;
+    private final String text;
 
 
     TypeCommand(JSONObject stepJson) {
