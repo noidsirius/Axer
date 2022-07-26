@@ -191,6 +191,8 @@ def inject_user():
     def static_path_fixer(path: Union[str, pathlib.Path], result_path: str) -> str:
         if isinstance(path, pathlib.Path):
             path = str(path)
+        if not path:
+            return ""
         return path[path.find(result_path):]
 
     return dict(all_result_paths=all_result_paths,

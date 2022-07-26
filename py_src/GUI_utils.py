@@ -148,6 +148,8 @@ class Node(JSONSerializable):
         self.drawing_order = drawing_order
         self.a11y_actions = a11y_actions
         self.pkg_name = '' if pkg_name == 'null' else pkg_name
+        if xpath.startswith("/hierarchy"):
+            xpath = xpath[len("/hierarchy"):]
         self.xpath = xpath
         # --- Latte ----
         # TODO: Move it to another class

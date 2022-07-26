@@ -36,7 +36,13 @@ class ExecuteSingleActionTask(SnapshotTask):
         if isinstance(self.controller, TalkBackDirectionalController) and isinstance(self.command, LocatableCommand):
             device_snapshot = DeviceSnapshot(address_book=self.snapshot.address_book, device=self.device)
             await device_snapshot.setup(first_setup=False)
-            is_located = await TalkBackExploreTask(snapshot=device_snapshot, target_node=self.command.target).execute()
+            is_located = False
+            for node in device_snapshot.nodes:
+                if self.command.target.same_identifiers(node):
+                    is_located = True
+                    break
+            if is_located:
+                is_located = await TalkBackExploreTask(snapshot=device_snapshot, target_node=self.command.target).execute()
             log_message_map: dict = {x: '' for x in tags}
             if is_located:
                 logger.info("Target node is focused!")
