@@ -21,6 +21,7 @@ LAYOUT_FILE_PATH = "a11y_layout.xml"
 ATF_ISSUES_FILE_PATH = "aft_a11y_issues.jsonl"
 formatter = xmlformatter.Formatter(indent="1", indent_char="\t", encoding_output="UTF-8", preserve=["literal"])
 
+
 async def latte_capture_layout(device_name: str = DEVICE_NAME) -> str:
     layout = None
     is_tb_enabled = await A11yServiceManager.is_enabled('tb', device_name=device_name)

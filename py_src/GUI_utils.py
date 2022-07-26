@@ -183,6 +183,17 @@ class Node(JSONSerializable):
     def belongs(self, pkg_name: str) -> bool:
         return self.pkg_name == pkg_name
 
+    def get_normalized_bounds(self, screen_bounds: Tuple[int, int, int, int]) -> Tuple[float, float, float, float]:
+        if self.is_out_of_bounds(screen_bounds) or all(x == 0 for x in self.bounds):
+            return (0.0, 0.0, 0.0, 0.0)
+        width_divisor = screen_bounds[2] - screen_bounds[0]
+        height_divisor = screen_bounds[3] - screen_bounds[1]
+        left = (self.bounds[0] - screen_bounds[0]) / width_divisor
+        top = (self.bounds[1] - screen_bounds[1]) / height_divisor
+        right = (self.bounds[2] - screen_bounds[0]) / width_divisor
+        bottom = (self.bounds[3] - screen_bounds[1]) / height_divisor
+        return (left, top, right, bottom)
+
     def is_out_of_bounds(self, screen_bounds: Tuple[int, int, int, int]) -> bool:
         [min_x, min_y, max_x, max_y] = screen_bounds
         return ((max_x < self.bounds[0] or self.bounds[0] < min_x) or
