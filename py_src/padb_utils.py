@@ -41,7 +41,7 @@ class ParallelADBLogger:
         self.log_message = ""
         ll_task = await self._logcat()
         coroutine_result = await coroutine_obj
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(1)  # TODO: Add it to consts
         ll_task.cancel()
         self.lock = None
         if tags is None:

@@ -115,7 +115,27 @@
                     {% for rd_manager in rd_managers %}
                         {% set step_info = rd_manager.get_step_info(snapshot_index) %}
                         {% if step_info %}
-                            <td>
+                            <td
+                            class="
+                            bg-gradient
+                            {% if snapshot_index != 'END' %}
+                                {% if step_info['response'].state == 'COMPLETED' %}
+                                    bg-success
+                                {% else %}
+                                    bg-danger
+                                {% endif %}
+                            {% endif %}
+                            "
+                            style="
+                            {% if snapshot_index != 'END' %}
+                                {% if step_info['response'].state == 'COMPLETED' %}
+                                    --bs-bg-opacity: .05;
+                                {% else %}
+                                    --bs-bg-opacity: .3;
+                                {% endif %}
+                            {% endif %}
+                            "
+                            >
                                 <a class="enlarge">
                                     <canvas class="rounded d-block mx-auto mt-4" id="{{ rd_manager.controller_mode }}_canvas_{{ snapshot_index }}" height="650" style="border:1px solid #d3d3d3;
                                             background-repeat: no-repeat;
