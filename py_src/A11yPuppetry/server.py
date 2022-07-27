@@ -4,6 +4,9 @@ import tarfile
 from datetime import datetime
 from pathlib import Path
 from typing import Union
+
+
+
 sys.path.append("..")  # TODO: Need to refactor
 import asyncio
 import json
@@ -13,6 +16,7 @@ from enum import Enum
 import websockets
 
 from consts import WS_IP, WS_PORT
+from adb_utils import run_bash
 from utils import synch_run
 from logger_utils import initialize_logger
 from socket_utils import create_socket_message_from_dict, RegisterSM, StartRecordSM, SendCommandSM, EndRecordSM, \
@@ -130,6 +134,13 @@ async def server_main_loop(result_path: Union[str, Path]):
 
             package_name = socket_message.package_name
             logger.info(f"The recording is started for package {package_name}!")
+
+            ret_value, stdout, stderr = await run_bash(f"adb shell pm clear {package_name}")
+            if ret_value != 0:
+                logger.error(f"The package {package_name} could not be cleared! STDOUT: {stdout}, STD:ERR: {stderr}")
+                await recorder_connection.send("clear failed")
+                return
+            await recorder_connection.send("cleared")
             server_result_path = result_path.joinpath(package_name).joinpath("SERVER")
             server_result_path.mkdir(parents=True, exist_ok=True)
             server_state = ServerState.RECORDING
