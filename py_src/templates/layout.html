@@ -10,6 +10,20 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.9.1/font/bootstrap-icons.min.css" integrity="sha512-5PV92qsds/16vyYIJo3T/As4m2d8b6oWYfoqV+vtizRB6KhF1F9kYzWzQmsO6T3z3QG2Xdhrx7FQ+5R1LiQdUA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     {% block head_content %}{% endblock %}
+    <style>
+        .passed-step {
+            --bs-bg-opacity: 0.05;
+            background-color: rgba(25, 135, 84, var(--bs-bg-opacity)) !important;
+        }
+        .warning-step {
+            --bs-bg-opacity: 0.2;
+            background-color: rgba(255, 193, 7, var(--bs-bg-opacity)) !important;
+        }
+        .failed-step {
+            --bs-bg-opacity: 0.35;
+            background-color: rgba(220, 53, 69, var(--bs-bg-opacity)) !important;
+        }
+    </style>
     <title>BlindMonkey-{% block title %}{% endblock %}</title>
 </head>
 <body class="d-flex flex-column min-vh-100">

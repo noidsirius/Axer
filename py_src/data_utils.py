@@ -1,6 +1,8 @@
 import json
 import shutil
+from collections import defaultdict
 from typing import List
+from cachetools import cached, TTLCache
 
 from app import App
 from command import Command, create_command_response_from_dict, create_command_from_dict, LocatableCommandResponse
@@ -9,13 +11,13 @@ from snapshot import Snapshot
 
 
 class ReplayDataManager:
-    def __init__(self, app: App, controller_mode: str):
+    def __init__(self, app: App, controller_mode: str, recreate: bool = False):
         self.app = app
         self.controller_mode = controller_mode
         self.replay_path = app.app_path.joinpath(f"REPLAY_{controller_mode}")
-        if self.replay_path.exists():
+        if self.replay_path.exists() and recreate:
             shutil.rmtree(self.replay_path)
-        self.replay_path.mkdir(parents=True, exist_ok=False)
+        self.replay_path.mkdir(parents=True, exist_ok=True)
         self.replay_usecase_report_path = self.replay_path.joinpath("usecase_report.jsonl")
         self.replay_usecase_report_path.touch()
         self.replay_usecase_finish_path = self.replay_path.joinpath("finish.txt")
@@ -51,6 +53,20 @@ class ReplayDataManager:
                 snapshots.append(self.app.get_snapshot(snapshot_info['snapshot_name']))
         return snapshots
 
+    @cached(cache=TTLCache(maxsize=1024, ttl=10))
+    def get_problematic_steps(self) -> dict:
+        problems = defaultdict(list)
+        for snapshot in self.get_snapshots():
+            snapshot_index = snapshot.name.split("_")[-1]
+
+            step_info = self.get_step_info(snapshot_index)
+            if step_info['response'].state != 'COMPLETED':
+                reason = 'Unknown'
+                reason = step_info['response'].state
+                problems[snapshot_index].append(reason)
+        return problems
+
+    @cached(cache=TTLCache(maxsize=1024, ttl=10))
     def get_step_info(self, index: str) -> dict:
         snapshot = self.app.get_snapshot(name=f"{self.controller_mode}.S_{index}")
         step_info = {

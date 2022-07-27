@@ -22,11 +22,48 @@
     </a>
     <hr>
     <div class="row">
-        <div class="col-8">
-            <h2>Steps:</h2>
+        <h2>Summary:</h2>
+    </div>
+    <div class="row">
+        <div class="col-3 p-1">
+            <div class="card">
+                <div class="card-header">
+                    Failed Steps
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                    <ul>
+                        {% for rd_manager in rd_managers %}
+                            {% set problematic_steps = rd_manager.get_problematic_steps() %}
+                            {% if problematic_steps | length > 0 %}
+                                <li>
+                                    {{ rd_manager.controller_mode }}: Steps
+                                    {% for step_index in problematic_steps %}
+                                        <a href="#step_{{ step_index }}"> {{ step_index }}</a>
+                                    {% endfor %}
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="col-4">
+        <div class="col-3 p-1">
+            <div class="card">
+                <div class="card-header">
+                    Steps with Warnings
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                    </div>
+                </div>
+            </div>
         </div>
+    </div>
+
+    <div class="row">
+        <h2>Steps:</h2>
     </div>
     <div class="row">
         <div class="col-2 p-1">
@@ -105,7 +142,11 @@
             </div>
 
 
-            {{ snapshot_image_card("Recorder", static_path_fixer(recorder_screenshot_map[snapshot_index], result_path),
+            {{ snapshot_image_card(
+                "Recorder"
+                + '<i id="{}_action_annotate_btn_{}" class="bi bi-pin-map-fill btn btn-light rounded-pill m-1" style="display: inline-block;"></i>'.format("RECORDER", snapshot_index)
+                + '<i id="{}_clear_annotate_btn_{}" class="bi bi-x-circle btn btn-warning rounded-pill m-1" style="display: inline-block;"></i>'.format("RECORDER", snapshot_index)
+                , static_path_fixer(recorder_screenshot_map[snapshot_index], result_path),
                     { 'Layout': url_for('send_result_static_v2', path=static_path_fixer(recorder_layout_map[snapshot_index], result_path))}, 2, "RECORDER_canvas_{}".format(snapshot_index))}}
 
             <input type="hidden" id="RECORDER_bounds_{{ snapshot_index }}" value="[0.0, 0.0, 0.0, 0.0]"/>
@@ -120,15 +161,57 @@
                             'Logs': url_for('send_result_static_v2', path=static_path_fixer(step_info['logs'], result_path)),
                             'Events': url_for('send_result_static_v2', path=static_path_fixer(step_info['event_logs'], result_path)),
                         } %}
+                        {% if step_info['response'].state == 'COMPLETED' %}
+                            {% set card_class = 'passed-step' %}
+                        {% else  %}
+                            {% set card_class = 'failed-step' %}
+                        {% endif %}
                     {% else  %}
                         {% set link_to_name = { 'Layout': url_for('send_result_static_v2', path=static_path_fixer(step_info['layout'], result_path))} %}
                     {% endif %}
-                    {{ snapshot_image_card(rd_manager.controller_mode, static_path_fixer(step_info['screenshot'], result_path),
-                            link_to_name, 2, "{}_canvas_{}".format(rd_manager.controller_mode, snapshot_index))}}
+                    {{ snapshot_image_card(
+                        rd_manager.controller_mode
+                        + '<i id="{}_action_annotate_btn_{}" class="bi bi-pin-map-fill btn btn-light rounded-pill m-1" style="display: inline-block;"></i>'.format(rd_manager.controller_mode, snapshot_index)
+                        + '<i id="{}_clear_annotate_btn_{}" class="bi bi-x-circle btn btn-warning rounded-pill m-1" style="display: inline-block;"></i>'.format(rd_manager.controller_mode, snapshot_index)
+                        , static_path_fixer(step_info['screenshot'], result_path),
+                            link_to_name, 2, "{}_canvas_{}".format(rd_manager.controller_mode, snapshot_index), card_class)}}
                     <input type="hidden" id="{{ rd_manager.controller_mode }}_bounds_{{ snapshot_index }}" value="{{ step_info.bounds }}"/>
                     <input type="hidden" id="{{ rd_manager.controller_mode }}_action_annotated_{{ snapshot_index }}" value="false"/>
                 {% endif %}
             {% endfor %}
+            <div class="col-2 p-1">
+                <div class="card">
+                    <div class="card-header">
+                        Note
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {% if snapshot_index != 'END' %}
+                                <ul>
+                                    {% for rd_manager in rd_managers %}
+                                        {% set problematic_steps = rd_manager.get_problematic_steps() %}
+                                        {% if "{}".format(snapshot_index) in problematic_steps %}
+                                            <li>
+                                                {{ rd_manager.controller_mode }} Issue(s):
+                                                <ul>
+                                                    {% for issue in problematic_steps["{}".format(snapshot_index)] %}
+                                                        <li>
+                                                            {{ issue }}
+                                                        </li>
+                                                    {% endfor %}
+                                                </ul>
+
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                    </div>
+                </div>
+            </div>
 
         </div>
     {% endfor %}
@@ -324,10 +407,23 @@
                 context.stroke();
             }
 
+            $("i[id*='_action_annotate_btn_']").each(function(index, element){
+                if (element.id.endsWith("_END"))
+                    return;
+                let bounds_id = element.id.replace("_action_annotate_btn_", "_bounds_")
+                let bounds = eval($(`input[id=${bounds_id}]`).val())
+                let size = bounds.length;
+                if (size !== 4 || (bounds[0] == 0 && bounds[1] == 0 && bounds[2] == 0 && bounds[3] == 0)){
+                    element.style.display = "none"
+                }
+            });
+
             $("i[id*='_action_annotate_btn']").on( "click", (event) =>{
                 let button = event.target;
-                let mode = button.id.split('_action_annotate_btn')[0]
-                $(`canvas[id^='${mode}_canvas_']`).each(function(index, canvas){
+                let canvas_id = button.id.replace('_action_annotate_btn', '_canvas')
+                if (button.id.endsWith('_btn'))
+                    canvas_id = button.id.replace('_action_annotate_btn', '_canvas_')
+                $(`canvas[id^='${canvas_id}']`).each(function(index, canvas){
                     if (canvas.id.endsWith("_END"))
                         return;
                     let is_annotated_id = canvas.id.replace("_canvas_", "_action_annotated_");
@@ -346,8 +442,10 @@
 
             $("i[id*='_clear_annotate_btn']").on( "click", (event) =>{
                 let button = event.target;
-                let mode = button.id.split('_clear_annotate_btn')[0]
-                $(`canvas[id^='${mode}_canvas_']`).each(function(index, canvas){
+                let canvas_id = button.id.replace('_clear_annotate_btn', '_canvas')
+                if (button.id.endsWith('_btn'))
+                    canvas_id = button.id.replace('_clear_annotate_btn', '_canvas_')
+                $(`canvas[id^='${canvas_id}']`).each(function(index, canvas){
                     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
                     let is_annotated_id = canvas.id.replace("_canvas_", "_action_annotated_");
                     let is_annotated_element = $(`input[id=${is_annotated_id}]`);

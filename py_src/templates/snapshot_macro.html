@@ -46,11 +46,11 @@
 {% endmacro %}
 
 
-{% macro snapshot_image_card(name, screenshot_path, name_to_link_map, size, canvas_id) %}
+{% macro snapshot_image_card(name, screenshot_path, name_to_link_map, size, canvas_id, card_class) %}
     <div class="col{{ "" if not size else "-{}".format(size) }} p-1">
-        <div class="card">
+        <div class="card {% if card_class %} {{ card_class }} {% endif %}">
             <div class="card-header">
-                {{ name }}
+                {{ name |safe }}
             </div>
             <div class="card-body">
                 <div class="mb-3">
