@@ -42,6 +42,8 @@ class App:
                     continue
                 if snapshot_name == 'SERVER':  # TODO: A better solution
                     continue
+                if snapshot_name == 'RECORDER':  # TODO: A better solution
+                    continue
                 address_book = AddressBook(snapshot_result_path=snapshot_result_path)
                 self.snapshot_map[snapshot_name] = Snapshot(address_book)
 

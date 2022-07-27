@@ -34,9 +34,9 @@ async def send_command_to_latte(command: str, extra: str = "NONE", device_name: 
     logger.debug(f"Sending command {command} with extra {extra} to Latte!")
     extra = _encode_latte_message(extra)
     bash_cmd = f'adb -s {device_name} shell am broadcast -a {LATTE_INTENT} --es command "{command}" --es extra "{extra}"'
-    r_code, *_ = await run_bash(bash_cmd)
+    r_code, stdout, stderr = await run_bash(bash_cmd)
     if r_code != 0:
-        logger.error(f"Error in sending command {command} with extra {extra}!")
+        logger.error(f"Error in sending command {command} with extra {extra}! STDOUT: {stdout} STDERR: {stderr}")
     return r_code == 0
 
 

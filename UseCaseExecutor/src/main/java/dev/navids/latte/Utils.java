@@ -88,7 +88,7 @@ public class Utils {
         {
             String targetXpath = target.getXpath();
             targetXpath = targetXpath.replaceAll("\\[1\\]", "");
-            Log.d(LatteService.TAG, "Check simpler target xpath" + targetXpath);
+            Log.d(LatteService.TAG, "Check simpler target xpath: " + targetXpath);
             for(AccessibilityNodeInfo node : getAllA11yNodeInfo(false)) {
                 if(!LatteService.considerInvisibleNodes && !node.isVisibleToUser())
                     continue;

@@ -55,12 +55,15 @@
                         {% endif %}
                     </td>
                     <td>
-                        <img src="{{ url_for('send_result_static_v2', path='404.png') }}"
+                        <img src="{{ url_for('send_result_static_v2', path=static_path_fixer(recorder_screenshot_map[snapshot_index], result_path)) }}"
                              class="rounded d-block mx-auto mt-4"
-                             style="width: 100%;">
+                             style="width: 100%;"
+                             alt="Result of Recorder">
                         <hr>
                         <div class="d-flex justify-content-center">
-                            TODO Recorder
+                            <span style="display: inline-block;">
+                                <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(recorder_layout_map[snapshot_index], result_path)) }}">Layout</a>
+                            </span>
                         </div>
                         {{ next_step_arrow(snapshot_index) }}
                     </td>
