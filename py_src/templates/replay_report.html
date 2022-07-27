@@ -1,5 +1,5 @@
 {% extends "layout.html" %}
-{% from "snapshot_macro.html" import note_form_script, action_tag_script, snapshot_row, talkback_explore, oversight_static, snapshot_action, snapshot_summary with context %}
+{% from "snapshot_macro.html" import snapshot_image_card with context %}
 {% from "action_macro.html" import  action_info with context %}
 {% macro next_step_arrow(snapshot_index) %}
     {% if snapshot_index != 'END' %}
@@ -28,8 +28,114 @@
         <div class="col-4">
         </div>
     </div>
-
     <div class="row">
+        <div class="col-2 p-1">
+            <div class="card">
+                <div class="card-body">
+                    <div class="mb-3">
+                        Annotations
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-2 p-1">
+            <div class="card">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <i id="RECORDER_action_annotate_btn" class="bi bi-pin-map-fill btn btn-light rounded-pill m-1" style="display: inline-block;">
+                            Actions
+                        </i>
+                        <i id="RECORDER_atf_annotate_btn" class="bi bi-exclamation-triangle btn btn-light rounded-pill m-1" style="display: inline-block;">
+                            Issues
+                        </i>
+                        <i id="RECORDER_clear_annotate_btn" class="bi bi-x-circle btn btn-warning rounded-pill m-1" style="display: inline-block;">
+                            Clear
+                        </i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% for rd_manager in rd_managers %}
+            <div class="col-2 p-1">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="mb-3">
+                                <i id="{{ rd_manager.controller_mode }}_action_annotate_btn" class="bi bi-pin-map-fill btn btn-light rounded-pill m-1" style="display: inline-block;">
+                                    Actions
+                                </i>
+                                <i id="{{ rd_manager.controller_mode }}_atf_annotate_btn" class="bi bi-exclamation-triangle btn btn-light rounded-pill m-1" style="display: inline-block;">
+                                    Issues
+                                </i>
+                                <i id="{{ rd_manager.controller_mode }}_clear_annotate_btn" class="bi bi-x-circle btn btn-warning rounded-pill m-1" style="display: inline-block;">
+                                    Clear
+                                </i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    {% for snapshot_index in snapshot_indices %}
+        {% if snapshot_index != 'END' %}
+            {% set command = command_messages[snapshot_index].command %}
+        {% endif %}
+        <div class="row" id="step_{{ snapshot_index }}">
+            <div class="col-2 p-1">
+                <div class="card">
+                    <div class="card-header">
+                        #{{ snapshot_index }}
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {% if snapshot_index != 'END' %}
+                                {{ action_info(command.target) }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        {% if snapshot_index != 'END' %}
+                            <div class="d-flex justify-content-center fs-1  mt-2" style="position: relative">
+                                <a href="#step_{{ snapshot_index+1 }} ">
+                                    <i class="fa fa-arrow-down"></i>
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+
+            {{ snapshot_image_card("Recorder", static_path_fixer(recorder_screenshot_map[snapshot_index], result_path),
+                    { 'Layout': url_for('send_result_static_v2', path=static_path_fixer(recorder_layout_map[snapshot_index], result_path))}, 2, "RECORDER_canvas_{}".format(snapshot_index))}}
+
+            <input type="hidden" id="RECORDER_bounds_{{ snapshot_index }}" value="[0.0, 0.0, 0.0, 0.0]"/>
+            <input type="hidden" id="RECORDER_action_annotated_{{ snapshot_index }}" value="false"/>
+
+            {% for rd_manager in rd_managers %}
+                {% set step_info = rd_manager.get_step_info(snapshot_index) %}
+                {% if step_info %}
+                    {% if snapshot_index != 'END' %}
+                        {% set link_to_name = {
+                            'Layout': url_for('send_result_static_v2', path=static_path_fixer(step_info['layout'], result_path)),
+                            'Logs': url_for('send_result_static_v2', path=static_path_fixer(step_info['logs'], result_path)),
+                            'Events': url_for('send_result_static_v2', path=static_path_fixer(step_info['event_logs'], result_path)),
+                        } %}
+                    {% else  %}
+                        {% set link_to_name = { 'Layout': url_for('send_result_static_v2', path=static_path_fixer(step_info['layout'], result_path))} %}
+                    {% endif %}
+                    {{ snapshot_image_card(rd_manager.controller_mode, static_path_fixer(step_info['screenshot'], result_path),
+                            link_to_name, 2, "{}_canvas_{}".format(rd_manager.controller_mode, snapshot_index))}}
+                    <input type="hidden" id="{{ rd_manager.controller_mode }}_bounds_{{ snapshot_index }}" value="{{ step_info.bounds }}"/>
+                    <input type="hidden" id="{{ rd_manager.controller_mode }}_action_annotated_{{ snapshot_index }}" value="false"/>
+                {% endif %}
+            {% endfor %}
+
+        </div>
+    {% endfor %}
+
+<!--
+    <div class="row">
+
         <table class="table table-bordered">
             <thead>
             <tr>
@@ -92,25 +198,27 @@
                         {% endif %}
                     </td>
                     <td>
-                        <a class="enlarge">
-                        <canvas class="rounded d-block mx-auto mt-4" id="RECORDER_canvas_{{ snapshot_index }}" height="650" style="border:1px solid #d3d3d3;
-                                            background-repeat: no-repeat;
-                                            background-size: cover;
-                                            background-position: top;
-                                            width: 10rem;
-                                            background-image: url('{{ url_for('send_result_static_v2', path=static_path_fixer(recorder_screenshot_map[snapshot_index], result_path)) }}')">
-                                    Your browser does not support the HTML5 canvas tag.</canvas>
-                        </a>
-                        <input type="hidden" id="RECORDER_bounds_{{ snapshot_index }}" value="[0.0, 0.0, 0.0, 0.0]"/>
-                        <input type="hidden" id="RECORDER_action_annotated_{{ snapshot_index }}" value="false"/>
-
-                        <hr>
-                        <div class="d-flex justify-content-center">
-                            <span style="display: inline-block;">
-                                <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(recorder_layout_map[snapshot_index], result_path)) }}">Layout</a>
-                            </span>
-                        </div>
-                        {{ next_step_arrow(snapshot_index) }}
+                    {{ snapshot_image_card("Recorder", static_path_fixer(recorder_screenshot_map[snapshot_index], result_path),
+                    { 'Layout': url_for('send_result_static_v2', path=static_path_fixer(recorder_layout_map[snapshot_index], result_path))}, 6, "RECORDER_canvas_{{ snapshot_index }}")}}
+{#                        <a class="enlarge">#}
+{#                        <canvas class="rounded d-block mx-auto mt-4" id="RECORDER_canvas_{{ snapshot_index }}" height="650" style="border:1px solid #d3d3d3;#}
+{#                                            background-repeat: no-repeat;#}
+{#                                            background-size: cover;#}
+{#                                            background-position: top;#}
+{#                                            width: 10rem;#}
+{#                                            background-image: url('{{ url_for('send_result_static_v2', path=static_path_fixer(recorder_screenshot_map[snapshot_index], result_path)) }}')">#}
+{#                                    Your browser does not support the HTML5 canvas tag.</canvas>#}
+{#                        </a>#}
+{#                        <input type="hidden" id="RECORDER_bounds_{{ snapshot_index }}" value="[0.0, 0.0, 0.0, 0.0]"/>#}
+{#                        <input type="hidden" id="RECORDER_action_annotated_{{ snapshot_index }}" value="false"/>#}
+{##}
+{#                        <hr>#}
+{#                        <div class="d-flex justify-content-center">#}
+{#                            <span style="display: inline-block;">#}
+{#                                <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(recorder_layout_map[snapshot_index], result_path)) }}">Layout</a>#}
+{#                            </span>#}
+{#                        </div>#}
+{#                        {{ next_step_arrow(snapshot_index) }}#}
                     </td>
                     {% for rd_manager in rd_managers %}
                         {% set step_info = rd_manager.get_step_info(snapshot_index) %}
@@ -165,7 +273,7 @@
                                         <a href="{{ url_for('send_result_static_v2', path=static_path_fixer(step_info['layout'], result_path)) }}">Layout</a>
                                     </span>
                                 </div>
-                                {{ next_step_arrow(snapshot_index) }}
+{#                                {{ next_step_arrow(snapshot_index) }}#}
 
                             </td>
                         {% else %}
@@ -186,6 +294,7 @@
             </tbody>
         </table>
     </div>
+    -->
     {#    {% endfor %}#}
 
 
@@ -249,6 +358,5 @@
         });
 
     </script>
-    {{ action_tag_script() }}
-    {{ note_form_script() }}
+
 {% endblock %}

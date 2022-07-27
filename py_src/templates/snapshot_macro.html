@@ -46,7 +46,7 @@
 {% endmacro %}
 
 
-{% macro snapshot_image_card(name, screenshot_path, name_to_link_map, size) %}
+{% macro snapshot_image_card(name, screenshot_path, name_to_link_map, size, canvas_id) %}
     <div class="col{{ "" if not size else "-{}".format(size) }} p-1">
         <div class="card">
             <div class="card-header">
@@ -55,9 +55,18 @@
             <div class="card-body">
                 <div class="mb-3">
                     <a class="enlarge">
-                        <img src="{{ url_for('send_result_static_v2', path=screenshot_path) }}"
-                             class="rounded d-block mx-auto"
-                             style="width: 100%;">
+                        <canvas class="rounded d-block mx-auto mt-4"
+                                {% if canvas_id %}
+                                    id="{{ canvas_id }}"
+                                {% endif %}
+                                height="650rem"
+                                style="border:1px solid #d3d3d3;
+                                background-repeat: no-repeat;
+                                background-size: cover;
+                                background-position: top;
+                                width: 100%;
+                                background-image: url('{{ url_for('send_result_static_v2', path=screenshot_path) }}')">
+                            Your browser does not support the HTML5 canvas tag.</canvas>
                     </a>
                 </div>
             </div>
@@ -70,6 +79,7 @@
                     </div>
                 </div>
             {% endif %}
+
         </div>
     </div>
 {% endmacro %}
