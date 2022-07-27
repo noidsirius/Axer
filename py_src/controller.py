@@ -70,7 +70,8 @@ class Controller(ABC):
 
 
 class TouchController(Controller):
-    def mode(self) -> str:
+    @classmethod
+    def mode(cls) -> str:
         return 'touch'
 
     async def setup(self):
@@ -79,7 +80,8 @@ class TouchController(Controller):
 
 
 class A11yAPIController(Controller):
-    def mode(self) -> str:
+    @classmethod
+    def mode(cls) -> str:
         return 'a11y_api'
 
     async def setup(self):
@@ -88,7 +90,8 @@ class A11yAPIController(Controller):
 
 
 class TalkBackAPIController(Controller):
-    def mode(self) -> str:
+    @classmethod
+    def mode(cls) -> str:
         return 'tb_api'
 
     async def setup(self):
@@ -97,7 +100,8 @@ class TalkBackAPIController(Controller):
 
 
 class TalkBackTouchController(Controller):
-    def mode(self) -> str:
+    @classmethod
+    def mode(cls) -> str:
         return 'tb_touch'
 
     async def setup(self):
@@ -105,13 +109,20 @@ class TalkBackTouchController(Controller):
         await send_commands_sequence_to_latte([("controller_set", self.mode())], device_name=self.device_name)
 
 
+class TalkBackDirectionalController(Controller):
+    @classmethod
+    def mode(cls) -> str:
+        return 'tb_dir'
+
+    async def setup(self):
+        await A11yServiceManager.setup_latte_a11y_services(tb=True, device_name=self.device_name)
+        await send_commands_sequence_to_latte([("controller_set", self.mode())], device_name=self.device_name)
+
+
 def create_controller(mode: str, device_name: str) -> Union[Controller, None]:
-    if mode == 'tb_touch':
-        return TalkBackTouchController(device_name=device_name)
-    elif mode == 'tb_api':
-        return TalkBackAPIController(device_name=device_name)
-    elif mode == 'a11y_api':
-        return A11yAPIController(device_name=device_name)
-    elif mode == 'touch':
-        return TouchController(device_name=device_name)
+    controllers = [TalkBackTouchController, TalkBackDirectionalController, TalkBackAPIController,
+                   A11yAPIController, TouchController]
+    for controller in controllers:
+        if mode == controller.mode():
+            return controller(device_name=device_name)
     return None

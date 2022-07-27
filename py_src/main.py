@@ -1,11 +1,10 @@
-import os
-import sys
+import json
 from pathlib import Path
 import argparse
 import asyncio
 import logging
-from typing import Union
 
+from GUI_utils import Node
 from consts import DEVICE_NAME, ADB_HOST, ADB_PORT
 from ppadb.client_async import ClientAsync as AdbClient
 from results_utils import AddressBook
@@ -45,7 +44,10 @@ async def execute_snapshot_task(args, address_book: AddressBook):
 
         if args.snapshot_task == "talkback_explore":
             logger.info("Snapshot Task: TalkBack Explore")
-            await TalkBackExploreTask(snapshot).execute()
+            target_node = None
+            if args.extra is not None:
+                target_node = Node.createNodeFromDict(json.loads(args.extra))
+            await TalkBackExploreTask(snapshot, target_node=target_node).execute()
         elif args.snapshot_task == "extract_actions":
             logger.info("Snapshot Task: Extract Actions")
             await ExtractActionsTask(snapshot).execute()
@@ -112,6 +114,7 @@ if __name__ == "__main__":
     parser.add_argument('--initial-load', action='store_true', help='If the device is an emulator, loads the snapshot initially')
     parser.add_argument('--no-save-snapshot', action='store_true', help='If the device is an emulator, does not save any extra snapshot')
     parser.add_argument('--device', type=str, default=DEVICE_NAME, help='The device name')
+    parser.add_argument('--extra', type=str, default=None, help='Extra information for tasks')
     parser.add_argument('--adb-host', type=str, default=ADB_HOST, help='The host address of ADB')
     parser.add_argument('--adb-port', type=int, default=ADB_PORT, help='The port number of ADB')
     parser.add_argument('--debug', action='store_true')

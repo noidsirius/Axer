@@ -123,7 +123,9 @@ class Node(JSONSerializable):
         if a11y_actions is None:
             a11y_actions = []
         elif isinstance(a11y_actions, str):
-            a11y_actions = a11y_actions.split("-")
+            a11y_actions = [int(x) for x in a11y_actions.split("-")]
+        elif isinstance(a11y_actions, list):
+            a11y_actions = [int(x) for x in a11y_actions]
         self.index = index
         self.class_name = class_name
         self.text = '' if text == 'null' else text
@@ -146,6 +148,8 @@ class Node(JSONSerializable):
         self.drawing_order = drawing_order
         self.a11y_actions = a11y_actions
         self.pkg_name = '' if pkg_name == 'null' else pkg_name
+        if xpath.startswith("/hierarchy"):
+            xpath = xpath[len("/hierarchy"):]
         self.xpath = xpath
         # --- Latte ----
         # TODO: Move it to another class
@@ -200,11 +204,26 @@ class Node(JSONSerializable):
         Determines if two nodes are practically equal.
         Some attributes are excluded since they can be flaky or depend on TalkBack's state
         """
+        if other is None:
+            return False
         if excluded_attrs is None:
             excluded_attrs = []
         # TODO: not sure if it should be added or be configurable
         excluded_attrs.extend(['focused', 'bounds', 'index', 'drawing_order', 'a11y_actions'])
         return self.toJSONStr(excluded_attrs) == other.toJSONStr(excluded_attrs)
+
+    def same_identifiers(self, other: 'Node') -> bool:
+        """
+        Determines if two nodes have same identifiers.
+        Identifier attributes are: class_name, text, content_desc, resource_id, and xpath
+        """
+        if other is None:
+            return False
+        return self.class_name == other.class_name and \
+               self.text == other.text and \
+               self.content_desc == other.content_desc and \
+               self.resource_id == other.resource_id and \
+               self.xpath == other.xpath
 
     def toJSONStr(self, excluded_attributes: List[str] = None) -> str:
         if excluded_attributes is None:
