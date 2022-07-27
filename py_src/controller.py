@@ -52,12 +52,16 @@ class Controller(ABC):
             result = await read_local_android_file(Controller.CONTROLLER_RESULT_FILE_NAME,
                                                    wait_time=REGULAR_EXECUTE_TIMEOUT_TIME,
                                                    device_name=self.device_name)
-            if result is None:
+            if result is None or len(result.strip()) == 0:
                 logger.warning(f"Timeout, skipping {command} for controller {self.name()}")
                 result = {'state': 'timeout'}
                 await send_command_to_latte("controller_interrupt", device_name=self.device_name)
             else:
-                result = json.loads(result)
+                try:
+                    result = json.loads(result)
+                except Exception as e:
+                    logger.error(f"Problem with json loading the result of execution! Result: {result}, Exception: {e}")
+                    result = None
                 break
         if result is None:
             result = {'state': 'maxed_retry'}

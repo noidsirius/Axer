@@ -27,14 +27,16 @@ class SocketMessageAction(Enum):
         return SocketMessageAction.NOP
 
 
-def zip_directory(source_dir: Union[str, Path], output_path: Union[str, Path] = None) -> Path:
+def zip_directory(source_dir: Union[str, Path], output_path: Union[str, Path] = None, arcname: str = None) -> Path:
     if isinstance(source_dir, str):
         source_dir = Path(source_dir)
+    if arcname is None:
+        arcname = source_dir.name
     if output_path is None:
         _, output_path = tempfile.mkstemp(suffix='.tar.gz')
         output_path = Path(output_path)
     with tarfile.open(output_path, "w:gz") as tar:
-        tar.add(source_dir, arcname=os.path.basename(source_dir))
+        tar.add(source_dir, arcname=arcname)
     return output_path
 
 

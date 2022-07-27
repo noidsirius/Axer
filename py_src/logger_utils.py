@@ -69,7 +69,7 @@ def initialize_logger(log_path: Union[str, Path], quiet: bool = False, debug: bo
         logger_handlers[-1].setFormatter(ColoredFormatter(detailed=False, use_color=True))
     logging.basicConfig(handlers=logger_handlers)
     # ---------------- Start Hack -----------
-    py_src_path = Path(sys.argv[0]).parent
+    py_src_path = Path(str(Path(sys.argv[0]).resolve()).split('py_src')[0]).joinpath("py_src")
     py_src_file_names = [p.name[:-len(".py")] for p in py_src_path.rglob('*.py')]
     for name in logging.root.manager.loggerDict:
         if name.split('.')[-1] in py_src_file_names or name == "__main__":

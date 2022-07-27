@@ -2,7 +2,7 @@ import unittest
 
 from GUI_utils import Node
 from command import Command, ClickCommand, NextCommand, PreviousCommand, SelectCommand, BackCommand, SleepCommand, \
-    create_command_from_dict
+    create_command_from_dict, TypeCommand
 
 
 class TestCommand(unittest.TestCase):
@@ -13,7 +13,7 @@ class TestCommand(unittest.TestCase):
 
     def test_click_command(self):
         node = Node(text="dummy_text", checked=True)
-        click_command = ClickCommand(node=node)
+        click_command = ClickCommand(target=node)
         self.assertEqual("click", click_command.action)
         self.assertEqual("dummy_text", click_command.target.text)
         self.assertTrue(click_command.target.checked)
@@ -21,6 +21,18 @@ class TestCommand(unittest.TestCase):
         self.assertIsInstance(click_command, ClickCommand)
         self.assertEqual("dummy_text", click_command.target.text)
         self.assertTrue(click_command.target.checked)
+
+    def test_type_command(self):
+        node = Node(class_name="my_class")
+        type_command = TypeCommand(target=node, text='new_text')
+        self.assertEqual("type", type_command.action)
+        self.assertEqual("my_class", type_command.target.class_name)
+        type_command = create_command_from_dict({'action': 'type', 'target': node.toJSON()})
+        self.assertIsInstance(type_command, TypeCommand)
+        self.assertEqual("", type_command.text)
+        type_command = create_command_from_dict({'action': 'type', 'target': node.toJSON(), 'text': 'my_new_text'})
+        self.assertIsInstance(type_command, TypeCommand)
+        self.assertEqual("my_new_text", type_command.text)
 
     def test_navigate_commands(self):
         self.assertEqual("next", NextCommand().action)
