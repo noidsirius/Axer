@@ -118,7 +118,14 @@
     <script>
         $(function () {
             $('.enlarge').on('click', function () {
-                $('.imagepreview').attr('src', $(this).find('img').attr('src'));
+                if ($(this).find('canvas').length > 0) {
+                    let bg = $(this).find('canvas').css('background-image');
+                    bg = bg.replace('url(', '').replace(')', '').replace(/\"/gi, "");
+                    $('.imagepreview').attr('src', bg);
+                }
+                else{
+                    $('.imagepreview').attr('src', $(this).find('img').attr('src'));
+                }
                 $('#imagemodal').modal('show');
             });
         });

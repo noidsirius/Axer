@@ -10,3 +10,4 @@ xmlformatter
 ansi2html
 json2html==1.3.0
 websockets==10.3
+cachetools==5.2.0

@@ -62,3 +62,17 @@ class TestNode(unittest.TestCase):
         self.assertTrue(node1.practically_equal(node2))
         node2.text = "something else"
         self.assertFalse(node1.practically_equal(node2))
+
+    def test_bounds(self):
+        node1 = Node(bounds=(1, 2, 3, 4))
+        self.assertEqual((1, 2, 3, 4), node1.bounds)
+        self.assertTrue(node1.is_valid_bounds())
+        node2 = Node.createNodeFromDict({"bounds": "[10,20][110,220]"})
+        self.assertEqual((10, 20, 110, 220), node2.bounds)
+        self.assertTrue(node2.is_valid_bounds())
+        self.assertFalse(Node(bounds=(10, 10, 5, 15)).is_valid_bounds())
+        self.assertFalse(Node(bounds=(10, 10, 15, 5)).is_valid_bounds())
+        self.assertFalse(Node(bounds=(10, 10, 5, 5)).is_valid_bounds())
+        normalized_bounds = node2.get_normalized_bounds((0, 10, 500, 410))
+        self.assertEqual((10/500, 10/400, 110/500, 210/400), normalized_bounds)
+

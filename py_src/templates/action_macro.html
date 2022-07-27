@@ -4,7 +4,7 @@
         {% for attr in ['class_name', 'resource_id', 'text', 'content_desc', 'xpath', 'bounds', 'node'] %}
             <tr>
                 <td class="text-end">{{ attr }}</td>
-                <td class="text-start text-truncate" style="max-width: 10em;">
+                <td class="text-start text-truncate" style="max-width: 7em;">
                     <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ action[attr] }}">
                         <a class="btn copyer">
                                 {{ action[attr] }}

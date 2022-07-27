@@ -65,11 +65,11 @@ class ExecuteSingleActionTask(SnapshotTask):
             logger.info(f"Setup controller {self.controller.name()}")
             await self.controller.setup()
             logger.info(f"Executing command {self.command}")
-            result = await padb_logger.execute_async_with_log(
+            executor_result = await padb_logger.execute_async_with_log(
                 self.controller.execute(self.command),
                 tags=tags)
-            log_message_map: dict = result[0]
-            action_response: CommandResponse = result[1]
+            log_message_map: dict = executor_result[0]
+            action_response: CommandResponse = executor_result[1]
         logger.info(f"The action is performed in {action_response.duration}ms! State: {action_response.state} ")
         await capture_current_state(self.snapshot.address_book,
                                     self.device,
