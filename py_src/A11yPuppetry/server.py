@@ -117,7 +117,7 @@ async def server_main_loop(result_path: Union[str, Path]):
         try:
             socket_message = create_socket_message_from_dict(json.loads(message_str))
         except Exception as e:
-            logger.error(f"The received message was not in JSON format, message: '{message_str}'")
+            logger.error(f"The received message was not in JSON format, message: '{message_str}', Exception: {e}")
             continue
         if server_result_path and server_result_path.is_dir():
             with open(server_result_path.joinpath("messages.json"), "a") as f:

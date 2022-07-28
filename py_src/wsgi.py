@@ -13,8 +13,8 @@ from ansi2html import Ansi2HTMLConverter
 from flask import Flask, request, jsonify, send_from_directory, render_template, make_response
 from json2html import json2html
 
-from A11yPuppetry.socket_utils import create_socket_message_from_dict, SendCommandSM
 from app import App
+from command import create_command_from_dict, LocatableCommand
 from consts import BLIND_MONKEY_EVENTS_TAG
 from data_utils import ReplayDataManager
 from snapshot_search import SnapshotSearchManager, SnapshotSearchQuery
@@ -588,17 +588,19 @@ def replay_report(result_path, app_name):
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is incorrect!"
     app = App(app_name=app_name, result_path=result_path)
-    command_messages = {}
-    other_socket_messages = []
     snapshot_indices = []
-    with open(app.app_path.joinpath("SERVER").joinpath("messages.json")) as f:
-        for line in f.readlines():
-            message = create_socket_message_from_dict(json.loads(line))
-            if isinstance(message, SendCommandSM):
-                snapshot_indices.append(message.index)
-                command_messages[message.index] = message
+    recorder_bounds_map = {}
+    commands = {}
+    with open(app.app_path.joinpath("RECORDER").joinpath("usecase.jsonl")) as f:
+        for i, line in enumerate(f):
+            commands[i] = create_command_from_dict(json.loads(line))
+            snapshot_indices.append(i)
+            if isinstance(commands[i], LocatableCommand):
+                screen_bounds = [0, 0, 1080, 2340]  # TODO: Move to consts
+                recorder_bounds_map[i] = str(list(commands[i].target.get_normalized_bounds(screen_bounds)))
             else:
-                other_socket_messages.append(message)
+                recorder_bounds_map[i] = "[0.0,0.0,0.0,0.0]"
+
     snapshot_indices.append("END")
     recorder_screenshot_map = {index: app.app_path.joinpath("RECORDER").joinpath(f"S_{index}.png")
                            for index in snapshot_indices}
@@ -613,11 +615,11 @@ def replay_report(result_path, app_name):
     return render_template('replay_report.html',
                            result_path=result_path_str,
                            app_name=app_name,
-                           command_messages=command_messages,
-                           other_socket_messages=other_socket_messages,
+                           commands=commands,
                            snapshot_indices=snapshot_indices,
                            recorder_layout_map=recorder_layout_map,
                            recorder_screenshot_map=recorder_screenshot_map,
+                           recorder_bounds_map=recorder_bounds_map,
                            rd_managers=rd_managers)
 
 

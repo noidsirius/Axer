@@ -1,5 +1,6 @@
 import logging
 import re
+import traceback
 from collections import defaultdict, Counter
 from pathlib import Path
 from typing import Callable, List, Union, Tuple, Dict
@@ -115,15 +116,19 @@ class Node(JSONSerializable):
             important_for_accessibility = important_for_accessibility == 'true'
         if isinstance(bounds, str):
             bounds = bounds.strip()
-            if not re.search(r"\[-?\d+,-?\d+]\[-?\d+,-?\d+]", bounds):
+            if re.search(r"\[-?\d+,-?\d+]\[-?\d+,-?\d+]", bounds):
+                bounds = tuple([int(x) for x in bounds.replace("][", ",")[1:-1].split(",")])
+            elif re.search(r"-?\d+\s-?\d+\s-?\d+\s-?\d", bounds):
+                bounds = tuple([int(x) for x in bounds.split()])
+            else:
                 raise Exception(f"Problem with bounds! {bounds}")
-            bounds = tuple([int(x) for x in bounds.replace("][", ",")[1:-1].split(",")])
+
         if isinstance(drawing_order, str):
             drawing_order = int(drawing_order)
         if a11y_actions is None:
             a11y_actions = []
         elif isinstance(a11y_actions, str):
-            a11y_actions = [int(x) for x in a11y_actions.split("-")]
+            a11y_actions = [] if len(a11y_actions.strip()) == 0 else [int(x) for x in a11y_actions.split("-")]
         elif isinstance(a11y_actions, list):
             a11y_actions = [int(x) for x in a11y_actions]
         self.index = index
@@ -405,7 +410,8 @@ class NodesFactory:
             dummy_root_node.xpath = f""
             return dfs(dummy_root_node, {})[1:]
         except Exception as e:
-            logger.error(f"Exception in building Nodes from Layout: {e}")
+            tb = traceback.format_exc()
+            logger.error(f"Exception in building Nodes from Layout: {e} {tb}")
         return []
 
 

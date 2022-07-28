@@ -1,4 +1,3 @@
-import os
 import sys
 import tarfile
 import tempfile
@@ -9,6 +8,7 @@ from typing import Union
 sys.path.append("..")  # TODO: Need to refactor
 from command import Command, create_command_from_dict
 from json_util import JSONSerializable
+
 
 
 class SocketMessageAction(Enum):
