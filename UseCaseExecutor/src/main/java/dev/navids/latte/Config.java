@@ -19,7 +19,7 @@ public class Config {
     public final String LAYOUT_FILE_PATH = "a11y_layout.xml";
     public final String ATF_ISSUES_FILE_PATH = "aft_a11y_issues.jsonl";
     public final String IS_LIVE_FILE_PATH_PATTERN = "is_live_%s.txt";
-    public final long GESTURE_DURATION = 400;
+    public final long GESTURE_DURATION = 200;
     public final long FOCUS_CHANGE_TIME = 100;
     public final long GESTURE_FINISH_WAIT_TIME = GESTURE_DURATION + FOCUS_CHANGE_TIME;
     public final long DOUBLE_TAP_BETWEEN_TIME = 100;
