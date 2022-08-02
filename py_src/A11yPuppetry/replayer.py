@@ -21,14 +21,32 @@ from consts import ADB_HOST, ADB_PORT, WS_IP, WS_PORT, DEVICE_NAME
 from controller import create_controller
 from logger_utils import initialize_logger
 from socket_utils import RegisterSM, StartRecordSM, SendCommandSM, EndRecordSM, create_socket_message_from_dict, \
-    zip_directory, TerminateSM
+    zip_directory, TerminateSM, InterruptSM
 from task.execute_single_action_task import ExecuteSingleActionTask
 
 logger = logging.getLogger(__name__)
 
 # TODO: Need to be moved to a config file
 pkg_name_to_apk_path = {
-    'com.colpit.diamondcoming.isavemoney': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.colpit.diamondcoming.isavemoney.apk'
+    'com.colpit.diamondcoming.isavemoney': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.colpit.diamondcoming.isavemoney.apk',
+    'com.dictionary': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.dictionary.apk',
+    'com.yelp.android': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.yelp.android.apk',
+    'com.offerup': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.offerup.apk',
+    'com.different.toonme': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.different.toonme.apk', # Didn't work
+    'com.zhiliaoapp.musically': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.zhiliaoapp.musically.apk',
+    'com.squareup.cash': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.squareup.cash.apk',
+    'com.instagram.android': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.instagram.android.apk',
+    'com.whatsapp': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.whatsapp.apk', # Didn't work, Time Settings
+    'com.amazon.mShop.android.shopping': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.amazon.mShop.android.shopping.apk',
+    'com.engro.cleanerforsns': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.engro.cleanerforsns.apk', # Has lots of ads
+    'com.bingo.cooler.phonecleaner': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.bingo.cooler.phonecleaner.apk', # Has lots of ads
+    'com.facebook.orca': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.facebook.orca.apk',
+    'com.mcdonalds.app': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.mcdonalds.app.apk', # Problem with the second step
+    'com.snapchat.android': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.snapchat.android.apk',
+    'com.booking': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.booking.apk',
+    'com.netflix.mediaclient': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.netflix.mediaclient.apk', # Didn't work
+
+
 }
 
 
@@ -50,6 +68,9 @@ async def proxy_user_client(controller_mode: str,
             if isinstance(message, TerminateSM):
                 logger.info(f"Terminating the proxy user!")
                 return
+            if isinstance(message, InterruptSM):
+                logger.info(f"Interrupt message received but no recording was going on.")
+                continue
             if not isinstance(message, StartRecordSM):
                 logger.error(f"Waiting for StartRecordSM, Unexpected message: '{message_str}'")
                 return
@@ -58,18 +79,19 @@ async def proxy_user_client(controller_mode: str,
             rd_manager = ReplayDataManager(app=app, controller_mode=controller_mode)
             # Reset the application or Reinstall it, then start it
             package_name = app.package_name
+            if package_name not in pkg_name_to_apk_path:
+                logger.error(f"The package name {package_name} is unknown!")
+                return
             ret_value, stdout, stderr = await run_bash(f"adb -s {device_name} shell pm clear {package_name}")
             if ret_value != 0:
                 logger.error(f"The package {package_name} could not be cleared! STDOUT: {stdout}, STD:ERR: {stderr}")
-                if package_name not in pkg_name_to_apk_path:
-                    logger.error(f"The package name {package_name} is unknown!")
-                    return
                 await run_bash(f"adb -s {device_name} uninstall {package_name}")
-                ret_value, stdout, stderr = await run_bash(f"adb -s {device_name} install -r -g {pkg_name_to_apk_path[package_name]}")
-                if ret_value != 0:
-                    logger.debug(f"Installing logs:\n\tOUT: '{stdout}'\n\tErr: '{stderr}'")
-                    logger.error(f"The APK {pkg_name_to_apk_path[package_name]} could not be installed!")
-                    return
+            # Reinstalling to grant all permissions
+            ret_value, stdout, stderr = await run_bash(f"adb -s {device_name} install -r -g {pkg_name_to_apk_path[package_name]}")
+            if ret_value != 0:
+                logger.debug(f"Installing logs:\n\tOUT: '{stdout}'\n\tErr: '{stderr}'")
+                logger.error(f"The APK {pkg_name_to_apk_path[package_name]} could not be installed!")
+                return
             await launch_specified_application(pkg_name=package_name, device_name=device_name)
             logger.info(f"App {package_name} is started!")
             await asyncio.sleep(60)
@@ -100,6 +122,11 @@ async def proxy_user_client(controller_mode: str,
                         tar_file_path.unlink()
                     except OSError as e:
                         logger.error("Error in removing file: %s : %s" % (tar_file_path, e.strerror))
+                    break
+                elif isinstance(message, InterruptSM):
+                    logger.info(f"Interrupt message received!")
+                    snapshot = await app.take_snapshot(device=device, snapshot_name=f"{controller_mode}.S_END")
+                    rd_manager.finish(snapshot)
                     break
                 else:
                     logger.error(f"Unexpected terminating the proxy user! message: '{message_str}'")

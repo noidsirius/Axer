@@ -87,8 +87,9 @@ class ReplayDataManager:
             response = step_info['response'] = create_command_response_from_dict(step_info['command'],
                                                                   step_info_json.get('response', {}))
             if isinstance(response, LocatableCommandResponse):
-                screen_bounds = snapshot.nodes[0].bounds  # TODO: Not correct when the keyboard is enabled
-                if screen_bounds[0] != 0:
+                if len(snapshot.nodes) > 0 and snapshot.nodes[0].bounds[0] != 0:
+                    screen_bounds = snapshot.nodes[0].bounds  # TODO: Not correct when the keyboard is enabled
+                else:
                     screen_bounds = [0, 0, 1080, 2340]  # TODO: Move to consts
                 step_info['bounds'] = str(list(response.acted_node.get_normalized_bounds(screen_bounds)))
             else:

@@ -1,4 +1,3 @@
-import os
 import sys
 import tarfile
 import tempfile
@@ -11,12 +10,14 @@ from command import Command, create_command_from_dict
 from json_util import JSONSerializable
 
 
+
 class SocketMessageAction(Enum):
     NOP = 'NOP'
     REGISTER = 'REGISTER'
     START = 'START'
     SEND_COMMAND = 'SENDCOMMAND'
     END_RECORD = 'ENDRECORD'
+    INTERRUPT = 'INTERRUPT'
     TERMINATE = 'TERMINATE'
 
     @staticmethod
@@ -89,6 +90,11 @@ class EndRecordSM(SocketMessage):
         super().__init__(action=SocketMessageAction.END_RECORD)
 
 
+class InterruptSM(SocketMessage):
+    def __init__(self, **kwargs):
+        super().__init__(action=SocketMessageAction.INTERRUPT)
+
+
 class TerminateSM(SocketMessage):
     def __init__(self, **kwargs):
         super().__init__(action=SocketMessageAction.TERMINATE)
@@ -103,6 +109,7 @@ def create_socket_message_from_dict(json_socket_message: dict) -> SocketMessage:
         SocketMessageAction.START: StartRecordSM,
         SocketMessageAction.SEND_COMMAND: SendCommandSM,
         SocketMessageAction.END_RECORD: EndRecordSM,
+        SocketMessageAction.INTERRUPT: InterruptSM,
         SocketMessageAction.TERMINATE: TerminateSM
     }
     if SocketMessageAction.get(action) in action_to_command_map:

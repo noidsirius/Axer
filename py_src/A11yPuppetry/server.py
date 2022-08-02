@@ -16,7 +16,7 @@ from consts import WS_IP, WS_PORT
 from utils import synch_run
 from logger_utils import initialize_logger
 from socket_utils import create_socket_message_from_dict, RegisterSM, StartRecordSM, SendCommandSM, EndRecordSM, \
-    write_bytes_to_file
+    write_bytes_to_file, InterruptSM
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +90,7 @@ async def download_report(websocket: websockets.WebSocketClientProtocol,
 
 async def server_main_loop(result_path: Union[str, Path]):
     global server_state
+    global recorder_connection
     if isinstance(result_path, str):
         result_path = Path(result_path)
     logger.info("In Server Main Loop!")
@@ -113,11 +114,23 @@ async def server_main_loop(result_path: Union[str, Path]):
             continue
         assert recorder_connection is not None
         logger.info("Waiting for message from the recorder...")
-        message_str = await recorder_connection.recv()
+        try:
+            message_str = await recorder_connection.recv()
+        except Exception as e:
+            logger.error(f"Exception happens for receiving message from the recoder, Exception: {e}")
+            websockets.broadcast(proxy_users_connections.values(), InterruptSM().toJSONStr())
+            if recorder_connection is not None and not recorder_connection.closed:
+                try:
+                    await recorder_connection.close()
+                except Exception as e:
+                    logger.error(f"Failed to close RECORDER connection, Exception: '{e}'")
+            recorder_connection = None
+            server_state = ServerState.REGISTERING
+            continue
         try:
             socket_message = create_socket_message_from_dict(json.loads(message_str))
         except Exception as e:
-            logger.error(f"The received message was not in JSON format, message: '{message_str}'")
+            logger.error(f"The received message was not in JSON format, message: '{message_str}', Exception: {e}")
             continue
         if server_result_path and server_result_path.is_dir():
             with open(server_result_path.joinpath("messages.json"), "a") as f:
