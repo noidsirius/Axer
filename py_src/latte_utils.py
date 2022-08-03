@@ -4,8 +4,9 @@ import random
 import string
 from typing import Union, Tuple, List
 
-from adb_utils import run_bash, read_local_android_file
+from adb_utils import read_local_android_file
 from consts import IS_LIVE_TIMEOUT_TIME, DEVICE_NAME
+from shell_utils import run_bash
 
 logger = logging.getLogger(__name__)
 

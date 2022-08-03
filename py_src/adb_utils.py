@@ -4,24 +4,12 @@ import xmlformatter
 import random
 from typing import Optional
 from consts import DEVICE_NAME
-
+from shell_utils import run_bash
 
 logger = logging.getLogger(__name__)
 
 formatter = xmlformatter.Formatter(indent="1", indent_char="\t", encoding_output="UTF-8", preserve=["literal"])
 LATTE_PKG_NAME = "dev.navids.latte"
-
-
-async def run_bash(cmd) -> (int, str, str):
-    proc = await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
-
-    stdout, stderr = await proc.communicate()
-
-    return proc.returncode, stdout.decode() if stdout else "", stderr.decode() if stderr else ""
-
 
 async def start_adb() -> None:
     _ = await run_bash("adb start-server")

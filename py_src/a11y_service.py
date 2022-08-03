@@ -1,10 +1,10 @@
 import logging
 import asyncio
 from typing import List, Union
-from adb_utils import run_bash
 # TODO: Need to decompose latte_utils into latte_comms and latte_navigations
 from latte_utils import is_latte_live
 from consts import DEVICE_NAME
+from shell_utils import run_bash
 
 logger = logging.getLogger(__name__)
 

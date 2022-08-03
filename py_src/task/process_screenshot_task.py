@@ -1,9 +1,9 @@
 import logging
 from pathlib import Path
 
-from adb_utils import run_bash
 from consts import UIED_PATH
 from results_utils import AddressBook
+from shell_utils import run_bash
 from task.snapshot_task import SnapshotTask
 
 logger = logging.getLogger(__name__)

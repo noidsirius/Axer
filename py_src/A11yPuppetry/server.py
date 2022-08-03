@@ -96,8 +96,10 @@ async def server_main_loop(result_path: Union[str, Path]):
     logger.info("In Server Main Loop!")
     server_result_path = None
     download_tasks = []
+    command_index = 0
     while server_running:
         if server_state == ServerState.CLEANING_UP:
+            command_index = 0
             if len(download_tasks) > 0:
                 await asyncio.wait(download_tasks)
                 download_tasks = []
@@ -110,6 +112,7 @@ async def server_main_loop(result_path: Union[str, Path]):
                 await asyncio.sleep(5)
                 continue
         if server_state == ServerState.REGISTERING:
+            command_index = 0
             await asyncio.sleep(3)
             continue
         assert recorder_connection is not None
@@ -149,6 +152,9 @@ async def server_main_loop(result_path: Union[str, Path]):
         elif server_state == ServerState.RECORDING:
             if isinstance(socket_message, SendCommandSM):
                 command = socket_message.command
+                if socket_message.index == -1:
+                    socket_message.index = command_index
+                command_index += 1
                 logger.info(f"The next command is '{command}'")
             elif isinstance(socket_message, EndRecordSM):
                 logger.info(f"The recording is finished!")
