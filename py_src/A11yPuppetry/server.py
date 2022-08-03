@@ -130,6 +130,7 @@ async def server_main_loop(result_path: Union[str, Path]):
             recorder_connection = None
             server_state = ServerState.REGISTERING
             continue
+        logger.debug(f"Received message: '{message_str}'")
         try:
             socket_message = create_socket_message_from_dict(json.loads(message_str))
         except Exception as e:
@@ -152,8 +153,9 @@ async def server_main_loop(result_path: Union[str, Path]):
         elif server_state == ServerState.RECORDING:
             if isinstance(socket_message, SendCommandSM):
                 command = socket_message.command
-                if socket_message.index == -1:
+                if socket_message.index == -1:  # TODO: Needs to be addressed in Sugilite
                     socket_message.index = command_index
+                    message_str = socket_message.toJSONStr()
                 command_index += 1
                 logger.info(f"The next command is '{command}'")
             elif isinstance(socket_message, EndRecordSM):

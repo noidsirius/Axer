@@ -8,7 +8,7 @@ from shell_utils import run_bash
 
 logger = logging.getLogger(__name__)
 
-BASE_RECIPE_NAME = 'AP-Base'
+BASE_RECIPE_NAME = 'AP-Base-2'
 
 
 async def send_gmsaas_command(command: str) -> Optional[dict]:

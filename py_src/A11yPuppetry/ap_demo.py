@@ -5,6 +5,8 @@ import os
 import signal
 import sys
 
+from adb_utils import launch_specified_application
+
 sys.path.append("..")  # TODO: Need to refactor
 from A11yPuppetry.replayer import proxy_user_client
 from shell_utils import run_bash
@@ -70,7 +72,7 @@ async def main(result_path: Union[str, Path], controllers: List[str], ws_ip: str
     replayer_instances = await list_instances()
     install_tasks = []
     for inst in replayer_instances:
-        for app in ["latte", "com.colpit.diamondcoming.isavemoney", "com.fatsecret.android"]:
+        for app in ["latte"]:
             install_tasks.append(asyncio.create_task(run_bash(f"adb -s {inst.get_adb_device_name()} install -r -g "
                                                               f"$LATTE_PATH/Setup/{app}.apk")))
 
@@ -105,6 +107,7 @@ async def main(result_path: Union[str, Path], controllers: List[str], ws_ip: str
             await run_bash(f"adb -s {recorder_instance.get_adb_device_name()} "
                            f"shell settings put secure enabled_accessibility_services "
                            f"edu.cmu.hcii.sugilite/edu.cmu.hcii.sugilite.accessibility_service.SugiliteAccessibilityService")
+            await launch_specified_application("edu.cmu.hcii.sugilite")
             for i in range(180):  # TODO: the total duration of the demo is at most 30 minutes
                 if INTERRUPT_SIGNAL:
                     break
