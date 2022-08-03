@@ -96,7 +96,10 @@ async def proxy_user_client(controller_mode: str,
                 return
             await launch_specified_application(pkg_name=package_name, device_name=device_name)
             logger.info(f"App {package_name} is started!")
-            await asyncio.sleep(10)
+            if "localhost" in device_name:
+                await asyncio.sleep(10)
+            else:
+                await asyncio.sleep(60)
             logger.info(f"Listening for commands!")
             # Replaying the commands from server
             i = 0

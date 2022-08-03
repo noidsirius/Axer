@@ -7,11 +7,13 @@ from command import LocatableCommandResponse, Command, LocatableCommand, create_
     CommandResponse, ClickCommand, SelectCommand
 from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG
 from controller import Controller, TalkBackDirectionalController
+from latte_executor_utils import report_atf_issues
 from padb_utils import ParallelADBLogger
 from results_utils import capture_current_state
 from snapshot import Snapshot, DeviceSnapshot
 from task.snapshot_task import SnapshotTask
 from task.talkback_explore_task import TalkBackExploreTask
+from utils import annotate_elements
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,13 @@ class ExecuteSingleActionTask(SnapshotTask):
         self.command = command
         super().__init__(snapshot)
 
+    async def write_ATF_issues(self):
+        atf_issues = await report_atf_issues(device_name=self.device.serial)
+        logger.info(f"There are {len(atf_issues)} ATF issues in this screen!")
+        with open(self.snapshot.address_book.execute_single_action_atf_issues_path, "w") as f:
+            for issue in atf_issues:
+                f.write(json.dumps(issue) + "\n")
+
     async def execute(self):
         self.snapshot.address_book.initiate_execute_single_action_task()
         result = {
@@ -32,6 +41,7 @@ class ExecuteSingleActionTask(SnapshotTask):
             'command': self.command.toJSON(),
             'response': create_command_response_from_dict(self.command, result={}).toJSON(),
         }
+        await self.write_ATF_issues()
         tags = [BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG]
         if isinstance(self.controller, TalkBackDirectionalController) and isinstance(self.command, LocatableCommand):
             device_snapshot = DeviceSnapshot(address_book=self.snapshot.address_book, device=self.device)

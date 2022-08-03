@@ -176,11 +176,17 @@
                     {{ snapshot_image_card(
                         rd_manager.controller_mode
                         + '<i id="{}_action_annotate_btn_{}" class="bi bi-pin-map-fill btn btn-light rounded-pill m-1" style="display: inline-block;"></i>'.format(rd_manager.controller_mode, snapshot_index)
+                        + '<i id="{}_atf_annotate_btn_{}" class="bi bi-exclamation-triangle btn btn-light rounded-pill m-1" style="display: inline-block;"></i>'.format(rd_manager.controller_mode, snapshot_index)
                         + '<i id="{}_clear_annotate_btn_{}" class="bi bi-x-circle btn btn-warning rounded-pill m-1" style="display: inline-block;"></i>'.format(rd_manager.controller_mode, snapshot_index)
                         , static_path_fixer(step_info['screenshot'], result_path),
                             link_to_name, 2, "{}_canvas_{}".format(rd_manager.controller_mode, snapshot_index), card_class)}}
                     <input type="hidden" id="{{ rd_manager.controller_mode }}_bounds_{{ snapshot_index }}" value="{{ step_info.bounds }}"/>
+                    {% for atf_issue in step_info.atf_issues %}
+                        <input type="hidden" id="{{ rd_manager.controller_mode }}_atfissues_{{ snapshot_index }}" value="{{ atf_issue }}"/>
+                    {% endfor %}
+
                     <input type="hidden" id="{{ rd_manager.controller_mode }}_action_annotated_{{ snapshot_index }}" value="false"/>
+                    <input type="hidden" id="{{ rd_manager.controller_mode }}_atf_annotated_{{ snapshot_index }}" value="false"/>
                 {% endif %}
             {% endfor %}
             <div class="col-2 p-1">
@@ -258,6 +264,14 @@
                 }
             });
 
+            $("i[id*='_atf_annotate_btn_']").each(function(index, element){
+                if (element.id.endsWith("_END"))
+                    return;
+                let atf_bounds_id = element.id.replace("_atf_annotate_btn_", "_atfissues_")
+                if ($(`#${atf_bounds_id}`).length == 0)
+                    element.style.display = "none"
+            });
+
             $("i[id*='_action_annotate_btn']").on( "click", (event) =>{
                 let button = event.target;
                 let canvas_id = button.id.replace('_action_annotate_btn', '_canvas')
@@ -280,6 +294,32 @@
                 });
             });
 
+            $("i[id*='_atf_annotate_btn']").on( "click", (event) =>{
+                let button = event.target;
+                let canvas_id = button.id.replace('_atf_annotate_btn', '_canvas')
+                if (button.id.endsWith('_btn'))
+                    canvas_id = button.id.replace('_atf_annotate_btn', '_canvas_')
+                $(`canvas[id^='${canvas_id}']`).each(function(index, canvas){
+                    if (canvas.id.endsWith("_END"))
+                        return;
+                    let is_annotated_id = canvas.id.replace("_canvas_", "_atf_annotated_");
+                    let is_annotated_element = $(`input[id=${is_annotated_id}]`);
+                    let is_annotated = eval(is_annotated_element.val())
+                    if (!is_annotated)
+                    {
+                        let atf_bounds_id = canvas.id.replace("_canvas_", "_atfissues_")
+                        $(`input[id=${atf_bounds_id}]`).each(function(i2, e2){
+                            let e3 = $(e2)
+                            let bounds = eval(e3.val())
+                            let newBounds = denormalizeBounds(bounds, canvas);
+                            drawRectangle(canvas, newBounds, strokeStyle='#f3722c', fillStyle='#a9def920', lineDash = [10, 10], lineWidth = 7)
+                        })
+
+                        is_annotated_element.val("true");
+                    }
+                });
+            });
+
             $("i[id*='_clear_annotate_btn']").on( "click", (event) =>{
                 let button = event.target;
                 let canvas_id = button.id.replace('_clear_annotate_btn', '_canvas')
@@ -290,6 +330,9 @@
                     let is_annotated_id = canvas.id.replace("_canvas_", "_action_annotated_");
                     let is_annotated_element = $(`input[id=${is_annotated_id}]`);
                     is_annotated_element.val("false");
+                    let is_atf_annotated_id = canvas.id.replace("_canvas_", "_atf_annotated_");
+                    let is_atf_annotated_element = $(`input[id=${is_atf_annotated_id}]`);
+                    is_atf_annotated_element.val("false");
                 });
             });
 

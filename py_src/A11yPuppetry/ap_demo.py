@@ -5,9 +5,10 @@ import os
 import signal
 import sys
 
-from adb_utils import launch_specified_application
 
 sys.path.append("..")  # TODO: Need to refactor
+
+from adb_utils import launch_specified_application
 from A11yPuppetry.replayer import proxy_user_client
 from shell_utils import run_bash
 from datetime import datetime

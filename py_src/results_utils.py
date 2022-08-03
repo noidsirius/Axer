@@ -612,6 +612,8 @@ class AddressBook:
         # ----------- Audit: execute_single_action ----------
         self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION] = self.snapshot_result_path.joinpath("ExecuteSingleAction")
         self.execute_single_action_results_path = self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION].joinpath("result.jsonl")
+        self.execute_single_action_atf_issues_path = self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION].joinpath(
+            "atf_elements.jsonl")
         # ---------------------------------------------------
         # TODO: Needs to find a more elegant solution
         navigate_modes = [AddressBook.BASE_MODE, "tb_touch", "touch", "a11y_api", "tb_dir"]

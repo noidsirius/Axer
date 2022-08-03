@@ -4,6 +4,7 @@ from collections import defaultdict
 from typing import List
 from cachetools import cached, TTLCache
 
+from GUI_utils import Node
 from app import App
 from command import Command, create_command_response_from_dict, create_command_from_dict, LocatableCommandResponse
 from consts import BLIND_MONKEY_EVENTS_TAG
@@ -86,14 +87,21 @@ class ReplayDataManager:
             step_info['command'] = create_command_from_dict(step_info_json.get('command', {}))
             response = step_info['response'] = create_command_response_from_dict(step_info['command'],
                                                                   step_info_json.get('response', {}))
+            if len(snapshot.nodes) > 0 and snapshot.nodes[0].bounds[0] != 0:
+                screen_bounds = snapshot.nodes[0].bounds  # TODO: Not correct when the keyboard is enabled
+            else:
+                screen_bounds = [0, 0, 1080, 2220]  # TODO: Move to consts
             if isinstance(response, LocatableCommandResponse):
-                if len(snapshot.nodes) > 0 and snapshot.nodes[0].bounds[0] != 0:
-                    screen_bounds = snapshot.nodes[0].bounds  # TODO: Not correct when the keyboard is enabled
-                else:
-                    screen_bounds = [0, 0, 1080, 2340]  # TODO: Move to consts
                 step_info['bounds'] = str(list(response.acted_node.get_normalized_bounds(screen_bounds)))
             else:
                 step_info['bounds'] = "[0.0,0.0,0.0,0.0]"
+            step_info['atf_issues'] = []
+            if snapshot.address_book.execute_single_action_atf_issues_path.exists():
+                with open(snapshot.address_book.execute_single_action_atf_issues_path) as f:
+                    for line in f:
+                        node = Node.createNodeFromDict(json.loads(line))
+                        step_info['atf_issues'].append(str(list(node.get_normalized_bounds(screen_bounds))))
+
             step_info['logs'] = snapshot.address_book.get_log_path(mode=self.controller_mode, index=0)
             step_info['event_logs'] = snapshot.address_book.get_log_path(mode=self.controller_mode, index=0,
                                                                      extension=BLIND_MONKEY_EVENTS_TAG)
