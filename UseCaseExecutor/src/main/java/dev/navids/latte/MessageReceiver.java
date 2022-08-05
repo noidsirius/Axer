@@ -127,6 +127,8 @@ public class MessageReceiver extends BroadcastReceiver {
         messageEventMap.put("controller_set", (extra) -> {
             LatteService.getInstance().getSelectedController().interrupt();
             LatteService.getInstance().getSelectedController().clearResult();
+            if (extra.equals("enlarged"))  // TODO: It's a workaround for now, need to have its own controller
+                extra = "touch";
             Controller controller = LatteService.getInstance().getController(extra);
             if (controller != null) {
                 Log.i(LatteService.TAG, "The controller " + extra + " is selected!");

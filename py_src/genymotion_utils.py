@@ -3,6 +3,7 @@ import json
 import logging
 from typing import List, Optional, Union
 
+from adb_utils import install_application
 from json_util import JSONSerializable
 from shell_utils import run_bash
 
@@ -152,3 +153,29 @@ async def stop_instances():
         stop_tasks.append(asyncio.create_task(instance.stop()))
     await asyncio.wait(stop_tasks)
     logger.debug("All genymotion instances are stopped!")
+
+
+async def setup_ap_instance(instance_name: str, app_paths : List[str] = None) -> bool:
+    if app_paths is None:
+        app_paths = []
+    instance = await create_instance(instance_name=instance_name)
+    if not instance.is_online():
+        logger.error(f"Instance {instance_name} could not be created")
+        return False
+    if not await instance.connect_adb():
+        logger.error(f"ADB could not be connected for {instance_name}")
+        await instance.stop()
+        return False
+    logger.info(f"Instance {instance.name} is created, ADB: {instance.get_adb_device_name()}")
+    for app_path in app_paths:
+        logger.debug(f"Installing {app_path} on {instance.name}")
+        if not await install_application(apk_path=app_path, device_name=instance.get_adb_device_name()):
+            logger.error(f"App {app_path} could not be installed on {instance.name}")
+            await instance.stop()
+            return False
+
+    return True
+
+
+
+

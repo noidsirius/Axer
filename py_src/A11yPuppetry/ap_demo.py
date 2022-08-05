@@ -7,8 +7,9 @@ import sys
 
 
 sys.path.append("..")  # TODO: Need to refactor
+from A11yPuppetry.recorder import recorder_client
 
-from adb_utils import launch_specified_application
+from adb_utils import launch_specified_application, install_application
 from A11yPuppetry.replayer import proxy_user_client
 from shell_utils import run_bash
 from datetime import datetime
@@ -16,7 +17,7 @@ from pathlib import Path
 from typing import List, Union
 
 from consts import DEVICE_NAME, WS_IP, WS_PORT, ADB_HOST, ADB_PORT
-from genymotion_utils import create_instance, list_instances, stop_instances
+from genymotion_utils import list_instances, stop_instances, setup_ap_instance
 from logger_utils import initialize_logger
 from utils import synch_run
 
@@ -36,51 +37,24 @@ async def main(result_path: Union[str, Path], controllers: List[str], ws_ip: str
     if usecase_path is not None and isinstance(usecase_path, str):
         usecase_path = Path(usecase_path)
     online_replay = usecase_path is None
-    start_tasks = []
+    setup_tasks = []
+
     for controller_mode in controllers:
-        start_tasks.append(asyncio.create_task(create_instance(instance_name=controller_mode)))
+        setup_tasks.append(asyncio.create_task(setup_ap_instance(instance_name=controller_mode,
+                                                                 app_paths=[f"$LATTE_PATH/Setup/latte.apk"])))
     if online_replay:
-        start_tasks.append(asyncio.create_task(create_instance(instance_name=f"RECORDER")))
-    logger.info(f"Creating {len(start_tasks)} new instances...")
-    await asyncio.wait(start_tasks)
+        setup_tasks.append(asyncio.create_task(setup_ap_instance(instance_name="RECORDER",
+                                                                 app_paths=[f"$LATTE_PATH/Setup/latte.apk"])))
+    logger.info(f"Setting up {len(setup_tasks)} new instances...")
+    setup_results = await asyncio.gather(*setup_tasks)
+    if not all(r for r in setup_results):
+        logger.error(f"Some instances could not be created! Terminating")
+        await stop_instances()
+        return
     if INTERRUPT_SIGNAL:
         await stop_instances()
         return
-    gm_instances = await list_instances()
-    online_instances = [inst for inst in gm_instances if inst.is_online()]
-    if len(gm_instances) != len(start_tasks) or len(online_instances) != len(gm_instances):
-        logger.error(f"Some instances could not be created! "
-                     f"Expected: {len(start_tasks)}, Actual: {len(gm_instances)}, Online: {len(online_instances)}")
-        await stop_instances()
-        return
-
-    logger.info(f"Instances are created! Connecting to ADB...")
-    await asyncio.wait([asyncio.create_task(inst.connect_adb()) for inst in gm_instances])
-    if any(inst.get_adb_device_name() is None for inst in gm_instances):
-        logger.error(f"Some instances could not be connected to ADB!")
-        await stop_instances()
-        return
-
-    if INTERRUPT_SIGNAL:
-        await stop_instances()
-        return
-
-    logger.info("All instances are created and connected to ADB!")
-    for inst in gm_instances:
-        logger.info(f"\tInstanceName: {inst.name}, DeviceName: {inst.get_adb_device_name()}")
-
-    logger.info("Installing applications...")
     replayer_instances = await list_instances()
-    install_tasks = []
-    for inst in replayer_instances:
-        for app in ["latte"]:
-            install_tasks.append(asyncio.create_task(run_bash(f"adb -s {inst.get_adb_device_name()} install -r -g "
-                                                              f"$LATTE_PATH/Setup/{app}.apk")))
-
-    await asyncio.wait(install_tasks)
-    if INTERRUPT_SIGNAL:
-        await stop_instances()
-        return
     replayer_tasks = []
     single_usecase = not online_replay
     for inst in replayer_instances:
@@ -103,19 +77,34 @@ async def main(result_path: Union[str, Path], controllers: List[str], ws_ip: str
         else:
             replayer_instances.remove(recorder_instance)
             logger.info("Installing recorder...")
-            await run_bash(
-                f"adb -s {recorder_instance.get_adb_device_name()} install -r -g $LATTE_PATH/Setup/Sugilite.apk")
-            await run_bash(f"adb -s {recorder_instance.get_adb_device_name()} "
-                           f"shell settings put secure enabled_accessibility_services "
-                           f"edu.cmu.hcii.sugilite/edu.cmu.hcii.sugilite.accessibility_service.SugiliteAccessibilityService")
-            await launch_specified_application("edu.cmu.hcii.sugilite")
-            for i in range(180):  # TODO: the total duration of the demo is at most 30 minutes
-                if INTERRUPT_SIGNAL:
-                    break
-                logger.info("Waiting...")
-                await asyncio.sleep(10)
+            if await install_application(apk_path="$LATTE_PATH/Setup/Sugilite.apk", device_name=recorder_instance.get_adb_device_name()):
+                await run_bash(f"adb -s {recorder_instance.get_adb_device_name()} "
+                               f"shell settings put secure enabled_accessibility_services "
+                               f"edu.cmu.hcii.sugilite/edu.cmu.hcii.sugilite.accessibility_service.SugiliteAccessibilityService")
+                await launch_specified_application("edu.cmu.hcii.sugilite", device_name=recorder_instance.get_adb_device_name())
+                for i in range(180):  # TODO: the total duration of the demo is at most 30 minutes
+                    if INTERRUPT_SIGNAL:
+                        break
+                    logger.info("Waiting...")
+                    await asyncio.sleep(10)
+            else:
+                logger.error(
+                    f"Problem with install recorder! Terminating")
     else:
-        pass
+        package_name = usecase_path.parent.name
+        logger.info(f"Starting offline recording for package {package_name} from usecase in {usecase_path}")
+        recorder_task = asyncio.create_task(recorder_client(recorder_path=usecase_path,
+                                                            package_name=package_name,
+                                                            ws_ip=ws_ip,
+                                                            ws_port=ws_port))
+        for i in range(180):  # TODO: the total duration of the demo is at most 30 minutes
+            if INTERRUPT_SIGNAL:
+                break
+            if recorder_task.done() and all(t.done() for t in replayer_tasks):
+                break
+            logger.info("Waiting...")
+            await asyncio.sleep(10)
+
 
     logger.info("Stopping all instances")
     await stop_instances()
@@ -135,7 +124,7 @@ if __name__ == "__main__":
     parser.add_argument('--ws-port', type=int, default=WS_PORT, help='The port number of WebSocket Server')
     parser.add_argument('--adb-host', type=str, default=ADB_HOST, help='The host address of ADB')
     parser.add_argument('--adb-port', type=int, default=ADB_PORT, help='The port number of ADB')
-    parser.add_argument('--usecase_path', type=str, default=None, help='The path to usecase for offline replay')
+    parser.add_argument('--usecase-path', type=str, default=None, help='The path to usecase for offline replay')
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--quiet', action='store_true')
     args = parser.parse_args()

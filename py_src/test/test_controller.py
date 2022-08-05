@@ -1,7 +1,7 @@
 import unittest
 
 from controller import create_controller, TalkBackTouchController, TalkBackDirectionalController, TalkBackAPIController, \
-    A11yAPIController, TouchController
+    A11yAPIController, TouchController, EnlargedDisplayController
 
 
 class TestController(unittest.TestCase):
@@ -12,6 +12,7 @@ class TestController(unittest.TestCase):
         self.assertIsInstance(create_controller('tb_dir', device_name=device_name), TalkBackDirectionalController)
         self.assertIsInstance(create_controller('a11y_api', device_name=device_name), A11yAPIController)
         self.assertIsInstance(create_controller('touch', device_name=device_name), TouchController)
+        self.assertIsInstance(create_controller('enlarged', device_name=device_name), EnlargedDisplayController)
         self.assertIsNone(create_controller('abc', device_name=device_name))
 
 
