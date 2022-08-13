@@ -120,10 +120,13 @@ public class MessageReceiver extends BroadcastReceiver {
         messageEventMap.put("nav_select", (extra) -> TalkBackNavigator.v().selectFocus(null));
         messageEventMap.put("nav_current_focus", (extra) -> TalkBackNavigator.v().currentFocus());
         messageEventMap.put("tb_a11y_tree", (extra) -> TalkBackNavigator.v().logTalkBackTreeNodeList(null));
+        messageEventMap.put("tb_search", (extra) -> {
+            ActionUtils.performThreeFingerLongPress(null);
+        });
         messageEventMap.put("nav_clear_history", (extra) -> TalkBackNavigator.v().clearHistory());
         messageEventMap.put("nav_api_focus", (extra) -> SightedTalkBackStepExecutor.apiFocus = (extra.equals("true")));
         messageEventMap.put("nav_interrupt", (extra) -> TalkBackNavigator.v().interrupt());
-        // --------------------------- UseCase Executor ----------------
+        // --------------------------- Controller ----------------
         messageEventMap.put("controller_set", (extra) -> {
             LatteService.getInstance().getSelectedController().interrupt();
             LatteService.getInstance().getSelectedController().clearResult();

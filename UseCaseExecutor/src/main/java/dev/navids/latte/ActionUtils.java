@@ -161,6 +161,51 @@ public class ActionUtils {
         return LatteService.getInstance().dispatchGesture(gestureDescription, callback, null);
     }
 
+    public static boolean performThreeFingerTap(AccessibilityService.GestureResultCallback callback){
+
+        GestureDescription.Builder gestureBuilder = new GestureDescription.Builder();
+        WindowManager wm = (WindowManager) LatteService.getInstance().getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
+        Display display = wm.getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        int width = size.x;
+        int height = size.y;
+        Random random = new Random();
+        for (int i=0; i<3; i++) {
+            Path swipePath = new Path();
+            int x = random.nextInt(width);
+            int y = random.nextInt(height);
+            swipePath.moveTo(x, y);
+            gestureBuilder.addStroke(new GestureDescription.StrokeDescription(swipePath, 0, Config.v().TAP_DURATION));
+        }
+        GestureDescription gestureDescription = gestureBuilder.build();
+        Log.i(LatteService.TAG, "Execute Gesture " + gestureDescription.toString());
+        return LatteService.getInstance().dispatchGesture(gestureDescription, callback, null);
+    }
+
+    public static boolean performThreeFingerLongPress(AccessibilityService.GestureResultCallback callback){
+
+        GestureDescription.Builder gestureBuilder = new GestureDescription.Builder();
+        WindowManager wm = (WindowManager) LatteService.getInstance().getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
+        Display display = wm.getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        int width = size.x;
+        int height = size.y;
+        Random random = new Random();
+        for (int i=0; i<3; i++) {
+            Path swipePath = new Path();
+            int x = random.nextInt(width);
+            int y = random.nextInt(height);
+            swipePath.moveTo(x, y);
+            gestureBuilder.addStroke(new GestureDescription.StrokeDescription(swipePath, 0, 500));
+        }
+        GestureDescription gestureDescription = gestureBuilder.build();
+        Log.i(LatteService.TAG, "Execute Gesture " + gestureDescription.toString());
+        return LatteService.getInstance().dispatchGesture(gestureDescription, callback, null);
+    }
+
+
     public static boolean performType(AccessibilityNodeInfo node, String message){
         Log.i(LatteService.TAG, "performType");
         Bundle arguments = new Bundle();
