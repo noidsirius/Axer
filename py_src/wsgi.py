@@ -596,7 +596,7 @@ def replay_report(result_path, app_name):
             commands[i] = create_command_from_dict(json.loads(line))
             snapshot_indices.append(i)
             if isinstance(commands[i], LocatableCommand):
-                screen_bounds = [0, 0, 1080, 2340]  # TODO: Move to consts
+                screen_bounds = [0, 0, 1080, 2220]  # TODO: Move to consts
                 recorder_bounds_map[i] = str(list(commands[i].target.get_normalized_bounds(screen_bounds)))
             else:
                 recorder_bounds_map[i] = "[0.0,0.0,0.0,0.0]"

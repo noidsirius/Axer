@@ -82,7 +82,7 @@ class SendCommandSM(SocketMessage):
     @classmethod
     def create_from_dict(cls, json_socket_message: dict):
         command = create_command_from_dict(json_socket_message.get('command', {}))
-        return cls(command=command, index=json_socket_message.get('index', -1))
+        return cls(command=command, index=int(json_socket_message.get('index', -1)))
 
 
 class EndRecordSM(SocketMessage):

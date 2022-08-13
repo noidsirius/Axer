@@ -1,26 +1,17 @@
 import logging
 import asyncio
+from pathlib import Path
+
 import xmlformatter
 import random
-from typing import Optional
+from typing import Optional, Union
 from consts import DEVICE_NAME
-
+from shell_utils import run_bash
 
 logger = logging.getLogger(__name__)
 
 formatter = xmlformatter.Formatter(indent="1", indent_char="\t", encoding_output="UTF-8", preserve=["literal"])
 LATTE_PKG_NAME = "dev.navids.latte"
-
-
-async def run_bash(cmd) -> (int, str, str):
-    proc = await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
-
-    stdout, stderr = await proc.communicate()
-
-    return proc.returncode, stdout.decode() if stdout else "", stderr.decode() if stderr else ""
 
 
 async def start_adb() -> None:
@@ -43,7 +34,7 @@ async def capture_layout(device_name: str = DEVICE_NAME) -> str:
         except Exception as e:
             logger.error(f"Exception during capturing layout: {e}")
             layout = f"PROBLEM_WITH_XML {random.random()}"
-        logger.debug(f"Try capture layout with ADB: {i+1}")
+        logger.debug(f"Try capture layout with ADB: {i + 1}")
         await asyncio.sleep(1)
     return layout
 
@@ -125,17 +116,21 @@ async def read_local_android_file(file_path: str,
 
 
 async def get_file_nums(dir_path: str, device_name: str = DEVICE_NAME) -> int:
-    '''Takes the directory path in Android, returns the number of files in that directory.
-       Method uses for Sugilite'''
+    """
+        Takes the directory path in Android, returns the number of files in that directory.
+       Method uses for Sugilite
+   """
     cmd = f"adb -s {device_name} shell ls sdcard/{dir_path} | adb -s {device_name} shell grep . -c"
     _, stdout, _ = await run_bash(cmd)
     return stdout
 
 
 async def get_most_recent_file(dir_path: str, prev_num: int, sleep_time: int, device_name: str = DEVICE_NAME) -> str:
-    '''Takes the directory path in Android, the previous number of files in that directory, the sleep time between each check,
+    """
+        Takes the directory path in Android, the previous number of files in that directory, the sleep time between each check,
        returns the name of the most recent file
-       Method uses for Sugilite'''
+       Method uses for Sugilite
+   """
     cur_num = prev_num
     while (cur_num == prev_num):
         cur_num = await get_file_nums(dir_path)
@@ -147,18 +142,29 @@ async def get_most_recent_file(dir_path: str, prev_num: int, sleep_time: int, de
 
 
 async def download_android_file(dir_path: str, file_name: str, destination: str, device_name: str = DEVICE_NAME):
-    '''Takes the directory path in Android, the file name user wants to download and the destination
+    """
+        Takes the directory path in Android, the file name user wants to download and the destination
        downloads the targeted file to the destination
-       Method uses for Sugilite'''
+       Method uses for Sugilite
+       """
     cmd = f'adb -s {device_name} pull sdcard/{dir_path}/"{file_name}" "{destination}"'
     return_code, _, _ = await run_bash(cmd)
-    return return_code==0
+    return return_code == 0
 
 
-async def launch_specified_application(pkg_name:str, device_name:str=DEVICE_NAME) -> bool:
+async def install_application(apk_path: Union[str, Path], device_name: str = DEVICE_NAME) -> bool:
+    """
+        Install the application and grant all permissions
+    """
+    cmd = f"adb -s {device_name} install -r -g {apk_path}"
+    return_code, _, _ = await run_bash(cmd)
+    return return_code == 0
+
+
+async def launch_specified_application(pkg_name: str, device_name: str = DEVICE_NAME) -> bool:
     ''' Starts the android application based on the provided package name
         Method uses for Sugilite
     '''
-    cmd=f"adb -s {device_name} shell monkey -p {pkg_name} 1"
+    cmd = f"adb -s {device_name} shell monkey -p {pkg_name} 1"
     return_code, _, _ = await run_bash(cmd)
     return return_code == 0

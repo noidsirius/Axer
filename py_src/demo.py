@@ -4,6 +4,7 @@ import contextlib
 import json
 import logging
 import pathlib
+import random
 import sys
 from collections import defaultdict, Counter, namedtuple
 from typing import Dict
@@ -17,6 +18,7 @@ from adb_utils import read_local_android_file
 from command import BackCommand, NextCommand, PreviousCommand, SelectCommand, SleepCommand
 from consts import TB_NAVIGATE_TIMEOUT, DEVICE_NAME, ADB_HOST, ADB_PORT
 from controller import TalkBackTouchController
+from genymotion_utils import create_instance, stop_instances
 from latte_executor_utils import talkback_tree_nodes, latte_capture_layout, \
     FINAL_ACITON_FILE, report_atf_issues
 from latte_utils import is_latte_live
@@ -200,6 +202,16 @@ async def execute_latte_command(device: DeviceAsync, command: str, extra: str):
             return
         actions = get_actions_from_layout(layout)
         annotate_elements(extra, extra, actions, outline=(255, 0, 255), width=15, scale=5)
+
+    if command.startswith("gm_"):
+        if command == 'gm_start':
+            instance_name = f'Instance{random.randint(0,200_00)}' if extra is None else extra
+            instance = await create_instance(instance_name=instance_name)
+            logger.info(f"Instance is created! Instance: {instance}")
+            is_adb_connected = await instance.connect_adb()
+            logger.info(f"ADB is connected? {is_adb_connected}! Device Name: {instance.get_adb_device_name()}")
+        elif command == 'gm_stop':
+            await stop_instances()
 
     if command.startswith("command_"):
         controller = TalkBackTouchController(device_name=device.serial)

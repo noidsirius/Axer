@@ -2,6 +2,7 @@ import sys
 from datetime import datetime
 
 sys.path.append("..")  # TODO: Need to refactor
+
 import argparse
 import asyncio
 
@@ -16,7 +17,8 @@ from ppadb.client_async import ClientAsync as AdbClient
 from data_utils import ReplayDataManager
 from app import App
 from utils import synch_run
-from adb_utils import launch_specified_application, run_bash
+from shell_utils import run_bash
+from adb_utils import launch_specified_application
 from consts import ADB_HOST, ADB_PORT, WS_IP, WS_PORT, DEVICE_NAME
 from controller import create_controller
 from logger_utils import initialize_logger
@@ -46,7 +48,6 @@ pkg_name_to_apk_path = {
     'com.booking': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.booking.apk',
     'com.netflix.mediaclient': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.netflix.mediaclient.apk', # Didn't work
 
-
 }
 
 
@@ -54,7 +55,8 @@ async def proxy_user_client(controller_mode: str,
                             device_name: str,
                             result_path: Path,
                             ws_ip: str = WS_IP,
-                            ws_port: int = WS_PORT):
+                            ws_port: int = WS_PORT,
+                            single_usecase: bool = False):
     uri = f"ws://{ws_ip}:{ws_port}"
     client = AdbClient(host=ADB_HOST, port=ADB_PORT)
     device = await client.device(device_name)
@@ -94,7 +96,10 @@ async def proxy_user_client(controller_mode: str,
                 return
             await launch_specified_application(pkg_name=package_name, device_name=device_name)
             logger.info(f"App {package_name} is started!")
-            await asyncio.sleep(60)
+            if "localhost" in device_name:
+                await asyncio.sleep(10)
+            else:
+                await asyncio.sleep(60)
             logger.info(f"Listening for commands!")
             # Replaying the commands from server
             i = 0
@@ -132,6 +137,9 @@ async def proxy_user_client(controller_mode: str,
                     logger.error(f"Unexpected terminating the proxy user! message: '{message_str}'")
                     return
 
+            if single_usecase:
+                break
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -143,6 +151,7 @@ if __name__ == "__main__":
     parser.add_argument('--ws-port', type=int, default=WS_PORT, help='The port number of WebSocket Server')
     parser.add_argument('--adb-host', type=str, default=ADB_HOST, help='The host address of ADB')
     parser.add_argument('--adb-port', type=int, default=ADB_PORT, help='The port number of ADB')
+    parser.add_argument('--single-usecase', action='store_true')
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--quiet', action='store_true')
     args = parser.parse_args()
@@ -153,4 +162,8 @@ if __name__ == "__main__":
     initialize_logger(log_path=log_path, quiet=args.quiet, debug=args.debug)
     if os.name == 'nt':
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-    synch_run(proxy_user_client(args.controller, args.device, result_path=result_path, ws_ip=args.ws_ip, ws_port=args.ws_port))
+    synch_run(proxy_user_client(args.controller, args.device,
+                                result_path=result_path,
+                                ws_ip=args.ws_ip,
+                                ws_port=args.ws_port,
+                                single_usecase=args.single_usecase))

@@ -9,6 +9,7 @@ from adb_utils import read_local_android_file
 from command import Command, CommandResponse, create_command_response_from_dict, SleepCommand
 from consts import ACTION_EXECUTION_RETRY_COUNT, REGULAR_EXECUTE_TIMEOUT_TIME, DEVICE_NAME
 from latte_utils import send_commands_sequence_to_latte, send_command_to_latte
+from shell_utils import run_bash
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,17 @@ class TouchController(Controller):
         await send_commands_sequence_to_latte([("controller_set", self.mode())], device_name=self.device_name)
 
 
+class EnlargedDisplayController(TouchController):
+    @classmethod
+    def mode(cls) -> str:
+        return 'enlarged'
+
+    async def setup(self):
+        await super().setup()
+        await run_bash(f"adb -s {self.device_name} shell wm density 546")
+        await run_bash(f"adb -s {self.device_name} shell settings put system font_scale 1.3")
+
+
 class A11yAPIController(Controller):
     @classmethod
     def mode(cls) -> str:
@@ -121,7 +133,7 @@ class TalkBackDirectionalController(Controller):
 
 def create_controller(mode: str, device_name: str) -> Union[Controller, None]:
     controllers = [TalkBackTouchController, TalkBackDirectionalController, TalkBackAPIController,
-                   A11yAPIController, TouchController]
+                   A11yAPIController, TouchController, EnlargedDisplayController]
     for controller in controllers:
         if mode == controller.mode():
             return controller(device_name=device_name)

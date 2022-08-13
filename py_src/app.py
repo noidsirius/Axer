@@ -89,5 +89,5 @@ class App:
         address_book = AddressBook(self.app_path.joinpath(snapshot_name))
         snapshot = DeviceSnapshot(address_book=address_book, device=device)
         await snapshot.setup(first_setup=True)
-        self.snapshot_map[snapshot_name] = snapshot_name
+        self.snapshot_map[snapshot_name] = snapshot
         return snapshot
