@@ -61,6 +61,7 @@ async def proxy_user_client(controller_mode: str,
     client = AdbClient(host=ADB_HOST, port=ADB_PORT)
     device = await client.device(device_name)
     controller = create_controller(controller_mode, device_name=device.serial)
+    enabled_assistive_services = ["tb"] if "tb_" in controller_mode else None  # TODO: More elegant
     logger.info(f"Controller is {controller.name()}")
     async with websockets.connect(uri, max_size=1_000_000_000) as websocket:  # TODO: Add to constants
         await websocket.send(RegisterSM(name=controller_mode).toJSONStr())
@@ -96,10 +97,10 @@ async def proxy_user_client(controller_mode: str,
                 return
             await launch_specified_application(pkg_name=package_name, device_name=device_name)
             logger.info(f"App {package_name} is started!")
-            if "localhost" in device_name:
-                await asyncio.sleep(10)
-            else:
+            if "localhost" not in device_name and package_name == "com.colpit.diamondcoming.isavemoney":
                 await asyncio.sleep(60)
+            else:
+                await asyncio.sleep(10)
             logger.info(f"Listening for commands!")
             # Replaying the commands from server
             i = 0
@@ -107,16 +108,21 @@ async def proxy_user_client(controller_mode: str,
                 i += 1
                 message_str = await websocket.recv()
                 message = create_socket_message_from_dict(json.loads(message_str))
+
                 if isinstance(message, SendCommandSM):
                     command = message.command
                     index = message.index
                     logger.info(f"Received command({index}) {command.name()}: '{message_str}'")
-                    snapshot = await app.take_snapshot(device=device, snapshot_name=f"{controller_mode}.S_{index}")
+                    snapshot = await app.take_snapshot(device=device,
+                                                       snapshot_name=f"{controller_mode}.S_{index}",
+                                                       enabled_assistive_services=enabled_assistive_services)
                     await ExecuteSingleActionTask(snapshot=snapshot, device=device, controller=controller, command=command).execute()
                     rd_manager.add_new_action(snapshot=snapshot)
                 elif isinstance(message, EndRecordSM):
                     logger.info(f"The replay is finished!")
-                    snapshot = await app.take_snapshot(device=device, snapshot_name=f"{controller_mode}.S_END")
+                    snapshot = await app.take_snapshot(device=device,
+                                                       snapshot_name=f"{controller_mode}.S_END",
+                                                       enabled_assistive_services=enabled_assistive_services)
                     rd_manager.finish(snapshot)
                     tar_file_path = zip_directory(source_dir=app.app_path)
                     logger.info(f"The report is zipped in {tar_file_path}")
@@ -130,7 +136,9 @@ async def proxy_user_client(controller_mode: str,
                     break
                 elif isinstance(message, InterruptSM):
                     logger.info(f"Interrupt message received!")
-                    snapshot = await app.take_snapshot(device=device, snapshot_name=f"{controller_mode}.S_END")
+                    snapshot = await app.take_snapshot(device=device,
+                                                       snapshot_name=f"{controller_mode}.S_END",
+                                                       enabled_assistive_services=enabled_assistive_services)
                     rd_manager.finish(snapshot)
                     break
                 else:

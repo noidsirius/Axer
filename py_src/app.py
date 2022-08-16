@@ -1,7 +1,7 @@
 import logging
 import shutil
 from pathlib import Path
-from typing import Union, Generator
+from typing import Union, Generator, List
 
 from ppadb.device_async import DeviceAsync
 
@@ -74,7 +74,8 @@ class App:
         for snapshot_name in self.snapshot_map:
             yield await self.async_get_snapshot(snapshot_name)
 
-    async def take_snapshot(self, device: DeviceAsync, snapshot_name: str = None) -> Snapshot:
+    async def take_snapshot(self, device: DeviceAsync, snapshot_name: str = None,
+                            enabled_assistive_services: List[str] = None) -> Snapshot:
         if snapshot_name is None:
             last_index = 0
             for snapshot_name in self.snapshot_map.keys():
@@ -88,6 +89,6 @@ class App:
             return await self.async_get_snapshot(snapshot_name)
         address_book = AddressBook(self.app_path.joinpath(snapshot_name))
         snapshot = DeviceSnapshot(address_book=address_book, device=device)
-        await snapshot.setup(first_setup=True)
+        await snapshot.setup(first_setup=True, enabled_assistive_services=enabled_assistive_services)
         self.snapshot_map[snapshot_name] = snapshot
         return snapshot

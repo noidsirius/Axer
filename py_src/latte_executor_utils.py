@@ -24,10 +24,8 @@ formatter = xmlformatter.Formatter(indent="1", indent_char="\t", encoding_output
 
 async def latte_capture_layout(device_name: str = DEVICE_NAME) -> str:
     layout = None
-    is_tb_enabled = await A11yServiceManager.is_enabled('tb', device_name=device_name)
     for i in range(3):
         logger.debug(f"Capturing layout, Try: {i}")
-        await A11yServiceManager.setup_latte_a11y_services(tb=False, device_name=device_name)
         await send_command_to_latte("capture_layout", device_name=device_name)
         layout = await read_local_android_file(LAYOUT_FILE_PATH,
                                                wait_time=LAYOUT_TIMEOUT_TIME,
@@ -45,8 +43,6 @@ async def latte_capture_layout(device_name: str = DEVICE_NAME) -> str:
         logger.error(f"Exception during capturing layout in Latte: {e}")
         layout = f"PROBLEM_WITH_XML {random.random()}"
 
-    if is_tb_enabled:
-        await A11yServiceManager.setup_latte_a11y_services(tb=True, device_name=device_name)
     return layout
 
 

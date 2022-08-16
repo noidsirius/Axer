@@ -2,7 +2,7 @@ import asyncio
 import logging
 import shutil
 from pathlib import Path
-from typing import Union, Callable
+from typing import Union, Callable, List
 from ppadb.client_async import ClientAsync as AdbClient
 from ppadb.device_async import DeviceAsync
 
@@ -98,11 +98,13 @@ class DeviceSnapshot(Snapshot):
             device = synch_run(client.device(DEVICE_NAME))
         self.device = device
 
-    async def setup(self, first_setup: bool = True, dumpsys: bool = True, use_service: bool = True, **kwargs):
+    async def setup(self, first_setup: bool = True, dumpsys: bool = True, use_service: bool = True,
+                    enabled_assistive_services: List[str] = None, **kwargs):
         initial_layout = initial_screenshot = None
         if first_setup:
             if use_service:
-                await A11yServiceManager.setup_latte_a11y_services(tb=False, device_name=self.device.serial)
+                has_tb = enabled_assistive_services is not None and "tb" in enabled_assistive_services
+                await A11yServiceManager.setup_latte_a11y_services(tb=has_tb, device_name=self.device.serial)
             initial_layout = await capture_current_state(self.address_book,
                                                          self.device,
                                                          mode=AddressBook.BASE_MODE,

@@ -39,12 +39,13 @@ async def main(result_path: Union[str, Path], controllers: List[str], ws_ip: str
     online_replay = usecase_path is None
     setup_tasks = []
 
+    app_paths = [f"$LATTE_PATH/Setup/latte.apk"]
     for controller_mode in controllers:
         setup_tasks.append(asyncio.create_task(setup_ap_instance(instance_name=controller_mode,
-                                                                 app_paths=[f"$LATTE_PATH/Setup/latte.apk"])))
+                                                                 app_paths=app_paths)))
     if online_replay:
         setup_tasks.append(asyncio.create_task(setup_ap_instance(instance_name="RECORDER",
-                                                                 app_paths=[f"$LATTE_PATH/Setup/latte.apk"])))
+                                                                 app_paths=app_paths)))
     logger.info(f"Setting up {len(setup_tasks)} new instances...")
     setup_results = await asyncio.gather(*setup_tasks)
     if not all(r for r in setup_results):

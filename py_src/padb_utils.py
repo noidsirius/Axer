@@ -1,15 +1,20 @@
+import logging
 from typing import Any, List, Union
 import asyncio
 import aiofiles
 from consts import BLIND_MONKEY_TAG, CAPTURE_SCREENSHOT_DELAY
 
+logger = logging.getLogger(__name__)
+
 
 async def save_screenshot(device, file_name) -> None:
-    result = await device.screencap()
-    await asyncio.sleep(CAPTURE_SCREENSHOT_DELAY)
-    async with aiofiles.open(file_name, mode='wb') as f:
-        await f.write(result)
-    return file_name
+    try:
+        result = await device.screencap()
+        await asyncio.sleep(CAPTURE_SCREENSHOT_DELAY)
+        async with aiofiles.open(file_name, mode='wb') as f:
+            await f.write(result)
+    except Exception as e:
+        logger.error(f"The screenshot for {file_name} could not be taken. Exception: {e}")
 
 
 class ParallelADBLogger:

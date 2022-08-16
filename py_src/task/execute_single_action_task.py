@@ -43,7 +43,7 @@ class ExecuteSingleActionTask(SnapshotTask):
         }
         await self.write_ATF_issues()
         tags = [BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG]
-        if isinstance(self.controller, TalkBackDirectionalController) and isinstance(self.command, LocatableCommand):
+        if isinstance(self.controller, TalkBackDirectionalController) and isinstance(self.command, ClickCommand):
             device_snapshot = DeviceSnapshot(address_book=self.snapshot.address_book, device=self.device)
             await device_snapshot.setup(first_setup=False)
             is_located = False
@@ -52,6 +52,7 @@ class ExecuteSingleActionTask(SnapshotTask):
                     is_located = True
                     break
             if is_located:
+                logger.debug("The node exists on the screen, now go with TB_DIR!")
                 is_located = await TalkBackExploreTask(snapshot=device_snapshot, target_node=self.command.target).execute()
             log_message_map: dict = {x: '' for x in tags}
             if is_located:
@@ -68,6 +69,7 @@ class ExecuteSingleActionTask(SnapshotTask):
                                                                acted_node=select_action_response.navigated_node,
                                                                locating_attempts=0)
             else:
+                logger.error("The element could not be located!")
                 action_response: CommandResponse = create_command_response_from_dict(self.command, {})
                 action_response.state = 'FAILED'
         else:
