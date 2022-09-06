@@ -1,14 +1,72 @@
 import json
 import shutil
 from collections import defaultdict
-from typing import List
+from typing import List, Union
 from cachetools import cached, TTLCache
 
 from GUI_utils import Node
 from app import App
-from command import Command, create_command_response_from_dict, create_command_from_dict, LocatableCommandResponse
+from command import Command, create_command_response_from_dict, create_command_from_dict, LocatableCommandResponse, \
+    LocatableCommand
 from consts import BLIND_MONKEY_EVENTS_TAG
 from snapshot import Snapshot
+
+
+class RecordDataManager:
+    def __init__(self, app: App):
+        self.app = app
+        self.recorder_path = self.app.app_path.joinpath("RECORDER")
+
+        if not self.recorder_path.is_dir():
+            raise "The recorder directory does not exists"
+        self.user_review_path = self.recorder_path.joinpath("user_review.jsonl")
+        if not self.user_review_path.exists():
+            self.user_review_path.touch()
+        usecase_path = self.recorder_path.joinpath("usecase.jsonl")
+        self.commands = {}
+        self.snapshot_indices = []
+        self.recorder_bounds_map = {}
+        if usecase_path.exists():
+            with open(app.app_path.joinpath("RECORDER").joinpath("usecase.jsonl")) as f:
+                for i, line in enumerate(f):
+                    self.commands[i] = create_command_from_dict(json.loads(line))
+                    self.snapshot_indices.append(i)
+                    if isinstance(self.commands[i], LocatableCommand):
+                        screen_bounds = [0, 0, 1080, 2220]  # TODO: Move to consts
+                        self.recorder_bounds_map[i] = str(list(self.commands[i].target.get_normalized_bounds(screen_bounds)))
+                    else:
+                        self.recorder_bounds_map[i] = "[0.0,0.0,0.0,0.0]"
+        self.snapshot_indices.append("END")
+        self.recorder_screenshot_map = {}
+        self.recorder_layout_map = {}
+        for index in self.snapshot_indices:
+            self.recorder_screenshot_map[index] = self.recorder_path.joinpath(f"S_{index}.png")
+            self.recorder_layout_map[index] = self.recorder_path.joinpath(f"S_{index}.xml")
+
+    def get_user_review(self, step: str) -> Union[str, None]:
+        with open(self.user_review_path) as f:
+            for line in f:
+                user_review = json.loads(line)
+                if user_review['step'] == str(step):
+                    return user_review['content']
+        return None
+
+    def write_user_review(self, step: str, content: str):
+        step = str(step)
+        user_review = {'step': step, 'content': content}
+        existing_user_review_content = self.get_user_review(step)
+        if existing_user_review_content is None:
+            with open(self.user_review_path, "a") as f:
+                f.write(json.dumps(user_review) + "\n")
+        else:
+            # TODO: This is a terrible way of updating the file, needs to be refactored
+            existing_user_review_str = json.dumps({'step': step, 'content': existing_user_review_content})
+            with open(self.user_review_path) as f:
+                all_file = f.read()
+            all_file = all_file.replace(existing_user_review_str, json.dumps(user_review))
+            with open(self.user_review_path, "w") as f:
+                f.write(all_file)
+
 
 
 class ReplayDataManager:

@@ -16,7 +16,7 @@ from json2html import json2html
 from app import App
 from command import create_command_from_dict, LocatableCommand
 from consts import BLIND_MONKEY_EVENTS_TAG
-from data_utils import ReplayDataManager
+from data_utils import ReplayDataManager, RecordDataManager
 from snapshot_search import SnapshotSearchManager, SnapshotSearchQuery
 
 sys.path.append(str(pathlib.Path(__file__).parent.resolve()))
@@ -493,6 +493,21 @@ def tag_action(result_path, app_name, snapshot_name, index, tag):
     return jsonify(result=True)
 
 
+@flask_app.route("/v2/<result_path>/app/<app_name>/user_review/<step>", methods=['POST'])
+def user_review(result_path, app_name, step):
+    result_path = pathlib.Path(fix_path(result_path)).resolve()
+    try:
+        app = App(app_name=app_name, result_path=result_path)
+        record_manager = RecordDataManager(app=app)
+    except Exception as e:
+        return jsonify(result=False)
+
+    user_review_content = request.form.get(f'user_review_{step}', None)
+    if user_review_content:
+        record_manager.write_user_review(step, user_review_content)
+    return jsonify(result=True)
+
+
 @flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/note", methods=['POST'])
 def snapshot_note(result_path, app_name, snapshot_name):
     result_path = pathlib.Path(fix_path(result_path)).resolve()
@@ -584,28 +599,12 @@ def report_v2(result_path, app_name, snapshot_name):
 @flask_app.route("/v2/<result_path>/app/<app_name>/replay_report")
 def replay_report(result_path, app_name):
     result_path_str = result_path
+    is_edit = request.args.get('is_edit', 'false') == 'true'
     result_path = pathlib.Path(fix_path(result_path))
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is incorrect!"
     app = App(app_name=app_name, result_path=result_path)
-    snapshot_indices = []
-    recorder_bounds_map = {}
-    commands = {}
-    with open(app.app_path.joinpath("RECORDER").joinpath("usecase.jsonl")) as f:
-        for i, line in enumerate(f):
-            commands[i] = create_command_from_dict(json.loads(line))
-            snapshot_indices.append(i)
-            if isinstance(commands[i], LocatableCommand):
-                screen_bounds = [0, 0, 1080, 2220]  # TODO: Move to consts
-                recorder_bounds_map[i] = str(list(commands[i].target.get_normalized_bounds(screen_bounds)))
-            else:
-                recorder_bounds_map[i] = "[0.0,0.0,0.0,0.0]"
-
-    snapshot_indices.append("END")
-    recorder_screenshot_map = {index: app.app_path.joinpath("RECORDER").joinpath(f"S_{index}.png")
-                           for index in snapshot_indices}
-    recorder_layout_map = {index: app.app_path.joinpath("RECORDER").joinpath(f"S_{index}.xml")
-                           for index in snapshot_indices}
+    record_manager = RecordDataManager(app=app)
     rd_managers = []
     for controller in ReplayDataManager.get_existing_controllers(app):
         rd_manager = ReplayDataManager(app=app, controller_mode=controller)
@@ -615,11 +614,8 @@ def replay_report(result_path, app_name):
     return render_template('replay_report.html',
                            result_path=result_path_str,
                            app_name=app_name,
-                           commands=commands,
-                           snapshot_indices=snapshot_indices,
-                           recorder_layout_map=recorder_layout_map,
-                           recorder_screenshot_map=recorder_screenshot_map,
-                           recorder_bounds_map=recorder_bounds_map,
+                           record_manager=record_manager,
+                           is_edit=is_edit,
                            rd_managers=rd_managers)
 
 

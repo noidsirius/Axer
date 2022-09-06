@@ -10,6 +10,7 @@
         </div>
     {% endif %}
 {% endmacro %}
+
 {% block title %}
     Replay report {{ app_name }}
 {% endblock %}
@@ -112,9 +113,9 @@
             </div>
         {% endfor %}
     </div>
-    {% for snapshot_index in snapshot_indices %}
+    {% for snapshot_index in record_manager.snapshot_indices %}
         {% if snapshot_index != 'END' %}
-            {% set command = commands[snapshot_index]%}
+            {% set command = record_manager.commands[snapshot_index]%}
         {% endif %}
         <div class="row" id="step_{{ snapshot_index }}">
             <div class="col-2 p-1">
@@ -150,10 +151,10 @@
                 "Recorder"
                 + '<i id="{}_action_annotate_btn_{}" class="bi bi-pin-map-fill btn btn-light rounded-pill m-1" style="display: inline-block;"></i>'.format("RECORDER", snapshot_index)
                 + '<i id="{}_clear_annotate_btn_{}" class="bi bi-x-circle btn btn-warning rounded-pill m-1" style="display: inline-block;"></i>'.format("RECORDER", snapshot_index)
-                , static_path_fixer(recorder_screenshot_map[snapshot_index], result_path),
-                    { 'Layout': url_for('send_result_static_v2', path=static_path_fixer(recorder_layout_map[snapshot_index], result_path))}, 2, "RECORDER_canvas_{}".format(snapshot_index))}}
+                , static_path_fixer(record_manager.recorder_screenshot_map[snapshot_index], result_path),
+                    { 'Layout': url_for('send_result_static_v2', path=static_path_fixer(record_manager.recorder_layout_map[snapshot_index], result_path))}, 2, "RECORDER_canvas_{}".format(snapshot_index))}}
 
-            <input type="hidden" id="RECORDER_bounds_{{ snapshot_index }}" value="{{ recorder_bounds_map.get(snapshot_index,[0,0,0,0]) }}"/>
+            <input type="hidden" id="RECORDER_bounds_{{ snapshot_index }}" value="{{ record_manager.recorder_bounds_map.get(snapshot_index,[0,0,0,0]) }}"/>
             <input type="hidden" id="RECORDER_action_annotated_{{ snapshot_index }}" value="false"/>
 
             {% for rd_manager in rd_managers %}
@@ -179,7 +180,7 @@
                         + '<i id="{}_atf_annotate_btn_{}" class="bi bi-exclamation-triangle btn btn-light rounded-pill m-1" style="display: inline-block;"></i>'.format(rd_manager.controller_mode, snapshot_index)
                         + '<i id="{}_clear_annotate_btn_{}" class="bi bi-x-circle btn btn-warning rounded-pill m-1" style="display: inline-block;"></i>'.format(rd_manager.controller_mode, snapshot_index)
                         , static_path_fixer(step_info['screenshot'], result_path),
-                            link_to_name, 2, "{}_canvas_{}".format(rd_manager.controller_mode, snapshot_index), card_class)}}
+                            link_to_name, 1, "{}_canvas_{}".format(rd_manager.controller_mode, snapshot_index), card_class)}}
                     <input type="hidden" id="{{ rd_manager.controller_mode }}_bounds_{{ snapshot_index }}" value="{{ step_info.bounds }}"/>
                     {% for atf_issue in step_info.atf_issues %}
                         <input type="hidden" id="{{ rd_manager.controller_mode }}_atfissues_{{ snapshot_index }}" value="{{ atf_issue }}"/>
@@ -189,7 +190,7 @@
                     <input type="hidden" id="{{ rd_manager.controller_mode }}_atf_annotated_{{ snapshot_index }}" value="false"/>
                 {% endif %}
             {% endfor %}
-            <div class="col-2 p-1">
+            <div class="col-1 p-1">
                 <div class="card">
                     <div class="card-header">
                         Note
@@ -222,6 +223,35 @@
                     </div>
                 </div>
             </div>
+            <div class="col-2 p-1">
+                <div class="card">
+                    <div class="card-header">
+                        User Review
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col">
+
+                                {% set user_review_content = record_manager.get_user_review(snapshot_index) %}
+                                {% set user_review_content_str = user_review_content if user_review_content else "" %}
+                                {% if is_edit %}
+                                    <form action="{{ url_for('user_review', result_path=result_path,
+                                                app_name=app_name,
+                                                step=snapshot_index ) }}" id="user_review_form_{{ snapshot_index }}" method="POST">
+
+                                        <textarea id ="user_review_{{ snapshot_index }}" name="user_review_{{ snapshot_index }}">{{ user_review_content_str }}</textarea>
+                                        <button type="submit" class="btn btn-primary">Update</button>
+                                    </form>
+                                {% else %}
+                                    <div id="user_review_content_{{ snapshot_index }}">
+                                    </div>
+                                    <input type="hidden" id="user_review_value_{{ snapshot_index }}" value="{{ user_review_content_str }}">
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
         </div>
     {% endfor %}
@@ -229,8 +259,36 @@
 
 {% endblock %}
 {% block script_content %}
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         $(function () {
+            {% if not is_edit %}
+            $("[id*='user_review_content_']").each(function(index, element) {
+                let value_id = element.id.replace('_content_', '_value_')
+                let content_element = $(`input[id=${value_id}]`);
+                let content = content_element.val();
+                element.innerHTML = marked.parse(content);
+            });
+            {% endif %}
+            $("[id*='user_review_form_']").submit(function(e) {
+
+                e.preventDefault(); // avoid to execute the actual submit of the form.
+
+                let form = $(this);
+                let actionUrl = form.attr('action');
+
+                $.ajax({
+                    type: "POST",
+                    url: actionUrl,
+                    data: form.serialize(), // serializes the form's elements.
+                    success: function(data)
+                    {
+                        alert(data); // show response from the php script.
+                    }
+                });
+
+            });
+
             function denormalizeBounds(normalizedBounds, canvas){
                 return [parseInt(normalizedBounds[0] * canvas.width),
                                              parseInt(normalizedBounds[1] * canvas.height),
@@ -256,11 +314,16 @@
             $("i[id*='_action_annotate_btn_']").each(function(index, element){
                 if (element.id.endsWith("_END"))
                     return;
-                let bounds_id = element.id.replace("_action_annotate_btn_", "_bounds_")
-                let bounds = eval($(`input[id=${bounds_id}]`).val())
-                let size = bounds.length;
-                if (size !== 4 || (bounds[0] == 0 && bounds[1] == 0 && bounds[2] == 0 && bounds[3] == 0)){
-                    element.style.display = "none"
+                try{
+                    let bounds_id = element.id.replace("_action_annotate_btn_", "_bounds_")
+                    let bounds = eval($(`input[id=${bounds_id}]`).val())
+                    let size = bounds.length;
+                    if (size !== 4 || (bounds[0] == 0 && bounds[1] == 0 && bounds[2] == 0 && bounds[3] == 0)){
+                        element.style.display = "none"
+                    }
+                }
+                catch (e) {
+                  element.style.display = "none";
                 }
             });
 
