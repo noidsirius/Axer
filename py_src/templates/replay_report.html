@@ -10,6 +10,7 @@
         </div>
     {% endif %}
 {% endmacro %}
+
 {% block title %}
     Replay report {{ app_name }}
 {% endblock %}
@@ -21,46 +22,47 @@
                value="{{ result_path }}/{{ app_name }}/">
     </a>
     <hr>
+    {% set rd_managers = a11y_report_manager.rd_managers %}
+    {% set record_manager = a11y_report_manager.record_manager %}
     <div class="row">
         <h2>Summary:</h2>
     </div>
     <div class="row">
-        <div class="col-3 p-1">
-            <div class="card">
-                <div class="card-header">
-                    Failed Steps
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                    <ul>
-                        {% for rd_manager in rd_managers %}
-                            {% set problematic_steps = rd_manager.get_problematic_steps() %}
-                            {% if problematic_steps | length > 0 %}
-                                <li>
-                                    {{ rd_manager.controller_mode }}: Steps
-                                    {% for step_index in problematic_steps %}
-                                        <a href="#step_{{ step_index }}"> {{ step_index }}</a>
-                                    {% endfor %}
-                                </li>
+        <div class="col-11">
+            {% set summary_report, problematic_steps = a11y_report_manager.get_summary() %}
+            <table class="table  table-bordered" style="font-size: 12px">
+                <tr>
+                    <th>Step</th>
+                    {% for step in problematic_steps %}
+                        <th>
+                            <a href="#step_{{ step }}"> {{ step }}</a>
+                        </th>
+                    {% endfor %}
+                </tr>
+                {% for header, issues_steps in summary_report.items() %}
+                    <tr>
+                        <th> {{ header }}</th>
+                        {% for step in problematic_steps %}
+                            {% if step in issues_steps %}
+                                <td class="table-danger text-center">X</td>
+                            {% else %}
+                                <td></td>
                             {% endif %}
                         {% endfor %}
-                    </ul>
-                    </div>
-                </div>
-            </div>
+
+                    </tr>
+                {% endfor %}
+
+            </table>
         </div>
-        <div class="col-3 p-1">
-            <div class="card">
-                <div class="card-header">
-                    Steps with Warnings
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                    </div>
-                </div>
-            </div>
-        </div>
+        {% if record_manager.recorder_path.joinpath("video.gif").exists() %}
+        {{ snapshot_image_card(
+                        "Video", static_path_fixer(record_manager.recorder_path.joinpath("video.gif"), result_path),
+                            {}, 1, "video_canvas_video", 'passed-step')}}
+        {% endif %}
     </div>
+
+
 
     <div class="row">
         <h2>Steps:</h2>
@@ -93,7 +95,7 @@
             </div>
         </div>
         {% for rd_manager in rd_managers %}
-            <div class="col-2 p-1">
+            <div class="col-1 p-1">
                 <div class="card">
                     <div class="card-body">
                         <div class="mb-3">
@@ -112,15 +114,16 @@
             </div>
         {% endfor %}
     </div>
-    {% for snapshot_index in snapshot_indices %}
+    {% for snapshot_index in record_manager.snapshot_indices %}
         {% if snapshot_index != 'END' %}
-            {% set command = commands[snapshot_index]%}
+            {% set command = record_manager.commands[snapshot_index]%}
         {% endif %}
         <div class="row" id="step_{{ snapshot_index }}">
             <div class="col-2 p-1">
                 <div class="card">
                     <div class="card-header">
-                        #{{ snapshot_index }}
+
+                        <a href="#step_{{ snapshot_index }}"> {{ snapshot_index }}</a>
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
@@ -150,10 +153,10 @@
                 "Recorder"
                 + '<i id="{}_action_annotate_btn_{}" class="bi bi-pin-map-fill btn btn-light rounded-pill m-1" style="display: inline-block;"></i>'.format("RECORDER", snapshot_index)
                 + '<i id="{}_clear_annotate_btn_{}" class="bi bi-x-circle btn btn-warning rounded-pill m-1" style="display: inline-block;"></i>'.format("RECORDER", snapshot_index)
-                , static_path_fixer(recorder_screenshot_map[snapshot_index], result_path),
-                    { 'Layout': url_for('send_result_static_v2', path=static_path_fixer(recorder_layout_map[snapshot_index], result_path))}, 2, "RECORDER_canvas_{}".format(snapshot_index))}}
+                , static_path_fixer(record_manager.recorder_screenshot_map[snapshot_index], result_path),
+                    { 'Layout': url_for('send_result_static_v2', path=static_path_fixer(record_manager.recorder_layout_map[snapshot_index], result_path))}, 2, "RECORDER_canvas_{}".format(snapshot_index))}}
 
-            <input type="hidden" id="RECORDER_bounds_{{ snapshot_index }}" value="{{ recorder_bounds_map.get(snapshot_index,[0,0,0,0]) }}"/>
+            <input type="hidden" id="RECORDER_bounds_{{ snapshot_index }}" value="{{ record_manager.recorder_bounds_map.get(snapshot_index,[0,0,0,0]) }}"/>
             <input type="hidden" id="RECORDER_action_annotated_{{ snapshot_index }}" value="false"/>
 
             {% for rd_manager in rd_managers %}
@@ -179,7 +182,7 @@
                         + '<i id="{}_atf_annotate_btn_{}" class="bi bi-exclamation-triangle btn btn-light rounded-pill m-1" style="display: inline-block;"></i>'.format(rd_manager.controller_mode, snapshot_index)
                         + '<i id="{}_clear_annotate_btn_{}" class="bi bi-x-circle btn btn-warning rounded-pill m-1" style="display: inline-block;"></i>'.format(rd_manager.controller_mode, snapshot_index)
                         , static_path_fixer(step_info['screenshot'], result_path),
-                            link_to_name, 2, "{}_canvas_{}".format(rd_manager.controller_mode, snapshot_index), card_class)}}
+                            link_to_name, 1, "{}_canvas_{}".format(rd_manager.controller_mode, snapshot_index), card_class)}}
                     <input type="hidden" id="{{ rd_manager.controller_mode }}_bounds_{{ snapshot_index }}" value="{{ step_info.bounds }}"/>
                     {% for atf_issue in step_info.atf_issues %}
                         <input type="hidden" id="{{ rd_manager.controller_mode }}_atfissues_{{ snapshot_index }}" value="{{ atf_issue }}"/>
@@ -192,31 +195,38 @@
             <div class="col-2 p-1">
                 <div class="card">
                     <div class="card-header">
-                        Note
+                        A11y Report
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            {% if snapshot_index != 'END' %}
-                                <ul>
-                                    {% for rd_manager in rd_managers %}
-                                        {% set problematic_steps = rd_manager.get_problematic_steps() %}
-                                        {% if "{}".format(snapshot_index) in problematic_steps %}
-                                            <li>
-                                                {{ rd_manager.controller_mode }} Issue(s):
-                                                <ul>
-                                                    {% for issue in problematic_steps["{}".format(snapshot_index)] %}
-                                                        <li>
-                                                            {{ issue }}
-                                                        </li>
-                                                    {% endfor %}
-                                                </ul>
-
-                                            </li>
-                                        {% endif %}
-                                    {% endfor %}
-                                </ul>
-                            {% endif %}
+                        <div class="row">
+                            <div class="col">
+                                <div class="markdown-content">
+                                    <input type="hidden" value="{{ a11y_report_manager.get_a11y_report_md(snapshot_index) }}">
+                                </div>
+                            </div>
                         </div>
+
+                        {% if is_edit %}
+                            <hr>
+                            <div class="row">
+                                <div class="col">
+
+                                    {% set user_review_content = record_manager.get_user_review(snapshot_index) %}
+                                    {% set user_review_content_str = user_review_content if user_review_content else "" %}
+
+                                        <form action="{{ url_for('user_review', result_path=result_path,
+                                                    app_name=app_name,
+                                                    step=snapshot_index ) }}" id="user_review_form_{{ snapshot_index }}" method="POST">
+
+                                            <textarea id ="user_review_{{ snapshot_index }}" name="user_review_{{ snapshot_index }}">{{ user_review_content_str }}</textarea>
+                                            <button type="submit" class="btn btn-primary">Update</button>
+                                        </form>
+
+                                </div>
+                            </div>
+                        {% endif %}
+
+
                     </div>
                     <div class="card-footer">
                     </div>
@@ -229,8 +239,34 @@
 
 {% endblock %}
 {% block script_content %}
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         $(function () {
+
+            $(".markdown-content > input").each(function(index, element) {
+                let content = element.value;
+                element.parentElement.innerHTML = marked.parse(content);
+            });
+
+            $("[id*='user_review_form_']").submit(function(e) {
+
+                e.preventDefault(); // avoid to execute the actual submit of the form.
+
+                let form = $(this);
+                let actionUrl = form.attr('action');
+
+                $.ajax({
+                    type: "POST",
+                    url: actionUrl,
+                    data: form.serialize(), // serializes the form's elements.
+                    success: function(data)
+                    {
+                        alert(data); // show response from the php script.
+                    }
+                });
+
+            });
+
             function denormalizeBounds(normalizedBounds, canvas){
                 return [parseInt(normalizedBounds[0] * canvas.width),
                                              parseInt(normalizedBounds[1] * canvas.height),
@@ -256,11 +292,16 @@
             $("i[id*='_action_annotate_btn_']").each(function(index, element){
                 if (element.id.endsWith("_END"))
                     return;
-                let bounds_id = element.id.replace("_action_annotate_btn_", "_bounds_")
-                let bounds = eval($(`input[id=${bounds_id}]`).val())
-                let size = bounds.length;
-                if (size !== 4 || (bounds[0] == 0 && bounds[1] == 0 && bounds[2] == 0 && bounds[3] == 0)){
-                    element.style.display = "none"
+                try{
+                    let bounds_id = element.id.replace("_action_annotate_btn_", "_bounds_")
+                    let bounds = eval($(`input[id=${bounds_id}]`).val())
+                    let size = bounds.length;
+                    if (size !== 4 || (bounds[0] == 0 && bounds[1] == 0 && bounds[2] == 0 && bounds[3] == 0)){
+                        element.style.display = "none"
+                    }
+                }
+                catch (e) {
+                  element.style.display = "none";
                 }
             });
 

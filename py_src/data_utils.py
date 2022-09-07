@@ -1,14 +1,74 @@
 import json
 import shutil
 from collections import defaultdict
-from typing import List
+from typing import List, Union
 from cachetools import cached, TTLCache
 
 from GUI_utils import Node
 from app import App
-from command import Command, create_command_response_from_dict, create_command_from_dict, LocatableCommandResponse
+from command import Command, create_command_response_from_dict, create_command_from_dict, LocatableCommandResponse, \
+    LocatableCommand
 from consts import BLIND_MONKEY_EVENTS_TAG
 from snapshot import Snapshot
+
+
+class RecordDataManager:
+    def __init__(self, app: App):
+        self.app = app
+        self.recorder_path = self.app.app_path.joinpath("RECORDER")
+
+        if not self.recorder_path.is_dir():
+            raise "The recorder directory does not exists"
+        self.user_review_path = self.recorder_path.joinpath("user_review.jsonl")
+        if not self.user_review_path.exists():
+            self.user_review_path.touch()
+        usecase_path = self.recorder_path.joinpath("usecase.jsonl")
+        self.commands = {}
+        self.acted_nodes = {}
+        self.snapshot_indices = []
+        self.recorder_bounds_map = {}
+        if usecase_path.exists():
+            with open(app.app_path.joinpath("RECORDER").joinpath("usecase.jsonl")) as f:
+                for i, line in enumerate(f):
+                    self.commands[i] = create_command_from_dict(json.loads(line))
+                    self.snapshot_indices.append(i)
+                    if isinstance(self.commands[i], LocatableCommand):
+                        screen_bounds = [0, 0, 1080, 2220]  # TODO: Move to consts
+                        self.recorder_bounds_map[i] = str(list(self.commands[i].target.get_normalized_bounds(screen_bounds)))
+                        self.acted_nodes[i] = self.commands[i].target
+                    else:
+                        self.recorder_bounds_map[i] = "[0.0,0.0,0.0,0.0]"
+                        self.acted_nodes[i] = Node()
+        self.snapshot_indices.append("END")
+        self.recorder_screenshot_map = {}
+        self.recorder_layout_map = {}
+        for index in self.snapshot_indices:
+            self.recorder_screenshot_map[index] = self.recorder_path.joinpath(f"S_{index}.png")
+            self.recorder_layout_map[index] = self.recorder_path.joinpath(f"S_{index}.xml")
+
+    def get_user_review(self, step: str) -> Union[str, None]:
+        with open(self.user_review_path) as f:
+            for line in f:
+                user_review = json.loads(line)
+                if user_review['step'] == str(step):
+                    return user_review['content']
+        return None
+
+    def write_user_review(self, step: str, content: str):
+        step = str(step)
+        user_review = {'step': step, 'content': content}
+        existing_user_review_content = self.get_user_review(step)
+        if existing_user_review_content is None:
+            with open(self.user_review_path, "a") as f:
+                f.write(json.dumps(user_review) + "\n")
+        else:
+            # TODO: This is a terrible way of updating the file, needs to be refactored
+            existing_user_review_str = json.dumps({'step': step, 'content': existing_user_review_content})
+            with open(self.user_review_path) as f:
+                all_file = f.read()
+            all_file = all_file.replace(existing_user_review_str, json.dumps(user_review))
+            with open(self.user_review_path, "w") as f:
+                f.write(all_file)
 
 
 class ReplayDataManager:
@@ -32,6 +92,14 @@ class ReplayDataManager:
                 controllers.append(subdir.name[len("REPLAY_"):])
         return controllers
 
+    def get_name(self) -> str:
+        mode_to_name = {
+            'touch': 'Orig',
+            'tb_dir': 'Linear',
+            'tb_touch': 'Touch',
+        }
+        return mode_to_name.get(self.controller_mode, self.controller_mode)
+
     def add_new_action(self, snapshot: Snapshot):
         self.snapshots.append(snapshot)
         snapshot_info = {
@@ -53,6 +121,19 @@ class ReplayDataManager:
                 snapshot_info = json.loads(line)
                 snapshots.append(self.app.get_snapshot(snapshot_info['snapshot_name']))
         return snapshots
+
+    def get_atf_problems(self, step: str) -> List[dict]:
+        snapshot = self.app.get_snapshot(name=f"{self.controller_mode}.S_{step}")
+        result = []
+        if snapshot.address_book.execute_single_action_atf_issues_path.exists():
+            with open(snapshot.address_book.execute_single_action_atf_issues_path) as f:
+                for line in f:
+                    dd = json.loads(line)
+                    if dd['ATFType'] not in ["SpeakableTextPresentCheck", "DuplicateSpeakableTextCheck"]:
+                        continue
+                    result.append(dd)
+        return result
+
 
     @cached(cache=TTLCache(maxsize=1024, ttl=10))
     def get_problematic_steps(self) -> dict:
@@ -96,11 +177,9 @@ class ReplayDataManager:
             else:
                 step_info['bounds'] = "[0.0,0.0,0.0,0.0]"
             step_info['atf_issues'] = []
-            if snapshot.address_book.execute_single_action_atf_issues_path.exists():
-                with open(snapshot.address_book.execute_single_action_atf_issues_path) as f:
-                    for line in f:
-                        node = Node.createNodeFromDict(json.loads(line))
-                        step_info['atf_issues'].append(str(list(node.get_normalized_bounds(screen_bounds))))
+            for atf_issue in self.get_atf_problems(step=index):
+                node = Node.createNodeFromDict(atf_issue)
+                step_info['atf_issues'].append(str(list(node.get_normalized_bounds(screen_bounds))))
 
             step_info['logs'] = snapshot.address_book.get_log_path(mode=self.controller_mode, index=0)
             step_info['event_logs'] = snapshot.address_book.get_log_path(mode=self.controller_mode, index=0,
@@ -115,3 +194,47 @@ class ReplayDataManager:
         return step_info
 
 
+class A11yReportManager:
+    def __init__(self, app: App):
+        self.app = app
+        self.record_manager = RecordDataManager(app=self.app)
+        self.rd_managers = []
+        for controller in ReplayDataManager.get_existing_controllers(self.app):
+            rd_manager = ReplayDataManager(app=self.app, controller_mode=controller)
+            self.rd_managers.append(rd_manager)
+
+    def get_summary(self) -> (dict, list):
+        result = defaultdict(set)
+        problematic_steps = []
+        for step in self.record_manager.snapshot_indices:
+            step = str(step)
+            if self.record_manager.get_user_review(step) is not None:
+                result['User'].add(step)
+                problematic_steps.append(step)
+            for rd_manager in self.rd_managers:
+                if step in rd_manager.get_problematic_steps():
+                    result[rd_manager.get_name()].add(step)
+                    if step not in problematic_steps:
+                        problematic_steps.append(step)
+                if len(rd_manager.get_atf_problems(step=step)) > 0:
+                    result['ATF'].add(step)
+                    if step not in problematic_steps:
+                        problematic_steps.append(step)
+        return result, problematic_steps
+
+    def get_a11y_report_md(self, step: str) -> str:
+        step = str(step)
+        if step == "END":
+            return ""
+        report = ""
+        for rd_manager in self.rd_managers:
+            problematic_steps = rd_manager.get_problematic_steps()
+            if step in problematic_steps:
+                report += f"##### Issues of {rd_manager.get_name()}\n\n"
+                for issue in problematic_steps[step]:
+                    report += f"- {issue}\n"
+        user_review = self.record_manager.get_user_review(step)
+        if user_review is not None:
+            report += f"##### User\n\n"
+            report += user_review
+        return report
