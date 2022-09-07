@@ -12,17 +12,7 @@ android {
     }
     defaultConfig {
         vectorDrawables.useSupportLibrary = true
-        multiDexEnabled true
-        minSdkVersion 23
-    }
-    flavorDimensions "target"
-    productFlavors {
-        phone {
-            dimension "target"
-        }
-//        wear {
-//            dimension "target"
-//        }
+        minSdkVersion 26
     }
 }
 
