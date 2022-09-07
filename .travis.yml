@@ -27,10 +27,10 @@ jobs:
           - build-tools-29.0.3
           - android-31
           - extra
-      before_install:
+#      before_install:
  #       - yes | sdkmanager "platform-tools"
-        - yes | sdkmanager "build-tools;29.0.3"
-        - yes | sdkmanager "platforms;android-31"
+#        - yes | sdkmanager "build-tools;29.0.3"
+#        - yes | sdkmanager "platforms;android-31"
       script:
         - ./gradlew :app:assembleDebug :UseCaseExecutor:check jacocoTestReport
       env:
