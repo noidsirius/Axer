@@ -20,7 +20,7 @@ jobs:
     - language: android
       dist: trusty
       jdk:
-        - openjdk8
+        - openjdk11
       android:
         components:
           - platform-tools
