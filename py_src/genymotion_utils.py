@@ -9,7 +9,7 @@ from shell_utils import run_bash
 
 logger = logging.getLogger(__name__)
 
-BASE_RECIPE_NAME = 'AP-Base-2'
+BASE_RECIPE_NAME = 'AP-Base-3'
 
 
 async def send_gmsaas_command(command: str) -> Optional[dict]:
@@ -159,7 +159,7 @@ async def setup_ap_instance(instance_name: str, app_paths : List[str] = None) ->
     if app_paths is None:
         app_paths = []
     instance = await create_instance(instance_name=instance_name)
-    if not instance.is_online():
+    if instance is None or not instance.is_online():
         logger.error(f"Instance {instance_name} could not be created")
         return False
     if not await instance.connect_adb():

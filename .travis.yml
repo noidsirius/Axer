@@ -20,19 +20,19 @@ jobs:
     - language: android
       dist: trusty
       jdk:
-        - openjdk8
+        - openjdk11
       android:
         components:
           - platform-tools
           - build-tools-29.0.3
-          - android-30
+          - android-31
           - extra
-      before_install:
-        - yes | sdkmanager "platform-tools"
-        - yes | sdkmanager "build-tools;29.0.3"
-        - yes | sdkmanager "platforms;android-30"
+#      before_install:
+ #       - yes | sdkmanager "platform-tools"
+#        - yes | sdkmanager "build-tools;29.0.3"
+        - yes | sdkmanager "platforms;android-31"
       script:
-        - ./gradlew build check jacocoTestReport
+        - ./gradlew :app:assembleDebug :UseCaseExecutor:check jacocoTestReport
       env:
           - CODECOV_TOKEN=d9615b91-c123-4003-ac18-2df188e88470
       after_success:

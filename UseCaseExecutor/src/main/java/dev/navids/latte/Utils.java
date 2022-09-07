@@ -174,6 +174,8 @@ public class Utils {
 
     private static void dumpNodeRec(AccessibilityNodeInfo node, XmlSerializer serializer, int index,
                                     int width, int height) throws IOException {
+        if (node == null)
+            return;
         boolean supportsWebAction =
                 node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_NEXT_HTML_ELEMENT) ||
                         node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_PREVIOUS_HTML_ELEMENT);

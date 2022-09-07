@@ -7,6 +7,14 @@ import android.util.Log;
 import android.util.Xml;
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
+
+import com.google.android.accessibility.utils.AccessibilityNodeInfoUtils;
+import com.google.android.accessibility.utils.Filter;
+import com.google.android.accessibility.utils.traversal.OrderedTraversalController;
+import com.google.android.accessibility.utils.traversal.OrderedTraversalStrategy;
+import com.google.android.accessibility.utils.traversal.TraversalStrategy;
+import com.google.android.accessibility.utils.traversal.TraversalStrategyUtils;
 import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckPreset;
 import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckResult;
 import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckResultUtils;
@@ -57,6 +65,27 @@ public class MessageReceiver extends BroadcastReceiver {
         // ----------- General ----------------
         messageEventMap.put("is_live", (extra) -> Utils.createFile(String.format(Config.v().IS_LIVE_FILE_PATH_PATTERN, extra), "I'm alive " + extra));
         messageEventMap.put("log", (extra) -> Utils.getAllA11yNodeInfo(true));
+        messageEventMap.put("dummy", (extra) -> {
+           Log.i(LatteService.TAG, "I'm in dummy message!");
+           // Logs the ordered list of focusable nodes in TalkBack
+            AccessibilityNodeInfo nodeInfo = LatteService.getInstance().getRootInActiveWindow();
+            if (nodeInfo != null) {
+                AccessibilityNodeInfoCompat nodeInfoCompat = AccessibilityNodeInfoCompat.wrap(nodeInfo);
+                OrderedTraversalStrategy orderedTraversalStrategy = new OrderedTraversalStrategy(nodeInfoCompat);
+                Filter<AccessibilityNodeInfoCompat> focusNodeFilter =
+                        AccessibilityNodeInfoUtils.FILTER_SHOULD_FOCUS;
+                AccessibilityNodeInfoCompat firstNode = TraversalStrategyUtils.findInitialFocusInNodeTree(orderedTraversalStrategy,nodeInfoCompat, TraversalStrategy.SEARCH_FOCUS_FORWARD, focusNodeFilter);
+                Log.i(LatteService.TAG, "First Node: " + firstNode);
+                AccessibilityNodeInfoCompat iterNode = TraversalStrategyUtils.searchFocus(orderedTraversalStrategy, firstNode, TraversalStrategy.SEARCH_FOCUS_FORWARD, focusNodeFilter);
+                Log.i(LatteService.TAG, "Iteration:");
+                while(iterNode != null){
+                    Log.i(LatteService.TAG, "\t" + iterNode);
+                    iterNode = TraversalStrategyUtils.searchFocus(orderedTraversalStrategy, iterNode, TraversalStrategy.SEARCH_FOCUS_FORWARD, focusNodeFilter);
+                }
+                Log.i(LatteService.TAG, "After Iteration");
+            }
+
+        });
         messageEventMap.put("invisible_nodes", (extra) -> LatteService.considerInvisibleNodes = (extra.equals("true")));
         messageEventMap.put("report_a11y_issues", (extra) -> {
             Context context2 = LatteService.getInstance().getApplicationContext();

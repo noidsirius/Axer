@@ -24,7 +24,7 @@ class CreateA11yPuppetryVideoTask:
         create_gif(source_images=images,
                    target_gif=record_manager.recorder_path.joinpath("video.gif"),
                    image_to_nodes=image_to_nodes,
-                   outline=(220, 20, 60),
+                   outline= (220, 20, 60),
                    duration=500)
 
 
