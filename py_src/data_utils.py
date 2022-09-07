@@ -24,6 +24,7 @@ class RecordDataManager:
             self.user_review_path.touch()
         usecase_path = self.recorder_path.joinpath("usecase.jsonl")
         self.commands = {}
+        self.acted_nodes = {}
         self.snapshot_indices = []
         self.recorder_bounds_map = {}
         if usecase_path.exists():
@@ -34,8 +35,10 @@ class RecordDataManager:
                     if isinstance(self.commands[i], LocatableCommand):
                         screen_bounds = [0, 0, 1080, 2220]  # TODO: Move to consts
                         self.recorder_bounds_map[i] = str(list(self.commands[i].target.get_normalized_bounds(screen_bounds)))
+                        self.acted_nodes[i] = self.commands[i].target
                     else:
                         self.recorder_bounds_map[i] = "[0.0,0.0,0.0,0.0]"
+                        self.acted_nodes[i] = Node()
         self.snapshot_indices.append("END")
         self.recorder_screenshot_map = {}
         self.recorder_layout_map = {}

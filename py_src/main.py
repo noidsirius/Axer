@@ -5,12 +5,14 @@ import asyncio
 import logging
 
 from GUI_utils import Node
+from app import App
 from consts import DEVICE_NAME, ADB_HOST, ADB_PORT
 from ppadb.client_async import ClientAsync as AdbClient
 from results_utils import AddressBook
 from logger_utils import ColoredFormatter, initialize_logger
 from snapshot import EmulatorSnapshot, DeviceSnapshot, Snapshot
 from task.app_task import TakeSnapshotTask, StoatSaveSnapshotTask
+from task.create_a11y_puppetry_video import CreateA11yPuppetryVideoTask
 from task.create_action_gif_task import CreateActionGifTask
 from task.execute_usecase_task import ExecuteUsecaseTask
 from task.extract_actions_task import ExtractActionsTask
@@ -76,8 +78,12 @@ async def execute_app_task(args, app_path: Path):
             logger.error("Not supported")
             return
 
-        client = AdbClient(host=args.adb_host, port=args.adb_port)
-        device = await client.device(args.device)
+        try:
+            client = AdbClient(host=args.adb_host, port=args.adb_port)
+            device = await client.device(args.device)
+        except Exception as e:
+            logger.error(f"Exception happend in connecting to the device, Exception: {e}")
+            device = None
 
         if args.app_task == "take_snapshot":
             logger.info("App Task: Take a snapshot")
@@ -88,6 +94,11 @@ async def execute_app_task(args, app_path: Path):
                 logger.error("The device should be an emulator")
                 return
             await StoatSaveSnapshotTask(app_path=app_path, device=device).execute()
+
+        elif args.app_task == "ap_video":
+            logger.info("App Task: Create A11yPuppetry Video")
+            app = App(app_name=app_path.name, result_path=app_path.parent)
+            await CreateA11yPuppetryVideoTask(app=app).execute()
 
         elif args.app_task == "record_usecase":
             logger.info("App Task: Record a use case")

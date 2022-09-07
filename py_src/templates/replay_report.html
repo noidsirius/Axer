@@ -28,9 +28,9 @@
         <h2>Summary:</h2>
     </div>
     <div class="row">
-        <div class="col">
+        <div class="col-11">
             {% set summary_report, problematic_steps = a11y_report_manager.get_summary() %}
-            <table class="table  table-bordered table-sm" style="font-size: 12px">
+            <table class="table  table-bordered" style="font-size: 12px">
                 <tr>
                     <th>Step</th>
                     {% for step in problematic_steps %}
@@ -55,8 +55,14 @@
 
             </table>
         </div>
-
+        {% if record_manager.recorder_path.joinpath("video.gif").exists() %}
+        {{ snapshot_image_card(
+                        "Video", static_path_fixer(record_manager.recorder_path.joinpath("video.gif"), result_path),
+                            {}, 1, "video_canvas_video", 'passed-step')}}
+        {% endif %}
     </div>
+
+
 
     <div class="row">
         <h2>Steps:</h2>
