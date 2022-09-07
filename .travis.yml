@@ -28,7 +28,7 @@ jobs:
           - android-31
           - extra
       before_install:
-        - yes | sdkmanager "platform-tools"
+ #       - yes | sdkmanager "platform-tools"
         - yes | sdkmanager "build-tools;29.0.3"
         - yes | sdkmanager "platforms;android-31"
       script:
