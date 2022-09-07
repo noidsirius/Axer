@@ -22,45 +22,40 @@
                value="{{ result_path }}/{{ app_name }}/">
     </a>
     <hr>
+    {% set rd_managers = a11y_report_manager.rd_managers %}
+    {% set record_manager = a11y_report_manager.record_manager %}
     <div class="row">
         <h2>Summary:</h2>
     </div>
     <div class="row">
-        <div class="col-3 p-1">
-            <div class="card">
-                <div class="card-header">
-                    Failed Steps
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                    <ul>
-                        {% for rd_manager in rd_managers %}
-                            {% set problematic_steps = rd_manager.get_problematic_steps() %}
-                            {% if problematic_steps | length > 0 %}
-                                <li>
-                                    {{ rd_manager.controller_mode }}: Steps
-                                    {% for step_index in problematic_steps %}
-                                        <a href="#step_{{ step_index }}"> {{ step_index }}</a>
-                                    {% endfor %}
-                                </li>
+        <div class="col">
+            {% set summary_report, problematic_steps = a11y_report_manager.get_summary() %}
+            <table class="table  table-bordered table-sm" style="font-size: 12px">
+                <tr>
+                    <th>Step</th>
+                    {% for step in problematic_steps %}
+                        <th>
+                            <a href="#step_{{ step }}"> {{ step }}</a>
+                        </th>
+                    {% endfor %}
+                </tr>
+                {% for header, issues_steps in summary_report.items() %}
+                    <tr>
+                        <th> {{ header }}</th>
+                        {% for step in problematic_steps %}
+                            {% if step in issues_steps %}
+                                <td class="table-danger text-center">X</td>
+                            {% else %}
+                                <td></td>
                             {% endif %}
                         {% endfor %}
-                    </ul>
-                    </div>
-                </div>
-            </div>
+
+                    </tr>
+                {% endfor %}
+
+            </table>
         </div>
-        <div class="col-3 p-1">
-            <div class="card">
-                <div class="card-header">
-                    Steps with Warnings
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                    </div>
-                </div>
-            </div>
-        </div>
+
     </div>
 
     <div class="row">
@@ -94,7 +89,7 @@
             </div>
         </div>
         {% for rd_manager in rd_managers %}
-            <div class="col-2 p-1">
+            <div class="col-1 p-1">
                 <div class="card">
                     <div class="card-body">
                         <div class="mb-3">
@@ -121,7 +116,8 @@
             <div class="col-2 p-1">
                 <div class="card">
                     <div class="card-header">
-                        #{{ snapshot_index }}
+
+                        <a href="#step_{{ snapshot_index }}"> {{ snapshot_index }}</a>
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
@@ -190,65 +186,43 @@
                     <input type="hidden" id="{{ rd_manager.controller_mode }}_atf_annotated_{{ snapshot_index }}" value="false"/>
                 {% endif %}
             {% endfor %}
-            <div class="col-1 p-1">
-                <div class="card">
-                    <div class="card-header">
-                        Note
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            {% if snapshot_index != 'END' %}
-                                <ul>
-                                    {% for rd_manager in rd_managers %}
-                                        {% set problematic_steps = rd_manager.get_problematic_steps() %}
-                                        {% if "{}".format(snapshot_index) in problematic_steps %}
-                                            <li>
-                                                {{ rd_manager.controller_mode }} Issue(s):
-                                                <ul>
-                                                    {% for issue in problematic_steps["{}".format(snapshot_index)] %}
-                                                        <li>
-                                                            {{ issue }}
-                                                        </li>
-                                                    {% endfor %}
-                                                </ul>
-
-                                            </li>
-                                        {% endif %}
-                                    {% endfor %}
-                                </ul>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                    </div>
-                </div>
-            </div>
             <div class="col-2 p-1">
                 <div class="card">
                     <div class="card-header">
-                        User Review
+                        A11y Report
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col">
-
-                                {% set user_review_content = record_manager.get_user_review(snapshot_index) %}
-                                {% set user_review_content_str = user_review_content if user_review_content else "" %}
-                                {% if is_edit %}
-                                    <form action="{{ url_for('user_review', result_path=result_path,
-                                                app_name=app_name,
-                                                step=snapshot_index ) }}" id="user_review_form_{{ snapshot_index }}" method="POST">
-
-                                        <textarea id ="user_review_{{ snapshot_index }}" name="user_review_{{ snapshot_index }}">{{ user_review_content_str }}</textarea>
-                                        <button type="submit" class="btn btn-primary">Update</button>
-                                    </form>
-                                {% else %}
-                                    <div id="user_review_content_{{ snapshot_index }}">
-                                    </div>
-                                    <input type="hidden" id="user_review_value_{{ snapshot_index }}" value="{{ user_review_content_str }}">
-                                {% endif %}
+                                <div class="markdown-content">
+                                    <input type="hidden" value="{{ a11y_report_manager.get_a11y_report_md(snapshot_index) }}">
+                                </div>
                             </div>
                         </div>
+
+                        {% if is_edit %}
+                            <hr>
+                            <div class="row">
+                                <div class="col">
+
+                                    {% set user_review_content = record_manager.get_user_review(snapshot_index) %}
+                                    {% set user_review_content_str = user_review_content if user_review_content else "" %}
+
+                                        <form action="{{ url_for('user_review', result_path=result_path,
+                                                    app_name=app_name,
+                                                    step=snapshot_index ) }}" id="user_review_form_{{ snapshot_index }}" method="POST">
+
+                                            <textarea id ="user_review_{{ snapshot_index }}" name="user_review_{{ snapshot_index }}">{{ user_review_content_str }}</textarea>
+                                            <button type="submit" class="btn btn-primary">Update</button>
+                                        </form>
+
+                                </div>
+                            </div>
+                        {% endif %}
+
+
+                    </div>
+                    <div class="card-footer">
                     </div>
                 </div>
             </div>
@@ -262,14 +236,12 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         $(function () {
-            {% if not is_edit %}
-            $("[id*='user_review_content_']").each(function(index, element) {
-                let value_id = element.id.replace('_content_', '_value_')
-                let content_element = $(`input[id=${value_id}]`);
-                let content = content_element.val();
-                element.innerHTML = marked.parse(content);
+
+            $(".markdown-content > input").each(function(index, element) {
+                let content = element.value;
+                element.parentElement.innerHTML = marked.parse(content);
             });
-            {% endif %}
+
             $("[id*='user_review_form_']").submit(function(e) {
 
                 e.preventDefault(); // avoid to execute the actual submit of the form.

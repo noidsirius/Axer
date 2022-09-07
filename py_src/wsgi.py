@@ -16,7 +16,7 @@ from json2html import json2html
 from app import App
 from command import create_command_from_dict, LocatableCommand
 from consts import BLIND_MONKEY_EVENTS_TAG
-from data_utils import ReplayDataManager, RecordDataManager
+from data_utils import RecordDataManager, A11yReportManager
 from snapshot_search import SnapshotSearchManager, SnapshotSearchQuery
 
 sys.path.append(str(pathlib.Path(__file__).parent.resolve()))
@@ -604,19 +604,13 @@ def replay_report(result_path, app_name):
     if not (result_path.is_dir() and result_path.exists()):
         return "The result path is incorrect!"
     app = App(app_name=app_name, result_path=result_path)
-    record_manager = RecordDataManager(app=app)
-    rd_managers = []
-    for controller in ReplayDataManager.get_existing_controllers(app):
-        rd_manager = ReplayDataManager(app=app, controller_mode=controller)
-        rd_managers.append(rd_manager)
+    a11y_report_manager = A11yReportManager(app=app)
 
-    #  TODO: Add recorder steps as baseline
     return render_template('replay_report.html',
                            result_path=result_path_str,
                            app_name=app_name,
-                           record_manager=record_manager,
-                           is_edit=is_edit,
-                           rd_managers=rd_managers)
+                           a11y_report_manager=a11y_report_manager,
+                           is_edit=is_edit)
 
 
 @flask_app.route("/v2/<result_path>/app/<app_name>/snapshot/<snapshot_name>/report_sb")
