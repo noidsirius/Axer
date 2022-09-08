@@ -187,7 +187,8 @@ public final class FeatureSupport {
   // TODO: framework support onMagnificationChanged() for Window magnification at next
   // Android.
   public static boolean supportAnnounceMagnificationChanged() {
-    return BuildVersionUtils.isAtLeastN() && Build.VERSION.SDK_INT != VERSION_CODES.S;
+    return false;
+//    return BuildVersionUtils.isAtLeastN() && Build.VERSION.SDK_INT != VERSION_CODES.S;
   }
 
   public static boolean isBoundsScaledUpByMagnifier() {
@@ -266,10 +267,11 @@ public final class FeatureSupport {
   /** Returns true if the runtime supports full multi-finger gesture support. */
   @SuppressLint("NewApi")
   public static boolean isMultiFingerGestureSupported() {
-    return BuildVersionUtils.isAtLeastR()
-        && AccessibilityServiceInfo.flagToString(
-                AccessibilityServiceInfo.FLAG_REQUEST_2_FINGER_PASSTHROUGH)
-            != null;
+    return false;
+//    return BuildVersionUtils.isAtLeastR()
+//        && AccessibilityServiceInfo.flagToString(
+//                AccessibilityServiceInfo.FLAG_REQUEST_2_FINGER_PASSTHROUGH)
+//            != null;
   }
 
   /**
@@ -290,9 +292,10 @@ public final class FeatureSupport {
 
   /** Returns {@code true} if the device supports sending motion events of gestures. */
   public static boolean supportGestureMotionEvents() {
-    return BuildVersionUtils.isAtLeastS()
-        && AccessibilityServiceInfo.flagToString(AccessibilityServiceInfo.FLAG_SEND_MOTION_EVENTS)
-            != null;
+    return false;
+//    return BuildVersionUtils.isAtLeastS()
+//        && AccessibilityServiceInfo.flagToString(AccessibilityServiceInfo.FLAG_SEND_MOTION_EVENTS)
+//            != null;
   }
 
   /** Returns {@code true} if the device supports long version code. */

@@ -20,12 +20,12 @@ tasks.withType(Test) {
 
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 30
     buildToolsVersion "29.0.3"
 
     defaultConfig {
         minSdkVersion 28
-        targetSdkVersion 31
+        targetSdkVersion 30
         versionCode 1
         versionName "1.0"
 
@@ -57,10 +57,10 @@ dependencies {
 //    implementation project(path: ':utils')
     implementation 'com.google.android.apps.common.testing.accessibility.framework:accessibility-test-framework:4.0.0'
     implementation 'androidx.recyclerview:recyclerview:1.2.1'
-    implementation 'androidx.appcompat:appcompat:1.3.1'
+    implementation 'androidx.appcompat:appcompat:1.2.0'
     testImplementation 'junit:junit:4.12'
     testImplementation "org.mockito:mockito-core:4.6.1"
-    implementation 'com.google.guava:guava:31.0-jre'
+    implementation 'com.google.guava:guava:24.1-jre'
     implementation (group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1') {
         exclude group: 'junit', module: 'junit'
     }
