@@ -1,4 +1,4 @@
 include ':UseCaseExecutor'
 include ':app'
 rootProject.name = "Latte"
-include ':utils'
+//include ':utils'

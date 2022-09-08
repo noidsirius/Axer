@@ -9,12 +9,12 @@ import android.view.accessibility.AccessibilityNodeInfo;
 
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 
-import com.google.android.accessibility.utils.AccessibilityNodeInfoUtils;
-import com.google.android.accessibility.utils.Filter;
-import com.google.android.accessibility.utils.traversal.OrderedTraversalController;
-import com.google.android.accessibility.utils.traversal.OrderedTraversalStrategy;
-import com.google.android.accessibility.utils.traversal.TraversalStrategy;
-import com.google.android.accessibility.utils.traversal.TraversalStrategyUtils;
+//import com.google.android.accessibility.utils.AccessibilityNodeInfoUtils;
+//import com.google.android.accessibility.utils.Filter;
+//import com.google.android.accessibility.utils.traversal.OrderedTraversalController;
+//import com.google.android.accessibility.utils.traversal.OrderedTraversalStrategy;
+//import com.google.android.accessibility.utils.traversal.TraversalStrategy;
+//import com.google.android.accessibility.utils.traversal.TraversalStrategyUtils;
 import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckPreset;
 import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckResult;
 import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckResultUtils;
@@ -44,6 +44,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import dev.navids.latte.TalkBackUtils.AccessibilityNodeInfoUtils;
+import dev.navids.latte.TalkBackUtils.Filter;
+import dev.navids.latte.TalkBackUtils.OrderedTraversalStrategy;
+import dev.navids.latte.TalkBackUtils.TraversalStrategy;
+import dev.navids.latte.TalkBackUtils.TraversalStrategyUtils;
 import dev.navids.latte.UseCase.RegularStepExecutor;
 import dev.navids.latte.UseCase.SightedTalkBackStepExecutor;
 import dev.navids.latte.UseCase.StepExecutor;
