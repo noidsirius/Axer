@@ -20,7 +20,7 @@ from consts import TB_NAVIGATE_TIMEOUT, DEVICE_NAME, ADB_HOST, ADB_PORT
 from controller import TalkBackTouchController
 from genymotion_utils import create_instance, stop_instances
 from latte_executor_utils import talkback_tree_nodes, latte_capture_layout, \
-    FINAL_ACITON_FILE, report_atf_issues
+    FINAL_ACITON_FILE, report_atf_issues, report_tb_focusables
 from latte_utils import is_latte_live
 from padb_utils import ParallelADBLogger, save_screenshot
 from results_utils import AddressBook
@@ -186,6 +186,10 @@ async def execute_latte_command(device: DeviceAsync, command: str, extra: str):
         _, layout = await padb_logger.execute_async_with_log(latte_capture_layout(device_name=device.serial))
         with smart__write_open(extra) as f:
             print(layout, file=f)
+    if command == "report_tb_nodes":
+        nodes = await report_tb_focusables(device_name=device.serial)
+        with smart__write_open(extra) as f:
+            print("\n".join(node.toJSONStr() for node in nodes), file=f)
     if command == "is_live":
         logger.info(f"Is Latte live? {await is_latte_live(device_name=device.serial)}")
     if command == 'report_atf_issues':

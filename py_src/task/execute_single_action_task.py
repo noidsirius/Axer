@@ -1,13 +1,15 @@
 import json
 import logging
+from typing import List
 
 from ppadb.device_async import DeviceAsync
 
+from GUI_utils import Node
 from command import LocatableCommandResponse, Command, LocatableCommand, create_command_response_from_dict, \
     CommandResponse, ClickCommand, SelectCommand
 from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG
 from controller import Controller, TalkBackDirectionalController
-from latte_executor_utils import report_atf_issues
+from latte_executor_utils import report_atf_issues, report_tb_focusables
 from padb_utils import ParallelADBLogger
 from results_utils import capture_current_state
 from snapshot import Snapshot, DeviceSnapshot
@@ -34,6 +36,12 @@ class ExecuteSingleActionTask(SnapshotTask):
             for issue in atf_issues:
                 f.write(json.dumps(issue) + "\n")
 
+    async def write_TB_focusable_nodes(self, focusable_nodes: List[Node]):
+        logger.info(f"There are {len(focusable_nodes)} focusable nodes in this screen!")
+        with open(self.snapshot.address_book.execute_single_action_tb_focusables_path, "w") as f:
+            for node in focusable_nodes:
+                f.write(node.toJSONStr() + "\n")
+
     async def execute(self):
         self.snapshot.address_book.initiate_execute_single_action_task()
         result = {
@@ -41,6 +49,8 @@ class ExecuteSingleActionTask(SnapshotTask):
             'command': self.command.toJSON(),
             'response': create_command_response_from_dict(self.command, result={}).toJSON(),
         }
+        focusable_nodes = await report_tb_focusables(device_name=self.device.serial)
+        await self.write_TB_focusable_nodes(focusable_nodes)
         await self.write_ATF_issues()
         tags = [BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG]
         if isinstance(self.controller, TalkBackDirectionalController) and isinstance(self.command, ClickCommand):

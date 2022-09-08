@@ -122,6 +122,15 @@ class ReplayDataManager:
                 snapshots.append(self.app.get_snapshot(snapshot_info['snapshot_name']))
         return snapshots
 
+    async def async_get_snapshots(self) -> List[Snapshot]:
+        self.app.update_snapshots()
+        snapshots = []
+        with open(self.replay_usecase_report_path) as f:
+            for line in f:
+                snapshot_info = json.loads(line)
+                snapshots.append(await self.app.async_get_snapshot(snapshot_info['snapshot_name']))
+        return snapshots
+
     def get_atf_problems(self, step: str) -> List[dict]:
         snapshot = self.app.get_snapshot(name=f"{self.controller_mode}.S_{step}")
         result = []

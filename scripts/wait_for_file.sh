@@ -1,7 +1,7 @@
 #!/bin/bash
 search_file=$1
 VERBOSE=${2-"0"}
-while ! ./android_file_exists.sh $search_file ;
+while ! $LATTE_PATH/scripts/android_file_exists.sh $search_file ;
 do
   if [[ $VERBOSE == 1 ]]; then
     echo "Wait...";

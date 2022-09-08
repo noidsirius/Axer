@@ -6,6 +6,7 @@ from typing import List
 
 import xmlformatter
 
+from GUI_utils import Node
 from a11y_service import A11yServiceManager
 from adb_utils import read_local_android_file
 from consts import LAYOUT_TIMEOUT_TIME, \
@@ -19,6 +20,7 @@ FINAL_ACITON_FILE = "finish_nav_action.txt"
 CUSTOM_STEP_RESULT = "custom_step_result.txt"
 LAYOUT_FILE_PATH = "a11y_layout.xml"
 ATF_ISSUES_FILE_PATH = "aft_a11y_issues.jsonl"
+TB_FOCUSABLE_NODES_FILE_PATH = "tb_focusables.jsonl"
 formatter = xmlformatter.Formatter(indent="1", indent_char="\t", encoding_output="UTF-8", preserve=["literal"])
 
 
@@ -66,6 +68,28 @@ async def report_atf_issues(device_name: str = DEVICE_NAME) -> List:
             issues.append(json.loads(line))
 
     return issues
+
+
+async def report_tb_focusables(device_name: str = DEVICE_NAME) -> List[Node]:
+    report_jsonl = None
+    for i in range(3):
+        logger.debug(f"Reporting TalkBack Focusable Nodes, Try: {i}")
+        await A11yServiceManager.enable('latte', device_name=device_name)
+        await send_command_to_latte("report_tb_nodes", device_name=device_name)
+        report_jsonl = await read_local_android_file(TB_FOCUSABLE_NODES_FILE_PATH,
+                                                     wait_time=LAYOUT_TIMEOUT_TIME,
+                                                     device_name=device_name)
+        if report_jsonl:
+            break
+    if report_jsonl is None:
+        logger.error(f"Timeout for reporting TB Focusable Nodes.")
+        return []
+    nodes = []
+    for line in report_jsonl.split("\n"):
+        if line:
+            nodes.append(Node.createNodeFromDict(json.loads(line)))
+
+    return nodes
 
 
 async def talkback_tree_nodes(padb_logger: ParallelADBLogger,
