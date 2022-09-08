@@ -5,17 +5,16 @@ from typing import List
 from ppadb.device_async import DeviceAsync
 
 from GUI_utils import Node
-from command import LocatableCommandResponse, Command, LocatableCommand, create_command_response_from_dict, \
+from command import LocatableCommandResponse, Command, create_command_response_from_dict, \
     CommandResponse, ClickCommand, SelectCommand
 from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG
-from controller import Controller, TalkBackDirectionalController
+from controller import Controller, TalkBackDirectionalController, TouchController
 from latte_executor_utils import report_atf_issues, report_tb_focusables
 from padb_utils import ParallelADBLogger
 from results_utils import capture_current_state
 from snapshot import Snapshot, DeviceSnapshot
 from task.snapshot_task import SnapshotTask
 from task.talkback_explore_task import TalkBackExploreTask
-from utils import annotate_elements
 
 logger = logging.getLogger(__name__)
 
@@ -103,3 +102,10 @@ class ExecuteSingleActionTask(SnapshotTask):
         result['response'] = action_response.toJSON()
         with open(self.snapshot.address_book.execute_single_action_results_path, "w") as f:
             f.write(f"{json.dumps(result)}\n")
+
+        # Fallback mechanism
+        if action_response.state != 'COMPLETED':
+            logger.info("Since the action could not be performed correctly, we redo it with TouchController")
+            touch_controller = TouchController(device_name=self.device.serial)
+            await touch_controller.setup()
+            await self.controller.execute(self.command)
