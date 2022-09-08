@@ -15,6 +15,7 @@ jacoco {
 
 tasks.withType(Test) {
     jacoco.includeNoLocationClasses = true
+    jacoco.excludes = ['jdk.internal.*']
 }
 
 
@@ -23,7 +24,7 @@ android {
     buildToolsVersion "29.0.3"
 
     defaultConfig {
-        minSdkVersion 26
+        minSdkVersion 28
         targetSdkVersion 30
         versionCode 1
         versionName "1.0"
@@ -52,8 +53,10 @@ android {
 }
 
 dependencies {
-    implementation fileTree(dir: "libs", include: ["*.jar"])
+//    implementation fileTree(dir: "libs", include: ["*.aar"])
+//    implementation project(path: ':utils')
     implementation 'com.google.android.apps.common.testing.accessibility.framework:accessibility-test-framework:3.1'
+//    implementation 'androidx.recyclerview:recyclerview:1.2.1'
     implementation 'androidx.appcompat:appcompat:1.2.0'
     testImplementation 'junit:junit:4.12'
     testImplementation "org.mockito:mockito-core:4.6.1"
@@ -63,6 +66,11 @@ dependencies {
     }
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
+
+    // Auto-value
+    implementation 'com.google.auto.value:auto-value-annotations:1.8.2'
+    annotationProcessor 'com.google.auto.value:auto-value:1.8.2'
+    implementation 'javax.annotation:javax.annotation-api:1.3.2'
 
 }
 task wrapper(type: Wrapper){

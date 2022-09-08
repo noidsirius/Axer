@@ -614,6 +614,10 @@ class AddressBook:
         self.execute_single_action_results_path = self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION].joinpath("result.jsonl")
         self.execute_single_action_atf_issues_path = self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION].joinpath(
             "atf_elements.jsonl")
+        self.execute_single_action_tb_focusables_path = self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION].joinpath(
+            "tb_focusables.jsonl")
+        self.execute_single_action_tb_focusables_gif_path = self.audit_path_map[AddressBook.EXECUTE_SINGLE_ACTION].joinpath(
+            "tb_focusables.gif")
         # ---------------------------------------------------
         # TODO: Needs to find a more elegant solution
         navigate_modes = [AddressBook.BASE_MODE, "tb_touch", "touch", "a11y_api", "tb_dir"]

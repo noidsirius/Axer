@@ -7,6 +7,8 @@ import android.util.Log;
 import android.util.Xml;
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
+
 import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckPreset;
 import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckResult;
 import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckResultUtils;
@@ -36,6 +38,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import dev.navids.latte.TalkBackUtils.AccessibilityNodeInfoUtils;
+import dev.navids.latte.TalkBackUtils.Filter;
+import dev.navids.latte.TalkBackUtils.OrderedTraversalStrategy;
+import dev.navids.latte.TalkBackUtils.TraversalStrategy;
+import dev.navids.latte.TalkBackUtils.TraversalStrategyUtils;
 import dev.navids.latte.UseCase.RegularStepExecutor;
 import dev.navids.latte.UseCase.SightedTalkBackStepExecutor;
 import dev.navids.latte.UseCase.StepExecutor;
@@ -57,6 +64,45 @@ public class MessageReceiver extends BroadcastReceiver {
         // ----------- General ----------------
         messageEventMap.put("is_live", (extra) -> Utils.createFile(String.format(Config.v().IS_LIVE_FILE_PATH_PATTERN, extra), "I'm alive " + extra));
         messageEventMap.put("log", (extra) -> Utils.getAllA11yNodeInfo(true));
+        messageEventMap.put("report_tb_nodes", (extra) -> {
+           Log.i(LatteService.TAG, "I'm reporting TalkBack Focusable Nodes!");
+           // Logs the ordered list of focusable nodes in TalkBack
+            AccessibilityNodeInfo rootInActiveWindow = LatteService.getInstance().getRootInActiveWindow();
+            if (rootInActiveWindow != null) {
+                List<AccessibilityNodeInfoCompat> talkbackFocusableNodes = new ArrayList<>();
+                AccessibilityNodeInfoCompat rootInfoCompat = AccessibilityNodeInfoCompat.wrap(rootInActiveWindow);
+                OrderedTraversalStrategy orderedTraversalStrategy = new OrderedTraversalStrategy(rootInfoCompat);
+                Filter<AccessibilityNodeInfoCompat> focusNodeFilter =
+                        AccessibilityNodeInfoUtils.FILTER_SHOULD_FOCUS;
+                AccessibilityNodeInfoCompat firstNode = TraversalStrategyUtils.findInitialFocusInNodeTree(orderedTraversalStrategy,rootInfoCompat, TraversalStrategy.SEARCH_FOCUS_FORWARD, focusNodeFilter);
+                talkbackFocusableNodes.add(firstNode);
+                Log.i(LatteService.TAG, "First Node: " + firstNode);
+                AccessibilityNodeInfoCompat iterNode = TraversalStrategyUtils.searchFocus(orderedTraversalStrategy, firstNode, TraversalStrategy.SEARCH_FOCUS_FORWARD, focusNodeFilter);
+                Log.i(LatteService.TAG, "Iteration:");
+                while(iterNode != null){
+                    boolean shouldFocusNode = AccessibilityNodeInfoUtils.shouldFocusNode(iterNode);
+                    Log.i(LatteService.TAG, "\t" + shouldFocusNode + " " + iterNode);
+                    talkbackFocusableNodes.add(iterNode);
+                    iterNode = TraversalStrategyUtils.searchFocus(orderedTraversalStrategy, iterNode, TraversalStrategy.SEARCH_FOCUS_FORWARD, focusNodeFilter);
+
+                }
+                Log.i(LatteService.TAG, "After Iteration");
+                StringBuilder report_jsonl = new StringBuilder();
+                for (AccessibilityNodeInfoCompat nodeCompat : talkbackFocusableNodes) {
+                    if (nodeCompat == null)
+                        continue;
+                    AccessibilityNodeInfo nodeInfo = nodeCompat.unwrap();
+                    ActualWidgetInfo widgetInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo);
+                    if (widgetInfo == null)
+                        continue;
+                    JSONObject jsonCommand = widgetInfo.getJSONCommand("", false, "");
+                    String jsonCommandStr = jsonCommand != null ? jsonCommand.toJSONString() : "Error";
+                    report_jsonl.append(jsonCommandStr).append("\n");
+                }
+                Utils.createFile(Config.v().TB_FOCUSABLE_NODES_FILE_PATH, report_jsonl.toString());
+            }
+            Log.i(LatteService.TAG, "I'm reporting TalkBack Focusable Nodes!");
+        });
         messageEventMap.put("invisible_nodes", (extra) -> LatteService.considerInvisibleNodes = (extra.equals("true")));
         messageEventMap.put("report_a11y_issues", (extra) -> {
             Context context2 = LatteService.getInstance().getApplicationContext();
