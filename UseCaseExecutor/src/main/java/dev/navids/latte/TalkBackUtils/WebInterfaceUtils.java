@@ -30,7 +30,7 @@ import dev.navids.latte.TalkBackUtils.Performance.EventId;
 //import com.google.android.accessibility.utils.traversal.TraversalStrategy;
 import dev.navids.latte.TalkBackUtils.TraversalStrategy.SearchDirectionOrUnknown;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -201,7 +201,7 @@ public class WebInterfaceUtils {
    * @param node The node containing supported html elements
    * @return supported html elements
    */
-  public static String @Nullable [] getSupportedHtmlElements(AccessibilityNodeInfoCompat node) {
+  public static String  [] getSupportedHtmlElements(AccessibilityNodeInfoCompat node) {
     SupportedHtmlNodeCollector supportedHtmlNodeCollector = new SupportedHtmlNodeCollector();
     AccessibilityNodeInfoUtils.isOrHasMatchingAncestor(node, supportedHtmlNodeCollector);
     if ((supportedHtmlNodeCollector.getSupportedTypes() == null)
@@ -325,7 +325,7 @@ public class WebInterfaceUtils {
    * WebView container, we prefer the root node instead of the second level node, because attributes
    * like isVisibleToUser() sometimes are not correctly exposed at second level WebView node.
    */
-  public static @Nullable AccessibilityNodeInfoCompat ascendToWebViewContainer(
+  public static  AccessibilityNodeInfoCompat ascendToWebViewContainer(
       AccessibilityNodeInfoCompat node) {
     if (!WebInterfaceUtils.supportsWebActions(node)) {
       return null;
@@ -334,7 +334,7 @@ public class WebInterfaceUtils {
   }
 
   /** Returns the closest ancestor(inclusive) WebView node if the {@code node} is a web element. */
-  public static @Nullable AccessibilityNodeInfoCompat ascendToWebView(
+  public static  AccessibilityNodeInfoCompat ascendToWebView(
       AccessibilityNodeInfoCompat node) {
     if (!WebInterfaceUtils.supportsWebActions(node)) {
       return null;
@@ -411,7 +411,7 @@ public class WebInterfaceUtils {
   }
 
   /** Check if node is web container */
-  public static boolean isWebContainer(@Nullable AccessibilityNodeInfoCompat node) {
+  public static boolean isWebContainer( AccessibilityNodeInfoCompat node) {
     if (node == null) {
       return false;
     }

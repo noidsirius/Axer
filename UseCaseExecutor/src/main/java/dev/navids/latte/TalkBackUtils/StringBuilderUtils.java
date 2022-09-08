@@ -19,7 +19,7 @@ package dev.navids.latte.TalkBackUtils;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -58,17 +58,17 @@ public class StringBuilderUtils {
   }
 
   /** Return labeled field-value, only if field-value is not null. */
-  public static String optionalField(String fieldName, @Nullable Object fieldValue) {
+  public static String optionalField(String fieldName,  Object fieldValue) {
     return (fieldValue == null) ? "" : String.format("%s=%s", fieldName, fieldValue.toString());
   }
 
   /** Return labeled delimited field-value, only if field-value is not null. */
-  public static String optionalSubObj(String fieldName, @Nullable Object fieldValue) {
+  public static String optionalSubObj(String fieldName,  Object fieldValue) {
     return (fieldValue == null) ? "" : String.format("%s= %s", fieldName, fieldValue.toString());
   }
 
   /** Return labeled quoted field-value, only if field-value is not null. */
-  public static String optionalText(String fieldName, @Nullable CharSequence fieldValue) {
+  public static String optionalText(String fieldName,  CharSequence fieldValue) {
     return (fieldValue == null) ? "" : String.format("%s=\"%s\"", fieldName, fieldValue);
   }
 
@@ -117,7 +117,7 @@ public class StringBuilderUtils {
    * @param textList The list of text to process.
    * @return The separated aggregate text, or null if no text was appended.
    */
-  public static @Nullable CharSequence getAggregateText(List<CharSequence> textList) {
+  public static  CharSequence getAggregateText(List<CharSequence> textList) {
     if (textList == null || textList.isEmpty()) {
       return null;
     } else {
@@ -226,7 +226,7 @@ public class StringBuilderUtils {
    * @param bytes The byte array of data to convert
    * @return The hex encoding of {@code bytes}, or null if {@code bytes} was null
    */
-  public static @Nullable String bytesToHexString(byte[] bytes) {
+  public static  String bytesToHexString(byte[] bytes) {
     if (bytes == null) {
       return null;
     }

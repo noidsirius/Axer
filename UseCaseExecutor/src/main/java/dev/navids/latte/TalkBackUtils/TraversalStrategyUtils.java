@@ -19,7 +19,7 @@ import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 //import com.google.android.accessibility.utils.traversal.DirectionalTraversalStrategy;
 //import com.google.android.libraries.accessibility.utils.log.LogUtils;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -38,7 +38,7 @@ public class TraversalStrategyUtils {
    * @deprecated Accessibility is discontinuing recycling.
    */
   @Deprecated
-  public static void recycle(@Nullable TraversalStrategy traversalStrategy) {}
+  public static void recycle( TraversalStrategy traversalStrategy) {}
 
 //  /**
 //   * Depending on whether the direction is spatial or logical, returns the appropriate traversal
@@ -229,7 +229,7 @@ public class TraversalStrategyUtils {
       AccessibilityNodeInfoCompat pivot,
       boolean ignoreDescendantsOfPivot,
       @TraversalStrategy.SearchDirection int direction,
-      @Nullable Filter<AccessibilityNodeInfoCompat> filter,
+       Filter<AccessibilityNodeInfoCompat> filter,
       TraversalStrategy traversalStrategy) {
     if (pivot == null) {
       return false;
@@ -273,7 +273,7 @@ public class TraversalStrategyUtils {
    */
   public static boolean isAutoScrollEdgeListItem(
       AccessibilityNodeInfoCompat pivot,
-      @Nullable AccessibilityNodeInfoCompat scrollableNode,
+       AccessibilityNodeInfoCompat scrollableNode,
       boolean ignoreDescendantsOfPivot,
       int direction,
       TraversalStrategy traversalStrategy) {
@@ -394,7 +394,7 @@ public class TraversalStrategyUtils {
    * @param filter - filters focused node candidate
    * @return node that could be focused next
    */
-  public static @Nullable AccessibilityNodeInfoCompat searchFocus(
+  public static  AccessibilityNodeInfoCompat searchFocus(
       TraversalStrategy traversal,
       AccessibilityNodeInfoCompat currentFocus,
       @TraversalStrategy.SearchDirection int direction,
@@ -425,7 +425,7 @@ public class TraversalStrategyUtils {
     return targetNode;
   }
 
-  public static @Nullable AccessibilityNodeInfoCompat findInitialFocusInNodeTree(
+  public static  AccessibilityNodeInfoCompat findInitialFocusInNodeTree(
       TraversalStrategy traversalStrategy,
       AccessibilityNodeInfoCompat root,
       @TraversalStrategy.SearchDirection int direction,

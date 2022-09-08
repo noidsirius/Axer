@@ -30,7 +30,7 @@ import androidx.annotation.VisibleForTesting;
 //import com.google.android.accessibility.utils.AccessibilityServiceCompatUtils;
 //import com.google.android.libraries.accessibility.utils.log.LogUtils;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -108,7 +108,7 @@ public class Performance {
     "EVENT_TYPE_FINGERPRINT_GESTURE"
   };
 
-  public static final @Nullable EventId EVENT_ID_UNTRACKED = null;
+  public static final  EventId EVENT_ID_UNTRACKED = null;
 
   /////////////////////////////////////////////////////////////////////////////////////////////
   // Member data
@@ -527,7 +527,7 @@ public class Performance {
     }
   }
 
-  protected @Nullable EventData popOldestRecentEvent() {
+  protected  EventData popOldestRecentEvent() {
     synchronized (mLockRecentEvents) {
       if (mEventQueue.size() == 0) {
         return null;
@@ -780,7 +780,7 @@ public class Performance {
     }
 
     @Override
-    public boolean equals(@Nullable Object otherObj) {
+    public boolean equals( Object otherObj) {
       if (this == otherObj) {
         return true;
       }
@@ -930,7 +930,7 @@ public class Performance {
     }
 
     @Override
-    public boolean equals(@Nullable Object otherObj) {
+    public boolean equals( Object otherObj) {
       if (!(otherObj instanceof StatisticsKey)) {
         return false;
       }
@@ -1091,9 +1091,9 @@ public class Performance {
   /** A message object with a corresponding EventId, for use by deferred event handlers. */
   public static class EventIdAnd<T> {
     public final T object;
-    public final @Nullable EventId eventId;
+    public final  EventId eventId;
 
-    public EventIdAnd(T objectArg, @Nullable EventId eventIdArg) {
+    public EventIdAnd(T objectArg,  EventId eventIdArg) {
       object = objectArg;
       eventId = eventIdArg;
     }

@@ -20,7 +20,7 @@ import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 
 //import com.google.android.libraries.accessibility.utils.log.LogUtils;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -33,10 +33,10 @@ public class WorkingTree {
   private static final String TAG = "WorkingTree";
 
   private AccessibilityNodeInfoCompat mNode;
-  private @Nullable WorkingTree mParent;
+  private  WorkingTree mParent;
   private final List<WorkingTree> mChildren = new ArrayList<>();
 
-  public WorkingTree(AccessibilityNodeInfoCompat node, @Nullable WorkingTree parent) {
+  public WorkingTree(AccessibilityNodeInfoCompat node,  WorkingTree parent) {
     mNode = node;
     mParent = parent;
   }
@@ -45,11 +45,11 @@ public class WorkingTree {
     return mNode;
   }
 
-  public @Nullable WorkingTree getParent() {
+  public  WorkingTree getParent() {
     return mParent;
   }
 
-  public void setParent(@Nullable WorkingTree parent) {
+  public void setParent( WorkingTree parent) {
     mParent = parent;
   }
 
@@ -62,7 +62,7 @@ public class WorkingTree {
   }
 
   /** Checks whether subTree is a descendant of this WorkingTree node. */
-  public boolean hasDescendant(@Nullable WorkingTree tree) {
+  public boolean hasDescendant( WorkingTree tree) {
 
     if (ancestorsHaveLoop()) {
       LogUtils.w(TAG, "Looped ancestors line");
@@ -110,7 +110,7 @@ public class WorkingTree {
     mChildren.set(position, newChild);
   }
 
-  public @Nullable WorkingTree getNext() {
+  public  WorkingTree getNext() {
     if (!mChildren.isEmpty()) {
       return mChildren.get(0);
     }
@@ -128,7 +128,7 @@ public class WorkingTree {
     return null;
   }
 
-  public @Nullable WorkingTree getNextSibling() {
+  public  WorkingTree getNextSibling() {
     WorkingTree parent = getParent();
     if (parent == null) {
       return null;
@@ -150,7 +150,7 @@ public class WorkingTree {
     return parent.mChildren.get(currentIndex);
   }
 
-  public @Nullable WorkingTree getPrevious() {
+  public  WorkingTree getPrevious() {
     WorkingTree previousSibling = getPreviousSibling();
     if (previousSibling != null) {
       return previousSibling.getLastNode();
@@ -159,7 +159,7 @@ public class WorkingTree {
     return getParent();
   }
 
-  public @Nullable WorkingTree getPreviousSibling() {
+  public  WorkingTree getPreviousSibling() {
     WorkingTree parent = getParent();
     if (parent == null) {
       return null;

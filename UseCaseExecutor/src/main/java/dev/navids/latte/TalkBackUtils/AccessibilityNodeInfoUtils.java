@@ -71,8 +71,8 @@ import com.google.common.base.Strings;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
+//import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -113,7 +113,7 @@ public class AccessibilityNodeInfoUtils {
   // TODO: When androidx support library is available, change all node.getText() to use
   // AccessibilityNodeInfoCompat.getText() via this wrapper.
   /** Returns text from an accessibility-node, including spans. */
-  public static @Nullable CharSequence getText(@Nullable AccessibilityNodeInfoCompat node) {
+  public static  CharSequence getText( AccessibilityNodeInfoCompat node) {
     return (node == null) ? null : node.getText();
   }
 
@@ -156,8 +156,8 @@ public class AccessibilityNodeInfoUtils {
    *     responsibility to recycle nodeInfo.
    * @return Encapsulating AccessibilityNodeInfoCompat, or null if input is null.
    */
-  public static @PolyNull AccessibilityNodeInfoCompat toCompat(
-      @PolyNull AccessibilityNodeInfo nodeInfo) {
+  public static  AccessibilityNodeInfoCompat toCompat(
+       AccessibilityNodeInfo nodeInfo) {
     if (nodeInfo == null) {
       return null;
     }
@@ -367,7 +367,7 @@ public class AccessibilityNodeInfoUtils {
    * <p>Accepts the following classes (and sub-classes thereof):
    *
    * <ul>
-   *   <li>{@link androidx.recyclerview.widget.RecyclerView} (Should be classified as a List or Grid.)
+   *   <li> androidx.recyclerview.widget.RecyclerView} (Should be classified as a List or Grid.)
    *   <li>{@link android.widget.AbsListView} (including both ListView and GridView)
    *   <li>{@link android.widget.AbsSpinner}
    *   <li>{@link android.widget.ScrollView}
@@ -419,7 +419,7 @@ public class AccessibilityNodeInfoUtils {
    * @param node The node.
    * @return The node text.
    */
-  public static @Nullable CharSequence getNodeText(@Nullable AccessibilityNodeInfoCompat node) {
+  public static  CharSequence getNodeText( AccessibilityNodeInfoCompat node) {
     if (node == null) {
       return null;
     }
@@ -432,7 +432,7 @@ public class AccessibilityNodeInfoUtils {
       return contentDescription;
     }
 
-    final @Nullable CharSequence text = AccessibilityNodeInfoUtils.getText(node);
+    final  CharSequence text = AccessibilityNodeInfoUtils.getText(node);
     if (!TextUtils.isEmpty(text) && (TextUtils.getTrimmedLength(text) > 0)) {
       return text;
     }
@@ -446,15 +446,15 @@ public class AccessibilityNodeInfoUtils {
    * @param node The node.
    * @return The node state description.
    */
-  public static @Nullable CharSequence getState(@Nullable AccessibilityNodeInfoCompat node) {
+  public static  CharSequence getState( AccessibilityNodeInfoCompat node) {
     if (node == null) {
       return null;
     }
 
-    final CharSequence state = node.getStateDescription();
-    if (!TextUtils.isEmpty(state) && (TextUtils.getTrimmedLength(state) > 0)) {
-      return state;
-    }
+//    final CharSequence state = node.getStateDescription();
+//    if (!TextUtils.isEmpty(state) && (TextUtils.getTrimmedLength(state) > 0)) {
+//      return state;
+//    }
 
     return null;
   }
@@ -465,8 +465,8 @@ public class AccessibilityNodeInfoUtils {
    * @param node The node.
    * @return The selected node text.
    */
-  public static @Nullable CharSequence getSelectedNodeText(
-      @Nullable AccessibilityNodeInfoCompat node) {
+  public static  CharSequence getSelectedNodeText(
+       AccessibilityNodeInfoCompat node) {
     if (node == null) {
       return null;
     }
@@ -485,7 +485,7 @@ public class AccessibilityNodeInfoUtils {
 
   /** Returns a sub-string or empty-string, without crashing on invalid subsequence range. */
   public static CharSequence subsequenceSafe(
-      @Nullable CharSequence text, int startIndex, int endIndex) {
+       CharSequence text, int startIndex, int endIndex) {
     if (text == null) {
       return "";
     }
@@ -542,7 +542,7 @@ public class AccessibilityNodeInfoUtils {
    * @param node The node
    * @return Readable text of the view Id
    */
-  public static @Nullable String getViewIdText(AccessibilityNodeInfoCompat node) {
+  public static  String getViewIdText(AccessibilityNodeInfoCompat node) {
     if (node == null) {
       return null;
     }
@@ -562,7 +562,7 @@ public class AccessibilityNodeInfoUtils {
     return parsedResourceName[1].replace('_', ' '); // readable View ID text
   }
 
-  public static @Nullable CharSequence getSelectedPageTitle(AccessibilityNodeInfoCompat viewPager) {
+  public static  CharSequence getSelectedPageTitle(AccessibilityNodeInfoCompat viewPager) {
     if ((viewPager == null) || (Role.getRole(viewPager) != Role.ROLE_PAGER)) {
       return null;
     }
@@ -611,7 +611,7 @@ public class AccessibilityNodeInfoUtils {
   }
 
   /** Returns the root node of the tree containing {@code node}. */
-  public static @Nullable AccessibilityNodeInfoCompat getRoot(AccessibilityNodeInfoCompat node) {
+  public static  AccessibilityNodeInfoCompat getRoot(AccessibilityNodeInfoCompat node) {
     if (node == null) {
       return null;
     }
@@ -674,7 +674,7 @@ public class AccessibilityNodeInfoUtils {
   }
 
   /** Wrapper for AccessibilityNodeInfoCompat.getWindow() that handles SecurityException. */
-  public static @Nullable AccessibilityWindowInfoCompat getWindow(
+  public static  AccessibilityWindowInfoCompat getWindow(
       AccessibilityNodeInfoCompat node) {
     // This implementation is redundant with getWindow(AccessibilityNodeInfo) because there are no
     // un/wrap() functions for AccessibilityWindowInfoCompat.
@@ -691,7 +691,7 @@ public class AccessibilityNodeInfoUtils {
     }
   }
 
-  public static @Nullable AccessibilityWindowInfo getWindow(AccessibilityNodeInfo node) {
+  public static  AccessibilityWindowInfo getWindow(AccessibilityNodeInfo node) {
     if (node == null) {
       return null;
     }
@@ -870,7 +870,7 @@ public class AccessibilityNodeInfoUtils {
 
   private static void logShouldFocusNode(
       boolean checkChildren,
-      @DiagnosticType @Nullable Integer diagnosticType,
+      @DiagnosticType  Integer diagnosticType,
       String message,
       AccessibilityNodeInfoCompat node) {
     // When shouldFocusNode calls itself, the logs get inundated by unnecessary info about the
@@ -1150,7 +1150,7 @@ public class AccessibilityNodeInfoUtils {
    *   <li>{@link AccessibilityNodeInfoCompat#ACTION_FOCUS}
    * </ul>
    */
-  public static boolean isFocusable(@Nullable AccessibilityNodeInfoCompat node) {
+  public static boolean isFocusable( AccessibilityNodeInfoCompat node) {
     return node != null
         && (node.isFocusable()
             || supportsAnyAction(node, AccessibilityNodeInfoCompat.ACTION_FOCUS));
@@ -1225,7 +1225,7 @@ public class AccessibilityNodeInfoUtils {
    * @return {@code true} if one of the node's ancestors is scrollable.
    */
   public static boolean hasMatchingAncestor(
-      @Nullable AccessibilityNodeInfoCompat node, Filter<AccessibilityNodeInfoCompat> filter) {
+       AccessibilityNodeInfoCompat node, Filter<AccessibilityNodeInfoCompat> filter) {
     if (node == null) {
       return false;
     }
@@ -1301,7 +1301,7 @@ public class AccessibilityNodeInfoUtils {
   }
 
   /** Returns depth of node in node-tree, where root has depth=0. */
-  public static int findDepth(@Nullable AccessibilityNodeInfoCompat node) {
+  public static int findDepth( AccessibilityNodeInfoCompat node) {
     if (node == null) {
       return -1;
     }
@@ -1322,7 +1322,7 @@ public class AccessibilityNodeInfoUtils {
 
   /** Applies filter to ancestor nodes. */
   public static void processSelfAndAncestors(
-      @Nullable AccessibilityNodeInfoCompat node, Filter<AccessibilityNodeInfoCompat> filter) {
+       AccessibilityNodeInfoCompat node, Filter<AccessibilityNodeInfoCompat> filter) {
     if (node != null) {
       isOrHasMatchingAncestor(node, filter);
     }
@@ -1332,7 +1332,7 @@ public class AccessibilityNodeInfoUtils {
    * Returns the {@code node} if it matches the {@code filter}, or the first matching ancestor.
    * Returns {@code null} if no nodes match.
    */
-  public static @Nullable AccessibilityNodeInfoCompat getSelfOrMatchingAncestor(
+  public static  AccessibilityNodeInfoCompat getSelfOrMatchingAncestor(
       AccessibilityNodeInfoCompat node, Filter<AccessibilityNodeInfoCompat> filter) {
     if (node == null) {
       return null;
@@ -1351,7 +1351,7 @@ public class AccessibilityNodeInfoUtils {
    * but exclusive of {@code end}. If {@code node} equals {@code end}, then {@code node} is an
    * eligible match. Returns {@code null} if no nodes match.
    */
-  public static @Nullable AccessibilityNodeInfoCompat getSelfOrMatchingAncestor(
+  public static  AccessibilityNodeInfoCompat getSelfOrMatchingAncestor(
       AccessibilityNodeInfoCompat node,
       AccessibilityNodeInfoCompat end,
       Filter<AccessibilityNodeInfoCompat> filter) {
@@ -1370,7 +1370,7 @@ public class AccessibilityNodeInfoUtils {
    * Returns the {@code node} if it matches the {@code filter}, or the first matching descendant.
    * Returns {@code null} if no nodes match.
    */
-  public static @Nullable AccessibilityNodeInfoCompat getSelfOrMatchingDescendant(
+  public static  AccessibilityNodeInfoCompat getSelfOrMatchingDescendant(
       AccessibilityNodeInfoCompat node, Filter<AccessibilityNodeInfoCompat> filter) {
     if (node == null) {
       return null;
@@ -1401,8 +1401,8 @@ public class AccessibilityNodeInfoUtils {
    * ancestor of the other.
    */
   public static boolean areInSameBranch(
-      final @Nullable AccessibilityNodeInfoCompat node1,
-      final @Nullable AccessibilityNodeInfoCompat node2) {
+      final  AccessibilityNodeInfoCompat node1,
+      final  AccessibilityNodeInfoCompat node2) {
     if (node1 != null && node2 != null) {
       // Same node?
       if (node1.equals(node2)) {
@@ -1441,7 +1441,7 @@ public class AccessibilityNodeInfoUtils {
    * Returns the first ancestor of {@code node} that matches the {@code filter}. Returns {@code
    * null} if no nodes match.
    */
-  public static @Nullable AccessibilityNodeInfoCompat getMatchingAncestor(
+  public static  AccessibilityNodeInfoCompat getMatchingAncestor(
       AccessibilityNodeInfoCompat node, Filter<AccessibilityNodeInfoCompat> filter) {
     return getMatchingAncestor(node, null, filter);
   }
@@ -1453,7 +1453,7 @@ public class AccessibilityNodeInfoUtils {
    *
    * <p><strong>Note:</strong> Caller is responsible for recycling the returned node.
    */
-  private static @Nullable AccessibilityNodeInfoCompat getMatchingAncestor(
+  private static  AccessibilityNodeInfoCompat getMatchingAncestor(
       AccessibilityNodeInfoCompat node,
       AccessibilityNodeInfoCompat end,
       Filter<AccessibilityNodeInfoCompat> filter) {
@@ -1546,7 +1546,7 @@ public class AccessibilityNodeInfoUtils {
    * filter}. Returns {@code null} if no nodes match. The caller is responsible for recycling all
    * nodes in {@code visitedNodes} and the node returned by this method, if non-{@code null}.
    */
-  private static @Nullable AccessibilityNodeInfoCompat getMatchingDescendant(
+  private static  AccessibilityNodeInfoCompat getMatchingDescendant(
       AccessibilityNodeInfoCompat node,
       Filter<AccessibilityNodeInfoCompat> filter,
       HashSet<AccessibilityNodeInfoCompat> visitedNodes) {
@@ -1585,7 +1585,7 @@ public class AccessibilityNodeInfoUtils {
     return null;
   }
 
-  public static @Nullable AccessibilityNodeInfoCompat getMatchingDescendant(
+  public static  AccessibilityNodeInfoCompat getMatchingDescendant(
       AccessibilityNodeInfoCompat node, Filter<AccessibilityNodeInfoCompat> filter) {
     final HashSet<AccessibilityNodeInfoCompat> visitedNodes = new HashSet<>();
     try {
@@ -1596,8 +1596,8 @@ public class AccessibilityNodeInfoUtils {
   }
 
   /** Returns all descendants that match filter. Caller must recycle returned nodes. */
-  public static @Nullable List<AccessibilityNodeInfoCompat> getMatchingDescendantsOrRoot(
-      @Nullable AccessibilityNodeInfoCompat node, Filter<AccessibilityNodeInfoCompat> filter) {
+  public static  List<AccessibilityNodeInfoCompat> getMatchingDescendantsOrRoot(
+       AccessibilityNodeInfoCompat node, Filter<AccessibilityNodeInfoCompat> filter) {
     if (node == null) {
       return null;
     }
@@ -1623,7 +1623,7 @@ public class AccessibilityNodeInfoUtils {
    *     responsible to recycle this.
    */
   private static void getMatchingDescendants(
-      @Nullable AccessibilityNodeInfoCompat node,
+       AccessibilityNodeInfoCompat node,
       Filter<AccessibilityNodeInfoCompat> filter,
       boolean matchRoot,
       Set<AccessibilityNodeInfoCompat> visitedNodes,
@@ -1713,11 +1713,12 @@ public class AccessibilityNodeInfoUtils {
    * @param node The node to check.
    * @return {@code true} if the node has state description.
    */
-  private static boolean hasStateDescription(@Nullable AccessibilityNodeInfoCompat node) {
-    return node != null
-        && (!TextUtils.isEmpty(node.getStateDescription())
-            || node.isCheckable()
-            || hasValidRangeInfo(node));
+  private static boolean hasStateDescription( AccessibilityNodeInfoCompat node) {
+    return false;
+//    return node != null
+//        && (!TextUtils.isEmpty(node.getStateDescription())
+//            || node.isCheckable()
+//            || hasValidRangeInfo(node));
   }
 
   /**
@@ -1930,7 +1931,7 @@ public class AccessibilityNodeInfoUtils {
    *
    * @param nodes The nodes to recycle.
    */
-  public static void recycleNodes(@Nullable AccessibilityNodeInfo... nodes) {
+  public static void recycleNodes( AccessibilityNodeInfo... nodes) {
     if (nodes == null) {
       return;
     }
@@ -1947,7 +1948,7 @@ public class AccessibilityNodeInfoUtils {
    *
    * @param nodes The nodes to recycle.
    */
-  public static void recycleNodes(@Nullable AccessibilityNodeInfoCompat... nodes) {
+  public static void recycleNodes( AccessibilityNodeInfoCompat... nodes) {
     if (nodes == null) {
       return;
     }
@@ -2052,10 +2053,10 @@ public class AccessibilityNodeInfoUtils {
    * @param filterToSkip The filter for skipping nodes, all childs under the node will be skipped.
    * @return The first node reached via BFS traversal that satisfies the filter.
    */
-  public static @Nullable AccessibilityNodeInfoCompat searchFromBfs(
+  public static  AccessibilityNodeInfoCompat searchFromBfs(
       AccessibilityNodeInfoCompat node,
       Filter<AccessibilityNodeInfoCompat> filter,
-      @Nullable Filter<AccessibilityNodeInfoCompat> filterToSkip) {
+       Filter<AccessibilityNodeInfoCompat> filterToSkip) {
     if (node == null) {
       return null;
     }
@@ -2100,12 +2101,12 @@ public class AccessibilityNodeInfoUtils {
   }
 
   /** Safely obtains a copy of node. Caller must recycle returned node info. */
-  public static @Nullable AccessibilityNodeInfoCompat obtain(AccessibilityNodeInfoCompat node) {
+  public static  AccessibilityNodeInfoCompat obtain(AccessibilityNodeInfoCompat node) {
     return (node == null) ? null : AccessibilityNodeInfoCompat.obtain(node);
   }
 
   /** Safely obtains a copy of node. Caller must recycle returned node info. */
-  public static @Nullable AccessibilityNodeInfo obtain(AccessibilityNodeInfo node) {
+  public static  AccessibilityNodeInfo obtain(AccessibilityNodeInfo node) {
     return (node == null) ? null : AccessibilityNodeInfo.obtain(node);
   }
 
@@ -2127,7 +2128,7 @@ public class AccessibilityNodeInfoUtils {
    * Returns a fresh copy of {@code node} with properties that are less likely to be stale. Returns
    * {@code null} if the node can't be found anymore.
    */
-  public static @Nullable AccessibilityNodeInfoCompat refreshNode(
+  public static  AccessibilityNodeInfoCompat refreshNode(
       AccessibilityNodeInfoCompat node) {
     if (node == null) {
       return null;
@@ -2148,7 +2149,7 @@ public class AccessibilityNodeInfoUtils {
    * accessibility IDs of its views to be different. Note: you must recycle the node that is
    * returned from this method.
    */
-  public static @Nullable AccessibilityNodeInfoCompat refreshNodeFuzzy(
+  public static  AccessibilityNodeInfoCompat refreshNodeFuzzy(
       final AccessibilityNodeInfoCompat node, AccessibilityWindowInfo window) {
     if (window == null || node == null) {
       return null;
@@ -2187,7 +2188,7 @@ public class AccessibilityNodeInfoUtils {
    * @param toCharIndex end index of the queried text range.
    */
   @TargetApi(Build.VERSION_CODES.O)
-  public static @Nullable List<Rect> getTextLocations(
+  public static  List<Rect> getTextLocations(
       AccessibilityNodeInfoCompat node, int fromCharIndex, int toCharIndex) {
     return getTextLocations(
         node, AccessibilityNodeInfoUtils.getText(node), fromCharIndex, toCharIndex);
@@ -2205,7 +2206,7 @@ public class AccessibilityNodeInfoUtils {
    * @param toCharIndex end index of the queried text range.
    */
   @TargetApi(Build.VERSION_CODES.O)
-  public static @Nullable List<Rect> getTextLocations(
+  public static  List<Rect> getTextLocations(
       AccessibilityNodeInfoCompat node, CharSequence text, int fromCharIndex, int toCharIndex) {
     if (node == null || !BuildVersionUtils.isAtLeastO()) {
       return null;
@@ -2298,8 +2299,8 @@ public class AccessibilityNodeInfoUtils {
    * Returns the node to which the given node's window is anchored, if there is an anchor. Note: you
    * must recycle the node that is returned from this method.
    */
-  public static @Nullable AccessibilityNodeInfoCompat getAnchor(
-      @Nullable AccessibilityNodeInfoCompat node) {
+  public static  AccessibilityNodeInfoCompat getAnchor(
+       AccessibilityNodeInfoCompat node) {
     if (!BuildVersionUtils.isAtLeastN()) {
       return null;
     }
@@ -2334,7 +2335,7 @@ public class AccessibilityNodeInfoUtils {
    * AccessibilityNodeInfo#ACTION_SET_SELECTION} to disregard the hint text.
    */
   public static boolean isEmptyEditTextRegardlessOfHint(
-      @Nullable AccessibilityNodeInfoCompat node) {
+       AccessibilityNodeInfoCompat node) {
     if (node == null || !(node.isEditable())) {
       return false;
     }
@@ -2530,17 +2531,17 @@ public class AccessibilityNodeInfoUtils {
       default:
         break;
     }
-    @Nullable String actionName = actionIdToName.get(action);
+     String actionName = actionIdToName.get(action);
     return actionName == null ? "(unhandled action:" + action + ")" : actionName;
   }
 
   /** Caller keeps ownership of node. */
-  public static String toStringShort(@Nullable AccessibilityNodeInfo node) {
+  public static String toStringShort( AccessibilityNodeInfo node) {
     return toStringShort(toCompat(node));
   }
 
   /** Caller keeps ownership of node. */
-  public static String toStringShort(@Nullable AccessibilityNodeInfoCompat node) {
+  public static String toStringShort( AccessibilityNodeInfoCompat node) {
     if (node == null) {
       return "null";
     }
@@ -2585,7 +2586,7 @@ public class AccessibilityNodeInfoUtils {
   }
 
   /** Copied from AccessibilityNodeInfo.java */
-  public static @Nullable String getMovementGranularitySymbolicName(int granularity) {
+  public static  String getMovementGranularitySymbolicName(int granularity) {
     if (granularity == 0) {
       return null;
     }
@@ -2711,12 +2712,12 @@ public class AccessibilityNodeInfoUtils {
    * @param node The node from which to obtain the progress percentage.
    * @return The progress percentage.
    */
-  public static float getProgressPercent(@Nullable AccessibilityNodeInfoCompat node) {
+  public static float getProgressPercent( AccessibilityNodeInfoCompat node) {
     if (node == null) {
       return 0.0f;
     }
 
-    final @Nullable RangeInfoCompat rangeInfo = node.getRangeInfo();
+    final  RangeInfoCompat rangeInfo = node.getRangeInfo();
     if (rangeInfo == null) {
       return 0.0f;
     }
@@ -2760,12 +2761,12 @@ public class AccessibilityNodeInfoUtils {
    * @param node The node to check.
    * @return Whether the node has valid RangeInfo.
    */
-  public static boolean hasValidRangeInfo(@Nullable AccessibilityNodeInfoCompat node) {
+  public static boolean hasValidRangeInfo( AccessibilityNodeInfoCompat node) {
     if (node == null) {
       return false;
     }
 
-    final @Nullable RangeInfoCompat rangeInfo = node.getRangeInfo();
+    final  RangeInfoCompat rangeInfo = node.getRangeInfo();
     if (rangeInfo == null) {
       return false;
     }
@@ -2782,7 +2783,7 @@ public class AccessibilityNodeInfoUtils {
   /** Checks whether the given node is still in the window. */
   public static boolean isInWindow(
       AccessibilityNodeInfoCompat checkingNode,
-      @Nullable AccessibilityWindowInfoCompat windowInfoCompat) {
+       AccessibilityWindowInfoCompat windowInfoCompat) {
     if (windowInfoCompat == null) {
       return false;
     }
@@ -2797,7 +2798,7 @@ public class AccessibilityNodeInfoUtils {
 
   /** Checks whether the given node is still in the window. */
   public static boolean isInWindow(
-      AccessibilityNodeInfoCompat checkingNode, @Nullable AccessibilityWindowInfo windowInfo) {
+      AccessibilityNodeInfoCompat checkingNode,  AccessibilityWindowInfo windowInfo) {
     if (windowInfo == null) {
       return false;
     }
@@ -2839,7 +2840,7 @@ public class AccessibilityNodeInfoUtils {
    *
    * <p><strong>Note:</strong> Caller is responsible for recycling the returned node.
    */
-  public static @Nullable AccessibilityNodeInfoCompat getCollectionRoot(
+  public static  AccessibilityNodeInfoCompat getCollectionRoot(
       AccessibilityNodeInfoCompat node) {
     return AccessibilityNodeInfoUtils.getSelfOrMatchingAncestor(node, FILTER_COLLECTION);
   }
@@ -2849,7 +2850,7 @@ public class AccessibilityNodeInfoUtils {
    *
    * <p><strong>Note:</strong> Caller is responsible for recycling the node-argument.
    */
-  public static boolean nodeIsListOrGrid(@Nullable AccessibilityNodeInfoCompat node) {
+  public static boolean nodeIsListOrGrid( AccessibilityNodeInfoCompat node) {
     return nodeMatchesAnyClassName(node, CLASS_LISTVIEW, CLASS_GRIDVIEW);
   }
 
@@ -2869,7 +2870,7 @@ public class AccessibilityNodeInfoUtils {
   }
 
   private static boolean nodeMatchesAnyClassName(
-      @Nullable AccessibilityNodeInfoCompat node, CharSequence... classNames) {
+       AccessibilityNodeInfoCompat node, CharSequence... classNames) {
     if (node == null || node.getClassName() == null || classNames == null) {
       return false;
     }
@@ -2899,7 +2900,7 @@ public class AccessibilityNodeInfoUtils {
      *
      * <p><strong>Note:</strong> Caller is responsible for recycling the node-argument.
      */
-    public static @Nullable ViewResourceName create(AccessibilityNodeInfoCompat node) {
+    public static  ViewResourceName create(AccessibilityNodeInfoCompat node) {
       String resourceName = node.getViewIdResourceName();
       if (TextUtils.isEmpty(resourceName)) {
         return null;

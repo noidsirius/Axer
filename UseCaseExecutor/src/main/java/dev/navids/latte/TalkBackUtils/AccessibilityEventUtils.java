@@ -37,7 +37,7 @@ import androidx.core.view.accessibility.AccessibilityWindowInfoCompat;
 //import StringBuilderUtils;
 import com.google.common.base.Function;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -64,13 +64,13 @@ public class AccessibilityEventUtils {
   }
 
   /** Returns the source node. */
-  public static @Nullable AccessibilityNodeInfoCompat sourceCompat(
-      @Nullable AccessibilityEvent event) {
+  public static  AccessibilityNodeInfoCompat sourceCompat(
+       AccessibilityEvent event) {
     return (event == null) ? null : AccessibilityNodeInfoUtils.toCompat(event.getSource());
   }
 
   /** Returns window id from event, or WINDOW_ID_NONE. */
-  public static int getWindowId(@Nullable AccessibilityEvent event) {
+  public static int getWindowId( AccessibilityEvent event) {
     if (event == null) {
       return WINDOW_ID_NONE;
     }
@@ -116,7 +116,7 @@ public class AccessibilityEventUtils {
    * @param event The event.
    * @return The event text.
    */
-  public static @Nullable CharSequence getEventTextOrDescription(AccessibilityEvent event) {
+  public static  CharSequence getEventTextOrDescription(AccessibilityEvent event) {
     if (event == null) {
       return null;
     }
@@ -137,7 +137,7 @@ public class AccessibilityEventUtils {
    * @param event The event.
    * @return The event text.
    */
-  public static @Nullable CharSequence getEventAggregateText(AccessibilityEvent event) {
+  public static  CharSequence getEventAggregateText(AccessibilityEvent event) {
     if (event == null) {
       return null;
     }
@@ -233,7 +233,7 @@ public class AccessibilityEventUtils {
    * @param event The event to extract from.
    * @return The extracted Notification, or {@code null} on error.
    */
-  public static @Nullable Notification extractNotification(AccessibilityEvent event) {
+  public static  Notification extractNotification(AccessibilityEvent event) {
     final Parcelable parcelable = event.getParcelableData();
 
     if (!(parcelable instanceof Notification)) {
@@ -353,8 +353,8 @@ public class AccessibilityEventUtils {
    * @param newEvent A new event which will be copied by this function.
    * @return A copy of newEvent.
    */
-  public static @Nullable AccessibilityEvent replaceWithCopy(
-      @Nullable AccessibilityEvent old, @Nullable AccessibilityEvent newEvent) {
+  public static  AccessibilityEvent replaceWithCopy(
+       AccessibilityEvent old,  AccessibilityEvent newEvent) {
     return (newEvent == null) ? null : AccessibilityEvent.obtain(newEvent);
   }
 
@@ -452,12 +452,12 @@ public class AccessibilityEventUtils {
     }
   }
 
-  public static String toStringShort(@Nullable AccessibilityEvent event) {
+  public static String toStringShort( AccessibilityEvent event) {
     if (event == null) {
       return "null";
     }
 
-    @Nullable List<CharSequence> text = event.getText();
+     List<CharSequence> text = event.getText();
     int scrollDeltaX = getScrollDeltaX(event);
     int scrollDeltaY = getScrollDeltaY(event);
     boolean scrollDeltaDefined =
@@ -514,11 +514,11 @@ public class AccessibilityEventUtils {
     return flagsToString(flags, AccessibilityEventUtils::singleContentChangeTypeToString);
   }
 
-  private static @Nullable String windowChangeTypesToString(int flags) {
+  private static  String windowChangeTypesToString(int flags) {
     return flagsToString(flags, AccessibilityEventUtils::singleWindowChangeTypeToString);
   }
 
-  private static @Nullable String flagsToString(int flags, Function<Integer, String> flagMapper) {
+  private static  String flagsToString(int flags, Function<Integer, String> flagMapper) {
     if (flags == 0) {
       return null;
     }
@@ -535,7 +535,7 @@ public class AccessibilityEventUtils {
   }
 
   /** Copied from AccessibilityEvent.java */
-  private static @Nullable String singleContentChangeTypeToString(int type) {
+  private static  String singleContentChangeTypeToString(int type) {
     if (type == 0) {
       return null;
     }
@@ -562,7 +562,7 @@ public class AccessibilityEventUtils {
   }
 
   /** Copied from AccessibilityEvent.java */
-  private static @Nullable String singleWindowChangeTypeToString(int type) {
+  private static  String singleWindowChangeTypeToString(int type) {
     if (type == 0) {
       return null;
     }

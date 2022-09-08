@@ -20,7 +20,7 @@ import android.graphics.Rect;
 
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,8 +48,8 @@ public class ReorderedChildrenIterator implements Iterator<AccessibilityNodeInfo
     return createDescendingIterator(parent, null);
   }
 
-  public static @Nullable ReorderedChildrenIterator createAscendingIterator(
-      AccessibilityNodeInfoCompat parent, @Nullable NodeCachedBoundsCalculator boundsCalculator) {
+  public static  ReorderedChildrenIterator createAscendingIterator(
+      AccessibilityNodeInfoCompat parent,  NodeCachedBoundsCalculator boundsCalculator) {
     if (parent == null) {
       return null;
     }
@@ -57,8 +57,8 @@ public class ReorderedChildrenIterator implements Iterator<AccessibilityNodeInfo
     return new ReorderedChildrenIterator(parent, true, boundsCalculator);
   }
 
-  public static @Nullable ReorderedChildrenIterator createDescendingIterator(
-      AccessibilityNodeInfoCompat parent, @Nullable NodeCachedBoundsCalculator boundsCalculator) {
+  public static  ReorderedChildrenIterator createDescendingIterator(
+      AccessibilityNodeInfoCompat parent,  NodeCachedBoundsCalculator boundsCalculator) {
     if (parent == null) {
       return null;
     }
@@ -80,7 +80,7 @@ public class ReorderedChildrenIterator implements Iterator<AccessibilityNodeInfo
   private ReorderedChildrenIterator(
       AccessibilityNodeInfoCompat parent,
       boolean isAscending,
-      @Nullable NodeCachedBoundsCalculator boundsCalculator) {
+       NodeCachedBoundsCalculator boundsCalculator) {
     mParent = parent;
     mIsAscending = isAscending;
     mBoundsCalculator =
@@ -196,7 +196,7 @@ public class ReorderedChildrenIterator implements Iterator<AccessibilityNodeInfo
    * framework to sort children of ViewGroups. This is essentially copied from
    * android.view.ViewGroup.ViewLocationHolder#compareTo} with minor modifications.
    */
-  private int compare(@Nullable Rect leftBounds, @Nullable Rect rightBounds) {
+  private int compare( Rect leftBounds,  Rect rightBounds) {
     if (leftBounds == null || rightBounds == null) {
       return -1;
     }
@@ -257,7 +257,7 @@ public class ReorderedChildrenIterator implements Iterator<AccessibilityNodeInfo
   }
 
   @Override
-  public @Nullable AccessibilityNodeInfoCompat next() {
+  public  AccessibilityNodeInfoCompat next() {
     AccessibilityNodeInfoCompat nextNode = mNodes.get(mCurrentIndex);
     if (mIsAscending) {
       mCurrentIndex++;

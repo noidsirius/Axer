@@ -26,7 +26,7 @@ import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 //import com.google.android.accessibility.utils.traversal.ReorderedChildrenIterator;
 //import com.google.android.libraries.accessibility.utils.log.LogUtils;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -35,7 +35,7 @@ public class OrderedTraversalController {
 
   private static final String TAG = "OrderedTraversalCont";
 
-  private @Nullable WorkingTree mTree;
+  private  WorkingTree mTree;
   private Map<AccessibilityNodeInfoCompat, WorkingTree> mNodeTreeMap;
   private Map<AccessibilityNodeInfoCompat, Boolean> mSpeakNodesCache;
 
@@ -86,9 +86,9 @@ public class OrderedTraversalController {
    *     Access needs to know about all nodes at the time the tree is being created.
    * @return subtree that reproduces accessibility node hierarchy
    */
-  private @Nullable WorkingTree createWorkingTree(
+  private  WorkingTree createWorkingTree(
       AccessibilityNodeInfoCompat rootNode,
-      @Nullable WorkingTree parent,
+       WorkingTree parent,
       NodeCachedBoundsCalculator boundsCalculator,
       boolean includeChildrenOfNodesWithWebActions) {
     if (mNodeTreeMap.containsKey(rootNode)) {
@@ -140,7 +140,7 @@ public class OrderedTraversalController {
   }
 
   /** Moves movingTree before targetTree. */
-  private void moveNodeBefore(@Nullable WorkingTree movingTree, @Nullable WorkingTree targetTree) {
+  private void moveNodeBefore( WorkingTree movingTree,  WorkingTree targetTree) {
     if (movingTree == null || targetTree == null) {
       return;
     }
@@ -208,7 +208,7 @@ public class OrderedTraversalController {
     subtree.setParent(null);
   }
 
-  private void moveNodeAfter(@Nullable WorkingTree movingTree, @Nullable WorkingTree targetTree) {
+  private void moveNodeAfter( WorkingTree movingTree,  WorkingTree targetTree) {
     if (movingTree == null || targetTree == null) {
       return;
     }
@@ -225,7 +225,7 @@ public class OrderedTraversalController {
     movingTree.setParent(targetTree);
   }
 
-  public @Nullable AccessibilityNodeInfoCompat findNext(AccessibilityNodeInfoCompat node) {
+  public  AccessibilityNodeInfoCompat findNext(AccessibilityNodeInfoCompat node) {
     WorkingTree tree = mNodeTreeMap.get(node);
     if (tree == null) {
       LogUtils.w(TAG, "findNext(), can't find WorkingTree for AccessibilityNodeInfo");
@@ -240,7 +240,7 @@ public class OrderedTraversalController {
     return null;
   }
 
-  public @Nullable AccessibilityNodeInfoCompat findPrevious(AccessibilityNodeInfoCompat node) {
+  public  AccessibilityNodeInfoCompat findPrevious(AccessibilityNodeInfoCompat node) {
     WorkingTree tree = mNodeTreeMap.get(node);
     if (tree == null) {
       LogUtils.w(TAG, "findPrevious(), can't find WorkingTree for AccessibilityNodeInfo");
@@ -256,7 +256,7 @@ public class OrderedTraversalController {
   }
 
   /** Searches first node to be focused */
-  public @Nullable AccessibilityNodeInfoCompat findFirst() {
+  public  AccessibilityNodeInfoCompat findFirst() {
     if (mTree == null) {
       return null;
     }
@@ -264,7 +264,7 @@ public class OrderedTraversalController {
     return AccessibilityNodeInfoCompat.obtain(mTree.getRoot().getNode());
   }
 
-  public @Nullable AccessibilityNodeInfoCompat findFirst(AccessibilityNodeInfoCompat rootNode) {
+  public  AccessibilityNodeInfoCompat findFirst(AccessibilityNodeInfoCompat rootNode) {
     if (rootNode == null) {
       return null;
     }
@@ -278,7 +278,7 @@ public class OrderedTraversalController {
   }
 
   /** Searches last node to be focused */
-  public @Nullable AccessibilityNodeInfoCompat findLast() {
+  public  AccessibilityNodeInfoCompat findLast() {
     if (mTree == null) {
       return null;
     }
@@ -286,7 +286,7 @@ public class OrderedTraversalController {
     return AccessibilityNodeInfoCompat.obtain(mTree.getRoot().getLastNode().getNode());
   }
 
-  public @Nullable AccessibilityNodeInfoCompat findLast(AccessibilityNodeInfoCompat rootNode) {
+  public  AccessibilityNodeInfoCompat findLast(AccessibilityNodeInfoCompat rootNode) {
     if (rootNode == null) {
       return null;
     }

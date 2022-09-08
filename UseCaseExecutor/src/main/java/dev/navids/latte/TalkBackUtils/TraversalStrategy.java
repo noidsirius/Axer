@@ -19,7 +19,7 @@ package dev.navids.latte.TalkBackUtils;
 import androidx.annotation.IntDef;
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -72,7 +72,7 @@ public interface TraversalStrategy {
    * @return {@link AccessibilityNodeInfoCompat} node that has next
    *     focus
    */
-  public @Nullable AccessibilityNodeInfoCompat findFocus(
+  public  AccessibilityNodeInfoCompat findFocus(
       AccessibilityNodeInfoCompat startNode, @SearchDirection int direction);
 
   /**
@@ -87,7 +87,7 @@ public interface TraversalStrategy {
    * @param direction - the direction to search from
    * @return returns the first node that could be focused
    */
-  public @Nullable AccessibilityNodeInfoCompat focusInitial(
+  public  AccessibilityNodeInfoCompat focusInitial(
       AccessibilityNodeInfoCompat root, @SearchDirection int direction);
 
   /**

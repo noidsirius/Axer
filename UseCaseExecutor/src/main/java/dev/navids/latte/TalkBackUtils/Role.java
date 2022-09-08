@@ -30,7 +30,7 @@ import androidx.core.view.accessibility.AccessibilityRecordCompat;
 //import AccessibilityNodeInfoUtils;
 //import ClassLoadingCache;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -242,7 +242,7 @@ public class Role {
 
   /** Gets {@link Role} for {@link AccessibilityNodeInfoCompat}. */
   @RoleName
-  public static int getRole(@Nullable AccessibilityNodeInfoCompat node) {
+  public static int getRole( AccessibilityNodeInfoCompat node) {
     if (node == null) {
       return ROLE_NONE;
     }
@@ -413,7 +413,7 @@ public class Role {
    * #getRole(AccessibilityNodeInfoCompat)}
    */
   @RoleName
-  public static int getRole(@Nullable AccessibilityNodeInfo node) {
+  public static int getRole( AccessibilityNodeInfo node) {
     if (node == null) {
       return Role.ROLE_NONE;
     }

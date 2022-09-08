@@ -20,7 +20,7 @@ import android.util.Log;
 
 import com.google.common.base.Strings;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.IllegalFormatException;
 
@@ -32,12 +32,12 @@ public class LogUtils {
   /** Plug-in for custom printing complex objects, especially accessibility event & node. */
   public interface ParameterCustomizer {
     /** Converts an object for display. */
-    @Nullable
-    Object customize(@Nullable Object object);
+    
+    Object customize( Object object);
   }
 
   /** Customizer for log parameters. By default, changes nothing. */
-  private static @Nullable ParameterCustomizer parameterCustomizer = null;
+  private static  ParameterCustomizer parameterCustomizer = null;
 
   private static final String TAG = "LogUtils";
 
@@ -68,7 +68,7 @@ public class LogUtils {
    * @param args String formatter arguments
    */
   public static void logWithLimit(
-      String tag, int priority, int index, int limit, String format, @Nullable Object... args) {
+      String tag, int priority, int index, int limit, String format,  Object... args) {
     String formatWithIndex;
     if (index > limit) {
       return;
@@ -88,7 +88,7 @@ public class LogUtils {
    * @param format A format string, see {@link String#format(String, Object...)}
    * @param args String formatter arguments
    */
-  public static void v(String tag, @Nullable String format, @Nullable Object... args) {
+  public static void v(String tag,  String format,  Object... args) {
     log(tag, Log.VERBOSE, format, args);
   }
 
@@ -100,7 +100,7 @@ public class LogUtils {
    * @param format A format string, see {@link String#format(String, Object...)}
    * @param args String formatter arguments
    */
-  public static void v(String tag, Throwable throwable, String format, @Nullable Object... args) {
+  public static void v(String tag, Throwable throwable, String format,  Object... args) {
     log(tag, Log.VERBOSE, throwable, format, args);
   }
 
@@ -111,7 +111,7 @@ public class LogUtils {
    * @param format A format string, see {@link String#format(String, Object...)}
    * @param args String formatter arguments
    */
-  public static void d(String tag, String format, @Nullable Object... args) {
+  public static void d(String tag, String format,  Object... args) {
     log(tag, Log.DEBUG, format, args);
   }
 
@@ -123,7 +123,7 @@ public class LogUtils {
    * @param format A format string, see {@link String#format(String, Object...)}
    * @param args String formatter arguments
    */
-  public static void d(String tag, Throwable throwable, String format, @Nullable Object... args) {
+  public static void d(String tag, Throwable throwable, String format,  Object... args) {
     log(tag, Log.DEBUG, throwable, format, args);
   }
 
@@ -134,7 +134,7 @@ public class LogUtils {
    * @param format A format string, see {@link String#format(String, Object...)}
    * @param args String formatter arguments
    */
-  public static void i(String tag, String format, @Nullable Object... args) {
+  public static void i(String tag, String format,  Object... args) {
     log(tag, Log.INFO, format, args);
   }
 
@@ -146,7 +146,7 @@ public class LogUtils {
    * @param format A format string, see {@link String#format(String, Object...)}
    * @param args String formatter arguments
    */
-  public static void i(String tag, Throwable throwable, String format, @Nullable Object... args) {
+  public static void i(String tag, Throwable throwable, String format,  Object... args) {
     log(tag, Log.INFO, throwable, format, args);
   }
 
@@ -157,7 +157,7 @@ public class LogUtils {
    * @param format A format string, see {@link String#format(String, Object...)}
    * @param args String formatter arguments
    */
-  public static void w(String tag, String format, @Nullable Object... args) {
+  public static void w(String tag, String format,  Object... args) {
     log(tag, Log.WARN, format, args);
   }
 
@@ -169,7 +169,7 @@ public class LogUtils {
    * @param format A format string, see {@link String#format(String, Object...)}
    * @param args String formatter arguments
    */
-  public static void w(String tag, Throwable throwable, String format, @Nullable Object... args) {
+  public static void w(String tag, Throwable throwable, String format,  Object... args) {
     log(tag, Log.WARN, throwable, format, args);
   }
 
@@ -180,7 +180,7 @@ public class LogUtils {
    * @param format A format string, see {@link String#format(String, Object...)}
    * @param args String formatter arguments
    */
-  public static void e(String tag, @Nullable String format, @Nullable Object... args) {
+  public static void e(String tag,  String format,  Object... args) {
     log(tag, Log.ERROR, format, args);
   }
 
@@ -192,7 +192,7 @@ public class LogUtils {
    * @param format A format string, see {@link String#format(String, Object...)}
    * @param args String formatter arguments
    */
-  public static void e(String tag, Throwable throwable, String format, @Nullable Object... args) {
+  public static void e(String tag, Throwable throwable, String format,  Object... args) {
     log(tag, Log.ERROR, throwable, format, args);
   }
 
@@ -203,7 +203,7 @@ public class LogUtils {
    * @param format A format string, see {@link String#format(String, Object...)}
    * @param args String formatter arguments
    */
-  public static void wtf(String tag, String format, @Nullable Object... args) {
+  public static void wtf(String tag, String format,  Object... args) {
     log(tag, Log.ASSERT, format, args);
   }
 
@@ -215,7 +215,7 @@ public class LogUtils {
    * @param format A format string, see {@link String#format(String, Object...)}
    * @param args String formatter arguments
    */
-  public static void wtf(String tag, Throwable throwable, String format, @Nullable Object... args) {
+  public static void wtf(String tag, Throwable throwable, String format,  Object... args) {
     log(tag, Log.ASSERT, throwable, format, args);
   }
 
@@ -236,9 +236,9 @@ public class LogUtils {
   public static void log(
       String tag,
       int priority,
-      @Nullable Throwable throwable,
-      @Nullable String format,
-      @Nullable Object... args) {
+       Throwable throwable,
+       String format,
+       Object... args) {
     if (priority < minLogLevel) {
       return;
     }
@@ -281,12 +281,12 @@ public class LogUtils {
    * @param args String formatter arguments
    */
   public static void log(
-      String tag, int priority, @Nullable String format, @Nullable Object... args) {
+      String tag, int priority,  String format,  Object... args) {
     log(tag, priority, null, format, args);
   }
 
   /** Sets customizer for log parameters. */
-  public static void setParameterCustomizer(@Nullable ParameterCustomizer parameterCustomizerArg) {
+  public static void setParameterCustomizer( ParameterCustomizer parameterCustomizerArg) {
     parameterCustomizer = parameterCustomizerArg;
   }
 

@@ -18,7 +18,7 @@ package dev.navids.latte.TalkBackUtils;
 
 import android.os.Build;
 
-import androidx.annotation.ChecksSdkIntAtLeast;
+//import androidx.annotation.ChecksSdkIntAtLeast;
 
 /**
  * This file provides a wrapper for the Build versions. Everytime an android version number gets
@@ -66,10 +66,10 @@ public class BuildVersionUtils {
 //    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
   }
 
-  @ChecksSdkIntAtLeast(api = 32)
-  public static boolean isAtLeastT() {
+//  @ChecksSdkIntAtLeast(api = 32)
+//  public static boolean isAtLeastT() {
     // Build.VERSION_CODES.TIRAMISU is not open-sourced yet.
 //    return Build.VERSION.SDK_INT > Build.VERSION_CODES.S;
-    return false;
-  }
+//    return false;
+//  }
 }

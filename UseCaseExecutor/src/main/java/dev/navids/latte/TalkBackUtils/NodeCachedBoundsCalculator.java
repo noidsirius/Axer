@@ -21,7 +21,7 @@ import android.graphics.Rect;
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,7 +48,7 @@ public class NodeCachedBoundsCalculator {
     mSpeakNodesCache = speakNodeCache;
   }
 
-  public @Nullable Rect getBounds(AccessibilityNodeInfoCompat node) {
+  public  Rect getBounds(AccessibilityNodeInfoCompat node) {
     Rect bounds = getBoundsInternal(node);
     if (bounds.equals(EMPTY_RECT)) {
       return null;

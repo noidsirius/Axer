@@ -36,7 +36,7 @@ import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 //import com.google.android.accessibility.utils.AccessibilityNodeInfoUtils;
 //import com.google.android.libraries.accessibility.utils.log.LogUtils;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Locale;
 import java.util.Set;
@@ -105,7 +105,7 @@ public final class SpannableUtils {
    * @param spanClass Class of target span.
    * @return SpannableString with at least 1 target span. null if no target span found in the node.
    */
-  public static <T> @Nullable SpannableString getStringWithTargetSpan(
+  public static <T>  SpannableString getStringWithTargetSpan(
       AccessibilityNodeInfoCompat node, Class<T> spanClass) {
 
     CharSequence text = node.getContentDescription();
@@ -153,7 +153,7 @@ public final class SpannableUtils {
    *
    * @param text Text to be logged
    */
-  public static @Nullable String spansToStringForLogging(CharSequence text) {
+  public static  String spansToStringForLogging(CharSequence text) {
     if (!LogUtils.shouldLog(Log.VERBOSE)) {
       return null;
     }

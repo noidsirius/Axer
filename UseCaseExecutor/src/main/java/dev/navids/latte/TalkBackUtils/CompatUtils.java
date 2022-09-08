@@ -21,7 +21,7 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-import org.checkerframework.checker.nullness.qual.PolyNull;
+//import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -83,8 +83,8 @@ public class CompatUtils {
     return null;
   }
 
-  public static @PolyNull Object invoke(
-      Object receiver, @PolyNull Object defaultValue, Method method, Object... args) {
+  public static Object invoke(
+      Object receiver, Object defaultValue, Method method, Object... args) {
     if (method == null) {
       return defaultValue;
     }

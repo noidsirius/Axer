@@ -20,7 +20,7 @@ import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 
 import com.google.common.base.Predicate;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.LinkedList;
 
@@ -41,7 +41,7 @@ public abstract class Filter<T> {
    * @return A filter where calling <code>accept()</code> returns the result of <code>
    *     (this.accept() &amp;&amp; filter.accept())</code>.
    */
-  public Filter<T> and(@Nullable Filter<T> filter) {
+  public Filter<T> and( Filter<T> filter) {
     if (filter == null) {
       return this;
     }
@@ -56,7 +56,7 @@ public abstract class Filter<T> {
    * @return A filter where calling <code>accept()</code> returns the result of <code>
    *     (this.accept() || filter.accept())</code>.
    */
-  public Filter<T> or(@Nullable Filter<T> filter) {
+  public Filter<T> or( Filter<T> filter) {
     if (filter == null) {
       return this;
     }
@@ -100,7 +100,7 @@ public abstract class Filter<T> {
     }
 
     @Override
-    public FilterAnd<T> and(@Nullable Filter<T> filter) {
+    public FilterAnd<T> and( Filter<T> filter) {
       if (filter != null) {
         mFilters.add(filter);
       }
@@ -129,7 +129,7 @@ public abstract class Filter<T> {
     }
 
     @Override
-    public FilterOr<T> or(@Nullable Filter<T> filter) {
+    public FilterOr<T> or( Filter<T> filter) {
       if (filter != null) {
         mFilters.add(filter);
       }

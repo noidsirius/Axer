@@ -30,7 +30,7 @@ import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 //import traversal.OrderedTraversalStrategy;
 //import com.google.android.libraries.accessibility.utils.log.LogUtils;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
@@ -61,7 +61,7 @@ public class TreeDebug {
   }
 
   /** Logs the layout hierarchy of node tree for using the input node as the root. */
-  public static void logNodeTree(@Nullable AccessibilityNodeInfoCompat node) {
+  public static void logNodeTree( AccessibilityNodeInfoCompat node) {
     if (node == null) {
       return;
     }
@@ -140,7 +140,7 @@ public class TreeDebug {
       sb.append("}");
     }
 
-    @Nullable CharSequence nodeText = AccessibilityNodeInfoUtils.getText(node);
+     CharSequence nodeText = AccessibilityNodeInfoUtils.getText(node);
     if (nodeText != null) {
       sb.append(":TEXT{");
       sb.append(nodeText.toString().trim());
@@ -284,7 +284,7 @@ public class TreeDebug {
   }
 
   /** Logs the traversal order of node tree for using the input node as the root. */
-  private static void logOrderedTraversalTree(@Nullable AccessibilityNodeInfoCompat node) {
+  private static void logOrderedTraversalTree( AccessibilityNodeInfoCompat node) {
     if (node == null) {
       return;
     }

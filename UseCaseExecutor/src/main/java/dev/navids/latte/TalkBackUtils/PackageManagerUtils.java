@@ -25,7 +25,7 @@ import android.text.TextUtils;
 //import com.google.android.accessibility.utils.BuildConfig;
 //import com.google.android.libraries.accessibility.utils.log.LogUtils;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 /** Utilities for interacting with the {@link PackageManager}. */
 public class PackageManagerUtils {
@@ -66,12 +66,12 @@ public class PackageManagerUtils {
   }
 
   /** @return The package version name or <code>null</code> if the package does not exist. */
-  public static @Nullable String getVersionName(Context context) {
+  public static  String getVersionName(Context context) {
     String packageName = context.getPackageName();
     return (packageName == null) ? null : getVersionName(context, packageName);
   }
 
-  public static @Nullable String getVersionName(Context context, CharSequence packageName) {
+  public static  String getVersionName(Context context, CharSequence packageName) {
     if (TextUtils.isEmpty(packageName)) {
       return null;
     }
@@ -93,7 +93,7 @@ public class PackageManagerUtils {
   }
 
   /** Returns {@code true} if the package is Talkback package */
-  public static boolean isTalkBackPackage(@Nullable CharSequence packageName) {
+  public static boolean isTalkBackPackage( CharSequence packageName) {
     return TextUtils.equals(packageName, TALBACK_PACKAGE);
   }
 
@@ -102,7 +102,7 @@ public class PackageManagerUtils {
     return getVersionCode(context, GMSCORE_PACKAGE_NAME) > MIN_GMSCORE_VERSION;
   }
 
-  private static @Nullable PackageInfo getPackageInfo(Context context, CharSequence packageName) {
+  private static  PackageInfo getPackageInfo(Context context, CharSequence packageName) {
     if (packageName == null) {
       return null;
     }

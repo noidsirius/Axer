@@ -40,7 +40,7 @@ import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 //import PackageManagerUtils;
 //import com.google.android.libraries.accessibility.utils.log.LogUtils;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collections;
 import java.util.List;
@@ -87,7 +87,7 @@ public class AccessibilityServiceCompatUtils {
   }
 
   /** @return root node of the Application window */
-  public static @Nullable AccessibilityNodeInfoCompat getRootInActiveWindow(
+  public static  AccessibilityNodeInfoCompat getRootInActiveWindow(
       AccessibilityService service) {
     if (service == null) {
       return null;
@@ -100,8 +100,8 @@ public class AccessibilityServiceCompatUtils {
     return AccessibilityNodeInfoUtils.toCompat(root);
   }
 
-  public static @Nullable String getActiveWindowPackageName(AccessibilityService service) {
-    @Nullable AccessibilityNodeInfoCompat rootNode = getRootInActiveWindow(service);
+  public static  String getActiveWindowPackageName(AccessibilityService service) {
+     AccessibilityNodeInfoCompat rootNode = getRootInActiveWindow(service);
     try {
       return ((rootNode == null) || (rootNode.getPackageName() == null))
           ? null
@@ -178,7 +178,7 @@ public class AccessibilityServiceCompatUtils {
     }
   }
 
-  public static @Nullable AccessibilityWindowInfo getActiveWidow(AccessibilityService service) {
+  public static  AccessibilityWindowInfo getActiveWidow(AccessibilityService service) {
     if (service == null) {
       return null;
     }
@@ -281,7 +281,7 @@ public class AccessibilityServiceCompatUtils {
 
   /** Returns if accessibility service is enabled. */
   public static boolean isAccessibilityServiceEnabled(Context context, String packageName) {
-    @Nullable AccessibilityManager manager =
+     AccessibilityManager manager =
         (AccessibilityManager) context.getSystemService(Context.ACCESSIBILITY_SERVICE);
     if (manager == null) {
       return false;

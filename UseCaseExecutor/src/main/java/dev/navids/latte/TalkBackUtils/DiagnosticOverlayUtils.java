@@ -5,7 +5,7 @@ import androidx.annotation.IntDef;
 //import com.google.android.accessibility.utils.AccessibilityNodeInfoUtils;
 //import com.google.android.accessibility.utils.DiagnosticOverlayController;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -37,11 +37,11 @@ public class DiagnosticOverlayUtils {
 
   private DiagnosticOverlayUtils() {}
 
-  private static @Nullable DiagnosticOverlayController diagnosticOverlayController = null;
+  private static  DiagnosticOverlayController diagnosticOverlayController = null;
 
   /** Sets controller for shared utils class */
   public static void setDiagnosticOverlayController(
-      @Nullable DiagnosticOverlayController controller) {
+       DiagnosticOverlayController controller) {
     diagnosticOverlayController = controller;
   }
 

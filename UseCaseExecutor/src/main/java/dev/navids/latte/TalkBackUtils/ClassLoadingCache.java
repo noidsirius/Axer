@@ -18,7 +18,7 @@ package dev.navids.latte.TalkBackUtils;
 
 import android.text.TextUtils;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
 
@@ -28,7 +28,7 @@ public class ClassLoadingCache {
   private static final String TAG = "ClassLoadingCache";
 
   // TODO: Use a LRU map instead?
-  private static final HashMap<String, @Nullable Class<?>> mCachedClasses = new HashMap<>();
+  private static final HashMap<String,  Class<?>> mCachedClasses = new HashMap<>();
 
   /**
    * Returns a class by given <code>className</code>. It tries to load from the current class loader
@@ -37,7 +37,7 @@ public class ClassLoadingCache {
    * @param className The name of the class to load.
    * @return The class if loaded successfully, null otherwise.
    */
-  public static @Nullable Class<?> loadOrGetCachedClass(String className) {
+  public static  Class<?> loadOrGetCachedClass(String className) {
     if (TextUtils.isEmpty(className)) {
       LogUtils.d(TAG, "Missing class name. Failed to load class.");
       return null;

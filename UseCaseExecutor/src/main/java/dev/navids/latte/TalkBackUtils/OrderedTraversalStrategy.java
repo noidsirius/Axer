@@ -18,7 +18,7 @@ package dev.navids.latte.TalkBackUtils;
 
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,7 +34,7 @@ import java.util.Map;
 @SuppressWarnings("JavadocReference")
 public class OrderedTraversalStrategy implements TraversalStrategy {
 
-  private @Nullable AccessibilityNodeInfoCompat mRootNode;
+  private  AccessibilityNodeInfoCompat mRootNode;
   private final OrderedTraversalController mController;
   private final Map<AccessibilityNodeInfoCompat, Boolean> mSpeakingNodesCache;
 
@@ -60,7 +60,7 @@ public class OrderedTraversalStrategy implements TraversalStrategy {
   }
 
   @Override
-  public @Nullable AccessibilityNodeInfoCompat findFocus(
+  public  AccessibilityNodeInfoCompat findFocus(
       AccessibilityNodeInfoCompat startNode, @SearchDirection int direction) {
     switch (direction) {
       case TraversalStrategy.SEARCH_FOCUS_FORWARD:
@@ -73,16 +73,16 @@ public class OrderedTraversalStrategy implements TraversalStrategy {
     return null;
   }
 
-  private @Nullable AccessibilityNodeInfoCompat focusNext(AccessibilityNodeInfoCompat node) {
+  private  AccessibilityNodeInfoCompat focusNext(AccessibilityNodeInfoCompat node) {
     return mController.findNext(node);
   }
 
-  private @Nullable AccessibilityNodeInfoCompat focusPrevious(AccessibilityNodeInfoCompat node) {
+  private  AccessibilityNodeInfoCompat focusPrevious(AccessibilityNodeInfoCompat node) {
     return mController.findPrevious(node);
   }
 
   @Override
-  public @Nullable AccessibilityNodeInfoCompat focusInitial(
+  public  AccessibilityNodeInfoCompat focusInitial(
       AccessibilityNodeInfoCompat root, @SearchDirection int direction) {
     if (direction == SEARCH_FOCUS_FORWARD) {
       return mController.findFirst(root);
