@@ -103,6 +103,24 @@ class PreviousCommand(NavigateCommand):
         return cls()
 
 
+class JumpNextCommand(NavigateCommand):
+    def __init__(self):
+        super().__init__('jump_next')
+
+    @classmethod
+    def create_from_dict(cls, json_command: dict):
+        return cls()
+
+
+class JumpPreviousCommand(NavigateCommand):
+    def __init__(self):
+        super().__init__('jump_previous')
+
+    @classmethod
+    def create_from_dict(cls, json_command: dict):
+        return cls()
+
+
 class SelectCommand(NavigateCommand):
     def __init__(self):
         super().__init__('select')
@@ -226,6 +244,8 @@ def create_command_from_dict(json_command: dict) -> Command:
         'info': InfoCommand,
         'next': NextCommand,
         'previous': PreviousCommand,
+        'jump_next': JumpNextCommand,
+        'jump_previous': JumpPreviousCommand,
         'select': SelectCommand,
         'back': BackCommand,
         'sleep': SleepCommand,

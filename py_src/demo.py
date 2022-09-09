@@ -15,7 +15,8 @@ from ppadb.device_async import DeviceAsync
 from GUI_utils import get_actions_from_layout, NodesFactory
 from a11y_service import A11yServiceManager
 from adb_utils import read_local_android_file
-from command import BackCommand, NextCommand, PreviousCommand, SelectCommand, SleepCommand
+from command import BackCommand, NextCommand, PreviousCommand, SelectCommand, SleepCommand, JumpPreviousCommand, \
+    JumpNextCommand
 from consts import TB_NAVIGATE_TIMEOUT, DEVICE_NAME, ADB_HOST, ADB_PORT
 from controller import TalkBackTouchController
 from genymotion_utils import create_instance, stop_instances
@@ -228,6 +229,10 @@ async def execute_latte_command(device: DeviceAsync, command: str, extra: str):
             latte_command = NextCommand()
         elif action == 'previous':
             latte_command = PreviousCommand()
+        elif action == 'jump_next':
+            latte_command = JumpNextCommand()
+        elif action == 'jump_previous':
+            latte_command = JumpPreviousCommand()
         elif action == 'select':
             latte_command = SelectCommand()
         elif action == 'sleep':

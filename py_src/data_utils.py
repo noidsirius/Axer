@@ -8,7 +8,7 @@ from GUI_utils import Node
 from app import App
 from command import Command, create_command_response_from_dict, create_command_from_dict, LocatableCommandResponse, \
     LocatableCommand
-from consts import BLIND_MONKEY_EVENTS_TAG
+from consts import BLIND_MONKEY_EVENTS_TAG, SCREEN_BOUNDS
 from snapshot import Snapshot
 
 
@@ -33,7 +33,7 @@ class RecordDataManager:
                     self.commands[i] = create_command_from_dict(json.loads(line))
                     self.snapshot_indices.append(i)
                     if isinstance(self.commands[i], LocatableCommand):
-                        screen_bounds = [0, 0, 1080, 2220]  # TODO: Move to consts
+                        screen_bounds = SCREEN_BOUNDS
                         self.recorder_bounds_map[i] = str(list(self.commands[i].target.get_normalized_bounds(screen_bounds)))
                         self.acted_nodes[i] = self.commands[i].target
                     else:
@@ -180,7 +180,7 @@ class ReplayDataManager:
             if len(snapshot.nodes) > 0 and snapshot.nodes[0].bounds[0] != 0:
                 screen_bounds = snapshot.nodes[0].bounds  # TODO: Not correct when the keyboard is enabled
             else:
-                screen_bounds = [0, 0, 1080, 2220]  # TODO: Move to consts
+                screen_bounds = SCREEN_BOUNDS
             if isinstance(response, LocatableCommandResponse):
                 step_info['bounds'] = str(list(response.acted_node.get_normalized_bounds(screen_bounds)))
             else:

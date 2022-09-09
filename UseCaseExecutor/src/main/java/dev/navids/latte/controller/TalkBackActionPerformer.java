@@ -10,6 +10,8 @@ import dev.navids.latte.ActualWidgetInfo;
 import dev.navids.latte.LatteService;
 import dev.navids.latte.UseCase.ClickCommand;
 import dev.navids.latte.UseCase.FocusCommand;
+import dev.navids.latte.UseCase.JumpNextCommand;
+import dev.navids.latte.UseCase.JumpPreviousCommand;
 import dev.navids.latte.UseCase.NextCommand;
 import dev.navids.latte.UseCase.PreviousCommand;
 import dev.navids.latte.UseCase.SelectCommand;
@@ -71,6 +73,16 @@ public class TalkBackActionPerformer extends BaseActionPerformer {
     @Override
     public void navigatePrevious(PreviousCommand previousStep, ExecutorCallback callback) {
         ActionUtils.swipeLeft(new TalkBackActionCallback(callback));
+    }
+
+    @Override
+    public void navigateJumpNext(JumpNextCommand nextStep, ExecutorCallback callback) {
+        ActionUtils.swipeDown(new TalkBackActionCallback(callback));
+    }
+
+    @Override
+    public void navigateJumpPrevious(JumpPreviousCommand previousStep, ExecutorCallback callback) {
+        ActionUtils.swipeUp(new TalkBackActionCallback(callback));
     }
 
     @Override

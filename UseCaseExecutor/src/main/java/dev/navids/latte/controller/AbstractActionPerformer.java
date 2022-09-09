@@ -6,6 +6,8 @@ import dev.navids.latte.LatteService;
 import dev.navids.latte.UseCase.BackCommand;
 import dev.navids.latte.UseCase.ClickCommand;
 import dev.navids.latte.UseCase.FocusCommand;
+import dev.navids.latte.UseCase.JumpNextCommand;
+import dev.navids.latte.UseCase.JumpPreviousCommand;
 import dev.navids.latte.UseCase.LocatableCommand;
 import dev.navids.latte.UseCase.NavigateCommand;
 import dev.navids.latte.UseCase.NextCommand;
@@ -22,6 +24,10 @@ public abstract class AbstractActionPerformer implements ActionPerformer {
             navigateNext((NextCommand) navigateCommand, callback);
         else if (navigateCommand instanceof PreviousCommand)
             navigatePrevious((PreviousCommand) navigateCommand, callback);
+        else if (navigateCommand instanceof JumpNextCommand)
+            navigateJumpNext((JumpNextCommand) navigateCommand, callback);
+        else if (navigateCommand instanceof JumpPreviousCommand)
+            navigateJumpPrevious((JumpPreviousCommand) navigateCommand, callback);
         else if (navigateCommand instanceof SelectCommand)
             navigateSelect((SelectCommand) navigateCommand, callback);
         else if (navigateCommand instanceof BackCommand)
@@ -72,6 +78,8 @@ public abstract class AbstractActionPerformer implements ActionPerformer {
     public abstract boolean executeFocus(FocusCommand focusStep, ActualWidgetInfo actualWidgetInfo);
     public abstract void navigateNext(NextCommand nextStep, ExecutorCallback callback);
     public abstract void navigatePrevious(PreviousCommand previousStep, ExecutorCallback callback);
+    public abstract void navigateJumpNext(JumpNextCommand nextStep, ExecutorCallback callback);
+    public abstract void navigateJumpPrevious(JumpPreviousCommand previousStep, ExecutorCallback callback);
     public abstract void navigateSelect(SelectCommand selectCommand, ExecutorCallback callback);
     public abstract void navigateBack(BackCommand selectCommand, ExecutorCallback callback);
 }

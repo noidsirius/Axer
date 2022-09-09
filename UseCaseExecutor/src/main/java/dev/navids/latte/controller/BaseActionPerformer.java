@@ -10,6 +10,8 @@ import dev.navids.latte.LatteService;
 import dev.navids.latte.UseCase.BackCommand;
 import dev.navids.latte.UseCase.ClickCommand;
 import dev.navids.latte.UseCase.FocusCommand;
+import dev.navids.latte.UseCase.JumpNextCommand;
+import dev.navids.latte.UseCase.JumpPreviousCommand;
 import dev.navids.latte.UseCase.NextCommand;
 import dev.navids.latte.UseCase.PreviousCommand;
 import dev.navids.latte.UseCase.SelectCommand;
@@ -41,6 +43,16 @@ public class BaseActionPerformer extends AbstractActionPerformer {
 
     @Override
     public void navigatePrevious(PreviousCommand previousStep, ExecutorCallback callback) {
+
+    }
+
+    @Override
+    public void navigateJumpNext(JumpNextCommand nextStep, ExecutorCallback callback) {
+
+    }
+
+    @Override
+    public void navigateJumpPrevious(JumpPreviousCommand previousStep, ExecutorCallback callback) {
 
     }
 

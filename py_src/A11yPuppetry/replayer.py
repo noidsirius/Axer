@@ -30,13 +30,13 @@ logger = logging.getLogger(__name__)
 
 # TODO: Need to be moved to a config file
 pkg_name_to_apk_path = {
-    'com.colpit.diamondcoming.isavemoney': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.colpit.diamondcoming.isavemoney.apk',
-    'com.dictionary': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.dictionary.apk',
+    'com.colpit.diamondcoming.isavemoney': '$LATTE_PATH/Setup/com.colpit.diamondcoming.isavemoney.apk',
+    'com.dictionary': '$LATTE_PATH/Setup/com.dictionary.apk',
+    'com.espn.score_center': '$LATTE_PATH/Setup/com.espn.score_center.apk',
+    'com.expedia.bookings': '$LATTE_PATH/Setup/com.expedia.bookings.apk',
+    'com.dd.doordash': '$LATTE_PATH/Setup/com.dd.doordash.apk',
     'com.yelp.android': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.yelp.android.apk',
     'com.offerup': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.offerup.apk',
-    'com.espn.score_center': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.espn.score_center.apk',
-    'com.expedia.bookings': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.expedia.bookings.apk',
-    'com.dd.doordash': '/Users/navid/StudioProjects/Latte/Setup/com.dd.doordash.apk',
     'com.different.toonme': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.different.toonme.apk', # Didn't work
     'com.zhiliaoapp.musically': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.zhiliaoapp.musically.apk',
     'com.squareup.cash': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.squareup.cash.apk',
