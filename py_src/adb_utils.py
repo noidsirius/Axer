@@ -22,7 +22,7 @@ async def kill_adb() -> None:
     _ = await run_bash("adb kill-server")
 
 
-async def capture_layout(device_name: str = DEVICE_NAME) -> str:
+async def adb_capture_layout(device_name: str = DEVICE_NAME) -> str:
     cmd = f"adb -s {device_name} exec-out uiautomator dump /dev/tty"
     layout = f"PROBLEM_WITH_XML EMPTY {random.random()}"
     for i in range(3):

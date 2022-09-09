@@ -130,10 +130,14 @@
                             {% if snapshot_index != 'END' %}
                                 {% if command['target'] %}
                                     {{ action_info(command.target) }}
+                                    <hr>
+                                    TextDesc: {{ a11y_report_manager.get_text_description_node(snapshot_index, command.target) }}
                                     {% else %}
                                     {{ command }}
-                                    {% endif %}
+
+                                {% endif %}
                             {% endif %}
+
                         </div>
                     </div>
                     <div class="card-footer">

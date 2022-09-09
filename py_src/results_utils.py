@@ -9,11 +9,11 @@ from pathlib import Path
 from typing import Optional, Union, Dict, List, Tuple
 
 from GUI_utils import Node, bounds_included, is_in_same_state_with_layout_path, NodesFactory
-from adb_utils import get_current_activity_name, get_windows, get_activities, capture_layout as adb_capture_layout
+from adb_utils import get_current_activity_name, get_windows, get_activities, adb_capture_layout
 from command import LocatableCommandResponse
 from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG, CAPTURE_STATE_DELAY
 from json_util import JSONSerializable
-from latte_executor_utils import latte_capture_layout as capture_layout
+from latte_executor_utils import latte_capture_layout
 from padb_utils import ParallelADBLogger, save_screenshot
 from utils import annotate_rectangle
 
@@ -620,7 +620,7 @@ class AddressBook:
             "tb_focusables.gif")
         # ---------------------------------------------------
         # TODO: Needs to find a more elegant solution
-        navigate_modes = [AddressBook.BASE_MODE, "tb_touch", "touch", "a11y_api", "tb_dir", "tb_jump"]
+        navigate_modes = [AddressBook.BASE_MODE, "tb_touch", "touch", "a11y_api", "tb_dir", "tb_jump", "tb_search"]
         self.mode_path_map = {}
         for mode in navigate_modes:
             self.mode_path_map[mode] = self.snapshot_result_path.joinpath(mode)
@@ -863,6 +863,11 @@ class AddressBook:
         return oac_info_map
 
 
+async def capture_layout(device) -> Tuple[str, dict]:
+    padb_logger = ParallelADBLogger(device)
+    return await padb_logger.execute_async_with_log(latte_capture_layout(device_name=device.serial))
+
+
 async def capture_current_state(address_book: AddressBook, device,
                                 mode: str,
                                 index: Union[int, str],
@@ -881,8 +886,7 @@ async def capture_current_state(address_book: AddressBook, device,
         if use_adb_layout:
             layout = await adb_capture_layout(device_name=device.serial)
         else:
-            padb_logger = ParallelADBLogger(device)
-            log_map, layout = await padb_logger.execute_async_with_log(capture_layout(device_name=device.serial))
+            log_map, layout = await capture_layout(device)
             with open(address_book.get_log_path(mode, index, extension="layout"), mode='w') as f:
                 f.write(log_map[BLIND_MONKEY_TAG])
         with open(address_book.get_layout_path(mode, index), mode='w') as f:

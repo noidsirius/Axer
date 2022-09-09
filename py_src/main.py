@@ -6,14 +6,18 @@ import logging
 
 from GUI_utils import Node
 from app import App
+from command import create_command_from_dict
 from consts import DEVICE_NAME, ADB_HOST, ADB_PORT
 from ppadb.client_async import ClientAsync as AdbClient
+
+from controller import create_controller
 from results_utils import AddressBook
 from logger_utils import ColoredFormatter, initialize_logger
 from snapshot import EmulatorSnapshot, DeviceSnapshot, Snapshot
 from task.app_task import TakeSnapshotTask, StoatSaveSnapshotTask
 from task.create_a11y_puppetry_video import CreateA11yPuppetryVideoTask
 from task.create_action_gif_task import CreateActionGifTask
+from task.execute_single_action_task import ExecuteSingleActionTask
 from task.execute_usecase_task import ExecuteUsecaseTask
 from task.extract_actions_task import ExtractActionsTask
 from task.oversight_static_task import OversightStaticTask
@@ -88,6 +92,15 @@ async def execute_app_task(args, app_path: Path):
         if args.app_task == "take_snapshot":
             logger.info("App Task: Take a snapshot")
             await TakeSnapshotTask(app_path=app_path, device=device).execute()
+        elif args.app_task == "execute_single_action":
+            logger.info("App Task: Execute Single Action")
+            app = App(app_name=app_path.name, result_path=app_path.parent)
+            snapshot = await app.take_snapshot(device=device, snapshot_name="TMP_1")
+            info = json.loads(args.extra)
+            controller_mode = info['controller']
+            controller = create_controller(mode=controller_mode, device_name=device.serial)
+            command = create_command_from_dict(info['command'])
+            await ExecuteSingleActionTask(snapshot, device=device, controller=controller, command=command).execute()
         elif args.app_task == "stoat_save_snapshot":
             logger.info("App Task: Save an Emulator Snapshot")
             if not args.emulator or args.no_save_snapshot:
@@ -106,6 +119,8 @@ async def execute_app_task(args, app_path: Path):
         elif args.app_task == "execute_usecase":
             logger.info("App Task: Execute a use case")
             await ExecuteUsecaseTask(app_path=app_path, device=device).execute()
+        else:
+            logger.error("Nothing is matched!")
 
     except Exception as e:
         logger.error("Exception happened in analyzing the snapshot", exc_info=e)

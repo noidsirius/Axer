@@ -9,7 +9,9 @@ from app import App
 from command import Command, create_command_response_from_dict, create_command_from_dict, LocatableCommandResponse, \
     LocatableCommand
 from consts import BLIND_MONKEY_EVENTS_TAG, SCREEN_BOUNDS
+from results_utils import AddressBook
 from snapshot import Snapshot
+from utils import synch_run
 
 
 class RecordDataManager:
@@ -247,3 +249,12 @@ class A11yReportManager:
             report += f"##### User\n\n"
             report += user_review
         return report
+
+    def get_text_description_node(self, step: str, node: Node) -> str:
+        try:
+            snapshot = Snapshot(AddressBook(self.app.app_path.joinpath("TMP")))
+            synch_run(snapshot.setup(layout_path=self.record_manager.recorder_layout_map[step],
+                                     screenshot=self.record_manager.recorder_screenshot_map[step]))
+            return " ".join(snapshot.get_text_description(node))
+        except Exception as e:
+            return "EXCEPTION"
