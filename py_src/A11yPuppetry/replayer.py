@@ -59,7 +59,8 @@ async def proxy_user_client(controller_mode: str,
                             result_path: Path,
                             ws_ip: str = WS_IP,
                             ws_port: int = WS_PORT,
-                            single_usecase: bool = False):
+                            single_usecase: bool = False,
+                            interactive: bool = False):
     uri = f"ws://{ws_ip}:{ws_port}"
     client = AdbClient(host=ADB_HOST, port=ADB_PORT)
     device = await client.device(device_name)
@@ -116,6 +117,8 @@ async def proxy_user_client(controller_mode: str,
                     command = message.command
                     index = message.index
                     logger.info(f"Received command({index}) {command.name()}: '{message_str}'")
+                    if interactive:
+                        input("Press something to continue...")
                     snapshot = await app.take_snapshot(device=device,
                                                        snapshot_name=f"{controller_mode}.S_{index}",
                                                        enabled_assistive_services=enabled_assistive_services)
@@ -164,6 +167,7 @@ if __name__ == "__main__":
     parser.add_argument('--adb-port', type=int, default=ADB_PORT, help='The port number of ADB')
     parser.add_argument('--single-usecase', action='store_true')
     parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--interactive', action='store_true')
     parser.add_argument('--quiet', action='store_true')
     args = parser.parse_args()
 
@@ -177,4 +181,5 @@ if __name__ == "__main__":
                                 result_path=result_path,
                                 ws_ip=args.ws_ip,
                                 ws_port=args.ws_port,
-                                single_usecase=args.single_usecase))
+                                single_usecase=args.single_usecase,
+                                interactive=args.interactive))
