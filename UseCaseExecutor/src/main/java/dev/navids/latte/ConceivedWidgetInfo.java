@@ -7,6 +7,10 @@ import java.util.List;
 
 public class ConceivedWidgetInfo extends WidgetInfo {
 
+    public void setLocatedBy(String locatedBy) {
+        this.locatedBy = locatedBy;
+    }
+
     String locatedBy = "";
 
     public ConceivedWidgetInfo(String resourceId, String contentDescription, String text, String clsName, String xpath, String locatedBy) {

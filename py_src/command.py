@@ -32,7 +32,7 @@ class LocatableCommand(Command):
 
 
 class InfoCommand(Command):
-    def __init__(self, question: str):
+    def __init__(self, question: str, extra: dict = None):
         """
             InfoCommand works like a query from the Android device, it consists of a question about the system, e.g., what is
             the current focused element? or what are the elements with accessibility issues by ATF?, and system responds with
@@ -40,11 +40,13 @@ class InfoCommand(Command):
         """
         super().__init__('info')
         self.question = question
+        self.extra = extra
 
     @classmethod
     def create_from_dict(cls, json_command: dict):
         question = json_command.get('question', '')
-        return cls(question)
+        extra = json_command.get('extra', None)
+        return cls(question=question, extra=extra)
 
 
 class ClickCommand(LocatableCommand):
@@ -218,7 +220,7 @@ class InfoCommandResponse(CommandResponse):
     @classmethod
     def get_kwargs_from_response(cls, response: dict) -> dict:
         kwargs = super().get_kwargs_from_response(response)
-        kwargs['answer'] = Node.createNodeFromDict(response.get('result', response.get('answer', {})))
+        kwargs['answer'] = response.get('result', response.get('answer', {}))
         return kwargs
 
 

@@ -59,6 +59,34 @@ public class ActionUtils {
         }
     };
 
+    public static ActualWidgetInfo findActualWidget(ConceivedWidgetInfo targetWidget){
+        if (targetWidget == null)
+            return null;
+        List<AccessibilityNodeInfo> similarNodes = Utils.findSimilarNodes(targetWidget);
+        if(similarNodes.size() != 1){
+            if(similarNodes.size() == 0) {
+                Log.e(LatteService.TAG, "The target widget could not be found in current screen.");
+                // TODO: For debugging
+                Log.d(LatteService.TAG, "The target XPATH: \n\t" + targetWidget.getXpath());
+                List<AccessibilityNodeInfo> allNodes = Utils.getAllA11yNodeInfo(false);
+                for(AccessibilityNodeInfo nodeInfo : allNodes){
+                    ActualWidgetInfo actualWidgetInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo);
+                    if (actualWidgetInfo != null)
+                        Log.d(LatteService.TAG, "\t" + actualWidgetInfo.getXpath());
+                }
+            }
+            else{
+                Log.d(LatteService.TAG, "There are more than one candidates for the target.");
+                for(AccessibilityNodeInfo node : similarNodes){
+                    Log.d(LatteService.TAG, " Node: " + node);
+                }
+            }
+            return null;
+        }
+        AccessibilityNodeInfo node = similarNodes.get(0);
+        return ActualWidgetInfo.createFromA11yNode(node);
+    }
+
     public static boolean isFocusedNodeTarget(AccessibilityNodeInfo similarNode) {
         return isFocusedNodeTarget(Collections.singletonList(similarNode));
     }

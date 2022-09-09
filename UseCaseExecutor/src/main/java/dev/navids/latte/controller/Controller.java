@@ -3,10 +3,15 @@ package dev.navids.latte.controller;
 import android.util.Log;
 
 import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import java.io.File;
 
+import dev.navids.latte.ActionUtils;
 import dev.navids.latte.ActualWidgetInfo;
+import dev.navids.latte.ConceivedWidgetInfo;
 import dev.navids.latte.Config;
 import dev.navids.latte.LatteService;
 import dev.navids.latte.UseCase.InfoCommand;
@@ -66,6 +71,30 @@ public class Controller {
                 else{
                     Log.i(LatteService.TAG, "The focused node is null! ");
                     infoCommand.setState(Command.CommandState.FAILED);
+                }
+            }
+            else if(infoCommand.getQuestion().equals("is_focused")){
+                ConceivedWidgetInfo conceivedWidgetInfo = null;
+                try {
+                    conceivedWidgetInfo = ConceivedWidgetInfo.createFromJson(infoCommand.getExtra());
+                    conceivedWidgetInfo.setLocatedBy("xpath");
+                    Log.i(LatteService.TAG, "A   " + infoCommand.getExtra().keySet() );
+                    Log.i(LatteService.TAG, "ConceivedWidgetInfo of target is " + conceivedWidgetInfo.getJSONCommand("Q",false,"Z") + " --------- " + infoCommand.getExtra().toJSONString() );
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Log.e(LatteService.TAG, "ConceivedWidgetInfo cannot be created " + e.getLocalizedMessage());
+                }
+                ActualWidgetInfo targetWidgetInfo = ActionUtils.findActualWidget(conceivedWidgetInfo);
+                if(targetWidgetInfo == null){
+                    Log.e(LatteService.TAG, "TargetNode is null!");
+                    infoCommand.setState(Command.CommandState.FAILED);
+                }
+                else {
+                    Log.i(LatteService.TAG, "TargetNode is " + targetWidgetInfo);
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("result", ActionUtils.isFocusedNodeTarget(targetWidgetInfo.getA11yNodeInfo()));
+                    infoCommand.setJsonResult(jsonObject);
+                    infoCommand.setState(Command.CommandState.COMPLETED);
                 }
             }
             else{

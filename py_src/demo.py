@@ -239,6 +239,8 @@ async def execute_latte_command(device: DeviceAsync, command: str, extra: str):
             latte_command = SleepCommand(delay=int(extra))
         elif action == 'a11y_focused':
             latte_command = InfoCommand(question="a11y_focused")
+        elif action == 'is_focused':
+            latte_command = InfoCommand(question=f"is_focused", extra=json.loads(extra))
         if latte_command:
             command_response = await controller.execute(latte_command)
             logger.info(f"Response: {command_response}")

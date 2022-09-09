@@ -1,12 +1,13 @@
 import json
 import logging
 from collections import defaultdict
+from typing import Tuple
 
 from GUI_utils import Node
 from command import InfoCommand, InfoCommandResponse, NextCommand, PreviousCommand, NavigateCommandResponse, \
     JumpNextCommand, JumpPreviousCommand
 from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG, EXPLORE_VISIT_LIMIT, MAX_DIRECTIONAL_NAVIGATION
-from controller import TalkBackAPIController
+from controller import TalkBackAPIController, Controller
 from json_util import unsafe_json_load
 from padb_utils import ParallelADBLogger
 from results_utils import capture_current_state, AddressBook
@@ -45,6 +46,23 @@ class TalkBackExploreTask(SnapshotTask):
         self.target_node = target_node
         self.jump_mode = jump_mode
 
+    async def is_target_node_found(self, padb_logger, focused_node: Node, controller: Controller, tags) -> Tuple[bool, str, str]:
+        if self.target_node is None:
+            return False, "", ""
+        if self.target_node.same_identifiers(focused_node):
+            return True, "", ""
+        log_message_map, info_response = await padb_logger.execute_async_with_log(
+            controller.execute(InfoCommand(question="is_focused", extra=self.target_node.toJSON())),
+            tags=tags)
+        android_logs = f"--------- First Focused Node -----------\n" \
+                        f"{log_message_map[BLIND_MONKEY_TAG]}\n" \
+                        f"----------------------------------------\n"
+        android_event_logs = f"{log_message_map[BLIND_MONKEY_EVENTS_TAG]}\n"
+        result = info_response.answer
+        result = result.get('result', False) if result else False
+        return (result, android_logs, android_event_logs)
+
+
     async def execute(self) -> bool:
         snapshot: DeviceSnapshot = self.snapshot
         device = snapshot.device
@@ -80,7 +98,7 @@ class TalkBackExploreTask(SnapshotTask):
         focused_node = None
         successful_result = self.target_node is None
         if info_response is not None and isinstance(info_response, InfoCommandResponse):
-            node_dict = unsafe_json_load(info_response.answer)
+            node_dict = info_response.answer
             if node_dict is not None:
                 focused_node = Node.createNodeFromDict(node_dict)
                 if len(focused_node.xpath) > 0:
@@ -88,7 +106,10 @@ class TalkBackExploreTask(SnapshotTask):
                     visited_node_xpaths_counter[focused_node.xpath] += 1
                     screenshot_to_visited_nodes[last_screenshot].append(focused_node)
         # -------------------------------------------------------------------------------------
-        if self.target_node is not None and self.target_node.same_identifiers(focused_node):
+        target_found_result_pack = await self.is_target_node_found(padb_logger=padb_logger, focused_node=focused_node, controller=controller, tags=tags)
+        android_logs += target_found_result_pack[1]
+        android_event_logs += target_found_result_pack[2]
+        if self.target_node is not None and target_found_result_pack[0]:
             logger.info(f"The target node is found!")
             successful_result = True
         else:
@@ -135,7 +156,10 @@ class TalkBackExploreTask(SnapshotTask):
                 visited_node_xpaths_counter[node.xpath] += 1
                 screenshot_to_visited_nodes[last_screenshot].append(node)
                 logger.debug(f"Node {node.xpath} is visited {visited_node_xpaths_counter[node.xpath]} times!")
-                if self.target_node is not None and self.target_node.same_identifiers(node):
+                target_found_result_pack = await self.is_target_node_found(padb_logger=padb_logger, focused_node=node, controller=controller, tags=tags)
+                android_logs += target_found_result_pack[1]
+                android_event_logs += target_found_result_pack[2]
+                if self.target_node is not None and target_found_result_pack[0]:
                     logger.info(f"The target node is found!")
                     successful_result = True
                     break
