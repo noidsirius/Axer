@@ -8,7 +8,7 @@ from GUI_utils import Node
 from command import LocatableCommandResponse, Command, create_command_response_from_dict, \
     CommandResponse, ClickCommand, SelectCommand
 from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG
-from controller import Controller, TalkBackDirectionalController, TouchController
+from controller import Controller, TalkBackDirectionalController, TouchController, TalkBackJumpController
 from latte_executor_utils import report_atf_issues, report_tb_focusables
 from padb_utils import ParallelADBLogger
 from results_utils import capture_current_state
@@ -52,7 +52,9 @@ class ExecuteSingleActionTask(SnapshotTask):
         await self.write_TB_focusable_nodes(focusable_nodes)
         await self.write_ATF_issues()
         tags = [BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG]
-        if isinstance(self.controller, TalkBackDirectionalController) and isinstance(self.command, ClickCommand):
+        if (isinstance(self.controller, TalkBackDirectionalController) or
+            isinstance(self.controller, TalkBackJumpController)) \
+                and isinstance(self.command, ClickCommand):
             device_snapshot = DeviceSnapshot(address_book=self.snapshot.address_book, device=self.device)
             await device_snapshot.setup(first_setup=False)
             is_located = False
@@ -62,7 +64,10 @@ class ExecuteSingleActionTask(SnapshotTask):
                     break
             if is_located:
                 logger.debug("The node exists on the screen, now go with TB_DIR!")
-                is_located = await TalkBackExploreTask(snapshot=device_snapshot, target_node=self.command.target).execute()
+                jump_mode = isinstance(self.controller, TalkBackJumpController)
+                is_located = await TalkBackExploreTask(snapshot=device_snapshot,
+                                                       target_node=self.command.target,
+                                                       jump_mode=jump_mode).execute()
             log_message_map: dict = {x: '' for x in tags}
             if is_located:
                 logger.info("Target node is focused!")

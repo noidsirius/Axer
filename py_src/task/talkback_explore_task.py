@@ -3,7 +3,8 @@ import logging
 from collections import defaultdict
 
 from GUI_utils import Node
-from command import InfoCommand, InfoCommandResponse, NextCommand, PreviousCommand, NavigateCommandResponse
+from command import InfoCommand, InfoCommandResponse, NextCommand, PreviousCommand, NavigateCommandResponse, \
+    JumpNextCommand, JumpPreviousCommand
 from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG, EXPLORE_VISIT_LIMIT, MAX_DIRECTIONAL_NAVIGATION
 from controller import TalkBackAPIController
 from json_util import unsafe_json_load
@@ -33,12 +34,16 @@ def is_window_changed(log_message_map):
 
 
 class TalkBackExploreTask(SnapshotTask):
-    def __init__(self, snapshot: DeviceSnapshot, check_both_directions: bool = False, target_node: Node = None):
+    def __init__(self, snapshot: DeviceSnapshot,
+                 check_both_directions: bool = False,
+                 target_node: Node = None,
+                 jump_mode: bool = False):
         if not isinstance(snapshot, DeviceSnapshot):
             raise Exception("TalkBack exploration requires a DeviceSnapshot!")
         super().__init__(snapshot)
         self.check_both_directions = check_both_directions
         self.target_node = target_node
+        self.jump_mode = jump_mode
 
     async def execute(self) -> bool:
         snapshot: DeviceSnapshot = self.snapshot
@@ -90,7 +95,10 @@ class TalkBackExploreTask(SnapshotTask):
             counter = 0
             while counter < MAX_DIRECTIONAL_NAVIGATION:
                 counter += 1
-                command = NextCommand() if is_next else PreviousCommand()
+                if self.jump_mode:
+                    command = JumpNextCommand() if is_next else JumpPreviousCommand()
+                else:
+                    command = NextCommand() if is_next else PreviousCommand()
                 log_message_map, navigate_response = await padb_logger.execute_async_with_log(
                     controller.execute(command),
                     tags=tags)

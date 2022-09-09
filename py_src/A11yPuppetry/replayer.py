@@ -101,7 +101,7 @@ async def proxy_user_client(controller_mode: str,
             await launch_specified_application(pkg_name=package_name, device_name=device_name)
             logger.info(f"App {package_name} is started!")
             if "localhost" not in device_name and package_name == "com.colpit.diamondcoming.isavemoney":
-                await asyncio.sleep(60)
+                await asyncio.sleep(20)
             else:
                 await asyncio.sleep(10)
             logger.info(f"Listening for commands!")

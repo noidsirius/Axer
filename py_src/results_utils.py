@@ -620,7 +620,7 @@ class AddressBook:
             "tb_focusables.gif")
         # ---------------------------------------------------
         # TODO: Needs to find a more elegant solution
-        navigate_modes = [AddressBook.BASE_MODE, "tb_touch", "touch", "a11y_api", "tb_dir"]
+        navigate_modes = [AddressBook.BASE_MODE, "tb_touch", "touch", "a11y_api", "tb_dir", "tb_jump"]
         self.mode_path_map = {}
         for mode in navigate_modes:
             self.mode_path_map[mode] = self.snapshot_result_path.joinpath(mode)

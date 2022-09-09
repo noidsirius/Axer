@@ -131,9 +131,19 @@ class TalkBackDirectionalController(Controller):
         await send_commands_sequence_to_latte([("controller_set", self.mode())], device_name=self.device_name)
 
 
+class TalkBackJumpController(Controller):
+    @classmethod
+    def mode(cls) -> str:
+        return 'tb_jump'
+
+    async def setup(self):
+        await A11yServiceManager.setup_latte_a11y_services(tb=True, device_name=self.device_name)
+        await send_commands_sequence_to_latte([("controller_set", self.mode())], device_name=self.device_name)
+
+
 def create_controller(mode: str, device_name: str) -> Union[Controller, None]:
-    controllers = [TalkBackTouchController, TalkBackDirectionalController, TalkBackAPIController,
-                   A11yAPIController, TouchController, EnlargedDisplayController]
+    controllers = [TalkBackTouchController, TalkBackDirectionalController, TalkBackJumpController,
+                   TalkBackAPIController, A11yAPIController, TouchController, EnlargedDisplayController]
     for controller in controllers:
         if mode == controller.mode():
             return controller(device_name=device_name)
