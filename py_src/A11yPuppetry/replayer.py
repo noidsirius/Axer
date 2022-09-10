@@ -64,7 +64,7 @@ async def proxy_user_client(controller_mode: str,
     uri = f"ws://{ws_ip}:{ws_port}"
     client = AdbClient(host=ADB_HOST, port=ADB_PORT)
     device = await client.device(device_name)
-    controller = create_controller(controller_mode, device_name=device.serial)
+    controller = create_controller(controller_mode, device=device)
     enabled_assistive_services = ["tb"] if "tb_" in controller_mode else None  # TODO: More elegant
     logger.info(f"Controller is {controller.name()}")
     async with websockets.connect(uri, max_size=1_000_000_000) as websocket:  # TODO: Add to constants

@@ -72,6 +72,18 @@ class TypeCommand(LocatableCommand):
         return cls(target=target_node, text=json_command.get('text', ''))
 
 
+class FocusCommand(LocatableCommand):
+    def __init__(self, target: Node):
+        super().__init__('focus', target)
+
+    @classmethod
+    def create_from_dict(cls, json_command: dict):
+        json_target_node = json_command.get('target', {})
+        target_node = Node.createNodeFromDict(json_target_node)
+        return cls(target_node)
+
+
+
 class NavigateCommand(Command):
     def __init__(self, action: str):
         """
@@ -243,6 +255,7 @@ def create_command_from_dict(json_command: dict) -> Command:
     action_to_command_map = {
         'click': ClickCommand,
         'type': TypeCommand,
+        'focus': FocusCommand,
         'info': InfoCommand,
         'next': NextCommand,
         'previous': PreviousCommand,

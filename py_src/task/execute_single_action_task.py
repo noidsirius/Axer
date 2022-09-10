@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class ExecuteSingleActionTask(SnapshotTask):
     def __init__(self, snapshot: Snapshot, device: DeviceAsync, controller: Controller, command: Command):
-        if controller.device_name != device.serial:
+        if controller.device.serial != device.serial:
             raise Exception("Controller and DeviceSnapshot should have same device!")
         self.controller = controller
         self.device = device
@@ -92,7 +92,7 @@ class ExecuteSingleActionTask(SnapshotTask):
             await self.controller.setup()
             logger.info(f"Executing command {self.command}")
             executor_result = await padb_logger.execute_async_with_log(
-                self.controller.execute(self.command),
+                self.controller.execute(self.command, address_book=self.snapshot.address_book),
                 tags=tags)
             log_message_map: dict = executor_result[0]
             action_response: CommandResponse = executor_result[1]
@@ -111,6 +111,6 @@ class ExecuteSingleActionTask(SnapshotTask):
         # Fallback mechanism
         if action_response.state != 'COMPLETED':
             logger.info("Since the action could not be performed correctly, we redo it with TouchController")
-            touch_controller = TouchController(device_name=self.device.serial)
+            touch_controller = TouchController(device=self.device)
             await touch_controller.setup()
-            await self.controller.execute(self.command)
+            await touch_controller.execute(self.command)

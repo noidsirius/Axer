@@ -219,7 +219,7 @@ async def execute_latte_command(device: DeviceAsync, command: str, extra: str):
             await stop_instances()
 
     if command.startswith("command_"):
-        controller = TalkBackTouchController(device_name=device.serial)
+        controller = TalkBackTouchController(device=device)
         await controller.setup()
         action = command[len("command_"):]
         latte_command = None

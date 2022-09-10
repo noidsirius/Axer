@@ -81,7 +81,7 @@ class Snapshot:
             my_node = node
         else:
             for t_node in self.nodes:
-                if t_node.xpath == node.xpath:
+                if t_node.almost_same_xpath(node):
                     my_node = t_node
                     break
         if my_node is None:
@@ -93,6 +93,7 @@ class Snapshot:
         text_description = []
         for child in my_node.children_nodes:
             text_description.extend(self.get_text_description(child))
+        text_description = [x.strip() for x in text_description if len(x.strip()) > 0]
         return text_description
 
 

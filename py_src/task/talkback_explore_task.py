@@ -66,7 +66,7 @@ class TalkBackExploreTask(SnapshotTask):
     async def execute(self) -> bool:
         snapshot: DeviceSnapshot = self.snapshot
         device = snapshot.device
-        controller = TalkBackAPIController(device_name=device.serial)
+        controller = TalkBackAPIController(device=device)
         await controller.setup()
         if self.target_node is not None:
             logger.info(f"Looking for target node: {self.target_node}")

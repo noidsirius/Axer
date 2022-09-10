@@ -243,6 +243,19 @@ class Node(JSONSerializable):
                self.resource_id == other.resource_id and \
                self.xpath == other.xpath
 
+    def almost_same_xpath(self, other: 'Node') -> bool:
+        """
+        Determines if two nodes have almost same xpath. If the xpaths are not identical, it looks at other attributes
+        """
+        if other is None:
+            return False
+        if self.xpath == other.xpath:
+            return True
+        xpath_num_re_pattern = r'\[\d+\]'
+        self_simple_xpath  = re.sub(xpath_num_re_pattern, '', self.xpath)
+        other_simple_xpath  = re.sub(xpath_num_re_pattern, '', other.xpath)
+        return self_simple_xpath == other_simple_xpath and self.resource_id == other.resource_id
+
     def toJSONStr(self, excluded_attributes: List[str] = None) -> str:
         if excluded_attributes is None:
             excluded_attributes = []

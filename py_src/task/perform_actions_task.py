@@ -29,10 +29,10 @@ class PerformActionsTask(SnapshotTask):
             return
         snapshot.address_book.initiate_perform_actions_task()
         controllers = {
-            'tb_touch': TalkBackTouchController(device_name=device.serial),
-            'tb_api': TalkBackAPIController(device_name=device.serial),
-            'a11y_api': A11yAPIController(device_name=device.serial),
-            'touch': TouchController(device_name=device.serial)
+            'tb_touch': TalkBackTouchController(device=device),
+            'tb_api': TalkBackAPIController(device=device),
+            'a11y_api': A11yAPIController(device=device),
+            'touch': TouchController(device=device)
         }
         padb_logger = ParallelADBLogger(device)
         await self.write_ATF_issues()  # TODO: Need to moved to another task

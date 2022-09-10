@@ -199,6 +199,9 @@ class ReplayDataManager:
         step_info['layout'] = snapshot.address_book.get_layout_path(mode=self.controller_mode, index=0)
         if self.controller_mode == 'tb_dir' and snapshot.address_book.tb_explore_visited_nodes_gif.exists():
             step_info['screenshot'] = snapshot.address_book.tb_explore_visited_nodes_gif
+        if self.controller_mode == 'tb_search' and snapshot.address_book.get_screenshot_path(mode=AddressBook.BASE_MODE,
+                                                                                             index="SEARCH").exists():
+            step_info['screenshot'] = snapshot.address_book.get_screenshot_path(mode=AddressBook.BASE_MODE, index="SEARCH")
         else:
             step_info['screenshot'] = snapshot.initial_screenshot
 

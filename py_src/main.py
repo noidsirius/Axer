@@ -98,7 +98,7 @@ async def execute_app_task(args, app_path: Path):
             snapshot = await app.take_snapshot(device=device, snapshot_name="TMP_1")
             info = json.loads(args.extra)
             controller_mode = info['controller']
-            controller = create_controller(mode=controller_mode, device_name=device.serial)
+            controller = create_controller(mode=controller_mode, device=device)
             command = create_command_from_dict(info['command'])
             await ExecuteSingleActionTask(snapshot, device=device, controller=controller, command=command).execute()
         elif args.app_task == "stoat_save_snapshot":
