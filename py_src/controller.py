@@ -6,10 +6,12 @@ from typing import Union
 
 from a11y_service import A11yServiceManager
 from adb_utils import read_local_android_file
-from command import Command, CommandResponse, create_command_response_from_dict, SleepCommand
+from command import Command, CommandResponse, create_command_response_from_dict, SleepCommand, InfoCommand, \
+    LocatableCommand
 from consts import ACTION_EXECUTION_RETRY_COUNT, REGULAR_EXECUTE_TIMEOUT_TIME, DEVICE_NAME
 from latte_utils import send_commands_sequence_to_latte, send_command_to_latte
 from shell_utils import run_bash
+from snapshot import DeviceSnapshot
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,7 @@ class Controller(ABC):
         if isinstance(command, SleepCommand):
             if command.delay > 0:
                 logger.info(f"Sleeping for {command.delay}ms!")
-                await asyncio.sleep(command.delay/1000)
+                await asyncio.sleep(command.delay / 1000)
                 return CommandResponse(command_type='SleepCommand', state='COMPLETED', duration=command.delay)
             logger.info(f"The delay is invalid: {command.delay}")
             return CommandResponse(command_type='SleepCommand', state='FAILED', duration=0)
@@ -141,9 +143,37 @@ class TalkBackJumpController(Controller):
         await send_commands_sequence_to_latte([("controller_set", self.mode())], device_name=self.device_name)
 
 
+class TalkBackSearchController(Controller):
+    SEARCH_BOX_NODE = '{"bounds": [384, 63, 954, 189],' \
+                      '"class_name": "android.widget.EditText",' \
+                      '"resource_id": "com.google.android.marvin.talkback:id/keyword_edit", ' \
+                      '"text": "Search term"' \
+                      '"xpath": "/android.widget.LinearLayout/android.widget.RelativeLayout/android.widget.EditText"}'
+
+    CLOSE_NODE = '{"bounds": [0, 63, 126, 189], ' \
+                 '"class_name": "android.widget.ImageButton", ' \
+                 '"content_desc": "Close search", ' \
+                 '"resource_id": "com.google.android.marvin.talkback:id/cancel_search", ' \
+                 '"xpath": "/android.widget.LinearLayout/android.widget.RelativeLayout/android.widget.ImageButton[1]"}'
+
+    @classmethod
+    def mode(cls) -> str:
+        return 'tb_search'
+
+    async def setup(self):
+        await A11yServiceManager.setup_latte_a11y_services(tb=True, device_name=self.device_name)
+        await send_commands_sequence_to_latte([("controller_set", self.mode())], device_name=self.device_name)
+
+    async def execute(self, command: Command, first_setup: bool = False) -> CommandResponse:
+        if not isinstance(command, LocatableCommand):
+            return await super().execute(command=command, first_setup=first_setup)
+
+
+
 def create_controller(mode: str, device_name: str) -> Union[Controller, None]:
     controllers = [TalkBackTouchController, TalkBackDirectionalController, TalkBackJumpController,
-                   TalkBackAPIController, A11yAPIController, TouchController, EnlargedDisplayController]
+                   TalkBackSearchController, TalkBackAPIController, A11yAPIController, TouchController,
+                   EnlargedDisplayController]
     for controller in controllers:
         if mode == controller.mode():
             return controller(device_name=device_name)

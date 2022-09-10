@@ -83,6 +83,7 @@ def annotate_rectangle(source_img,
     else:
         scale = [scale] * len(bounds)
 
+    im = None
     try:
         im = Image.open(source_img)
         draw = ImageDraw.Draw(im)
@@ -98,6 +99,8 @@ def annotate_rectangle(source_img,
         return im
     except Exception as e:
         logger.error(f"A problem with image annotation, Exception: {e}")
+        if im is not None:
+            im.close()
     return None
 
 
@@ -146,12 +149,14 @@ def annotate_elements(source_img: Union[str, Path],
             widths.append(width)
             scales.append(scale)
 
-    annotate_rectangle(source_img=source_img,
+    im = annotate_rectangle(source_img=source_img,
                        target_img=target_img,
                        bounds=bounds_list,
                        outline=outlines,
                        width=widths,
                        scale=scales)
+    if im is not None:
+        im.close()
 
 
 def create_gif(source_images: List[Union[str, Path]],
@@ -183,3 +188,6 @@ def create_gif(source_images: List[Union[str, Path]],
                                          scale=scale)
                 images.append(img)
     images[0].save(target_gif, save_all=True, append_images=images[1:], optimize=False, duration=duration, loop=0)
+    for img in images:
+        if img is not None:
+            img.close()
