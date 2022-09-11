@@ -136,7 +136,7 @@ class ReplayDataManager:
     def get_atf_problems(self, step: str) -> List[dict]:
         snapshot = self.app.get_snapshot(name=f"{self.controller_mode}.S_{step}")
         result = []
-        if snapshot.address_book.execute_single_action_atf_issues_path.exists():
+        if snapshot is not None and snapshot.address_book.execute_single_action_atf_issues_path.exists():
             with open(snapshot.address_book.execute_single_action_atf_issues_path) as f:
                 for line in f:
                     dd = json.loads(line)
@@ -144,7 +144,6 @@ class ReplayDataManager:
                         continue
                     result.append(dd)
         return result
-
 
     @cached(cache=TTLCache(maxsize=1024, ttl=10))
     def get_problematic_steps(self) -> dict:
@@ -199,7 +198,7 @@ class ReplayDataManager:
         step_info['layout'] = snapshot.address_book.get_layout_path(mode=self.controller_mode, index=0)
         if self.controller_mode == 'tb_dir' and snapshot.address_book.tb_explore_visited_nodes_gif.exists():
             step_info['screenshot'] = snapshot.address_book.tb_explore_visited_nodes_gif
-        if self.controller_mode == 'tb_search' and snapshot.address_book.get_screenshot_path(mode=AddressBook.BASE_MODE,
+        elif self.controller_mode == 'tb_search' and snapshot.address_book.get_screenshot_path(mode=AddressBook.BASE_MODE,
                                                                                              index="SEARCH").exists():
             step_info['screenshot'] = snapshot.address_book.get_screenshot_path(mode=AddressBook.BASE_MODE, index="SEARCH")
         else:
