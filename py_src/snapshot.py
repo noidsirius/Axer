@@ -75,7 +75,7 @@ class Snapshot:
 
         return [node for node in self.nodes if filter_query(node)]
 
-    def get_text_description(self, node: Node) -> List[str]:
+    def get_text_description(self, node: Node, depth: int = 1000, excluded_xpaths: List[str] = None) -> List[str]:
         def max_subsequenc_substring(string_1, string_2, n, m) -> int:
             # Copied from https://www.geeksforgeeks.org/find-length-longest-subsequence-one-string-substring-another-string/
             MAX_LENGTH = 1000
@@ -104,6 +104,8 @@ class Snapshot:
             for i in range(1, m + 1):
                 ans = max(ans, dp[i][n])
             return ans
+        if depth <= 0:
+            return []
         my_node: Node = None
         if node.xml_element is not None:
             my_node = node
@@ -128,7 +130,9 @@ class Snapshot:
             return [my_node.text]
         text_description = []
         for child in my_node.children_nodes:
-            text_description.extend(self.get_text_description(child))
+            if excluded_xpaths is not None and child.xpath in excluded_xpaths:
+                continue
+            text_description.extend(self.get_text_description(child, depth=depth-1, excluded_xpaths=excluded_xpaths))
         text_description = [x.strip() for x in text_description if len(x.strip()) > 0]
         return text_description
 

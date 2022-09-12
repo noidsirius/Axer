@@ -122,7 +122,10 @@ async def proxy_user_client(controller_mode: str,
                     snapshot = await app.take_snapshot(device=device,
                                                        snapshot_name=f"{controller_mode}.S_{index}",
                                                        enabled_assistive_services=enabled_assistive_services)
-                    await ExecuteSingleActionTask(snapshot=snapshot, device=device, controller=controller, command=command).execute()
+                    tmp_controller = controller
+                    # if package_name == "com.expedia.bookings" and int(index) < 14:
+                    #     tmp_controller = create_controller(mode='touch', device=device)
+                    await ExecuteSingleActionTask(snapshot=snapshot, device=device, controller=tmp_controller, command=command).execute()
                     rd_manager.add_new_action(snapshot=snapshot)
                 elif isinstance(message, EndRecordSM):
                     logger.info(f"The replay is finished!")

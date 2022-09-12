@@ -158,9 +158,12 @@ class ReplayDataManager:
                 problems[snapshot_index].append(reason)
         return problems
 
+    def get_snapshot(self, index: str) -> Snapshot:
+        return self.app.get_snapshot(name=f"{self.controller_mode}.S_{index}")
+
     @cached(cache=TTLCache(maxsize=1024, ttl=10))
     def get_step_info(self, index: str) -> dict:
-        snapshot = self.app.get_snapshot(name=f"{self.controller_mode}.S_{index}")
+        snapshot = self.get_snapshot(index=index)
         step_info = {
             'controller': self.controller_mode,
             'command': Command(),
@@ -196,7 +199,7 @@ class ReplayDataManager:
                                                                      extension=BLIND_MONKEY_EVENTS_TAG)
 
         step_info['layout'] = snapshot.address_book.get_layout_path(mode=self.controller_mode, index=0)
-        if self.controller_mode == 'tb_dir' and snapshot.address_book.tb_explore_visited_nodes_gif.exists():
+        if (self.controller_mode == 'tb_dir' or self.controller_mode == 'tb_jump')  and snapshot.address_book.tb_explore_visited_nodes_gif.exists():
             step_info['screenshot'] = snapshot.address_book.tb_explore_visited_nodes_gif
         elif self.controller_mode == 'tb_search' and snapshot.address_book.get_screenshot_path(mode=AddressBook.BASE_MODE,
                                                                                              index="SEARCH").exists():
@@ -213,6 +216,8 @@ class A11yReportManager:
         self.record_manager = RecordDataManager(app=self.app)
         self.rd_managers = []
         for controller in ReplayDataManager.get_existing_controllers(self.app):
+            if controller in ['touch', 'a11y_api']:
+                continue
             rd_manager = ReplayDataManager(app=self.app, controller_mode=controller)
             self.rd_managers.append(rd_manager)
 
@@ -235,6 +240,7 @@ class A11yReportManager:
                         problematic_steps.append(step)
         return result, problematic_steps
 
+    @cached(cache=TTLCache(maxsize=1024, ttl=10))
     def get_a11y_report_md(self, step: str) -> str:
         step = str(step)
         if step == "END":
@@ -252,6 +258,40 @@ class A11yReportManager:
             report += user_review
         return report
 
+    @cached(cache=TTLCache(maxsize=1024, ttl=10))
+    def get_blind_fold(self, step: str) -> str:
+        try:
+            tb_dir_replay_manager = None
+            for manager in self.rd_managers:
+                if manager.controller_mode == 'tb_dir':
+                    tb_dir_replay_manager = manager
+                    break
+            if tb_dir_replay_manager is None:
+                return ""
+            snapshot = tb_dir_replay_manager.get_snapshot(index=step)
+            if snapshot is None:
+                return ""
+            result = "##### Announced Words\n\n"
+            remaining_lines = 0
+            focusable_xpaths = []
+            with open(snapshot.address_book.execute_single_action_tb_focusables_path) as f:
+                for line in f:
+                    focusable_xpaths.append(Node.createNodeFromDict(json.loads(line)).xpath)
+            with open(snapshot.address_book.tb_explore_visited_nodes_path) as f:
+                for index, line in enumerate(f.readlines()):
+                    if index > 15:
+                        remaining_lines += 1
+                    else:
+                        node = Node.createNodeFromDict(json.loads(line))
+                        result += f"- '{' '.join(snapshot.get_text_description(node, depth=10, excluded_xpaths=focusable_xpaths))}'\n"
+
+            if remaining_lines > 0:
+                result += f"\n({remaining_lines} more...)\n"
+            return result
+        except:
+            return ""
+
+    @cached(cache=TTLCache(maxsize=1024, ttl=10))
     def get_text_description_node(self, step: str, node: Node) -> str:
         try:
             snapshot = Snapshot(AddressBook(self.app.app_path.joinpath("TMP")))

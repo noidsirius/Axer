@@ -167,27 +167,31 @@ def create_gif(source_images: List[Union[str, Path]],
                scale: int = 5,
                duration: int = 300):
     images = []
-    for src_image in source_images:
-        if isinstance(src_image, Path):
-            src_image = src_image.resolve()
-        if src_image not in image_to_nodes:
-            images.append(Image.open(src_image))
-        else:
-            for node in image_to_nodes[src_image]:
-                if node is None:
-                    logger.debug(f"The bounds of element {node} is empty!")
-                    continue
-                if isinstance(node, dict):
-                    node = Node.createNodeFromDict(node)
-                bounds = node.bounds
-                img = annotate_rectangle(source_img=src_image,
-                                         target_img=None,
-                                         bounds=[bounds],
-                                         outline=outline,
-                                         width=width,
-                                         scale=scale)
-                images.append(img)
-    images[0].save(target_gif, save_all=True, append_images=images[1:], optimize=False, duration=duration, loop=0)
+    try:
+        for src_image in source_images:
+            if isinstance(src_image, Path):
+                src_image = src_image.resolve()
+            if src_image not in image_to_nodes:
+                images.append(Image.open(src_image))
+            else:
+                for node in image_to_nodes[src_image]:
+                    if node is None:
+                        logger.debug(f"The bounds of element {node} is empty!")
+                        continue
+                    if isinstance(node, dict):
+                        node = Node.createNodeFromDict(node)
+                    bounds = node.bounds
+                    img = annotate_rectangle(source_img=src_image,
+                                             target_img=None,
+                                             bounds=[bounds],
+                                             outline=outline,
+                                             width=width,
+                                             scale=scale)
+                    images.append(img)
+        images[0].save(target_gif, save_all=True, append_images=images[1:], optimize=False, duration=duration, loop=0)
+    except:
+        pass
+
     for img in images:
         if img is not None:
             img.close()

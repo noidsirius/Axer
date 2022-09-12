@@ -196,7 +196,8 @@
                     <input type="hidden" id="{{ rd_manager.controller_mode }}_atf_annotated_{{ snapshot_index }}" value="false"/>
                 {% endif %}
             {% endfor %}
-            <div class="col-2 p-1">
+
+            <div class="col-3 p-1">
                 <div class="card">
                     <div class="card-header">
                         A11y Report
@@ -209,6 +210,17 @@
                                 </div>
                             </div>
                         </div>
+                        {% set blind_fold = a11y_report_manager.get_blind_fold(snapshot_index) %}
+                        {% if blind_fold %}
+                            <div class="row">
+                                <div class="col">
+                                    <div class="markdown-content">
+                                        <input type="hidden" value="{{ blind_fold }}">
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+
 
                         {% if is_edit %}
                             <hr>
