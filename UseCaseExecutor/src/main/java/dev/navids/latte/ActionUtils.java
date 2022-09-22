@@ -59,6 +59,34 @@ public class ActionUtils {
         }
     };
 
+    public static ActualWidgetInfo findActualWidget(ConceivedWidgetInfo targetWidget){
+        if (targetWidget == null)
+            return null;
+        List<AccessibilityNodeInfo> similarNodes = Utils.findSimilarNodes(targetWidget);
+        if(similarNodes.size() != 1){
+            if(similarNodes.size() == 0) {
+                Log.e(LatteService.TAG, "The target widget could not be found in current screen.");
+                // TODO: For debugging
+                Log.d(LatteService.TAG, "The target XPATH: \n\t" + targetWidget.getXpath());
+                List<AccessibilityNodeInfo> allNodes = Utils.getAllA11yNodeInfo(false);
+                for(AccessibilityNodeInfo nodeInfo : allNodes){
+                    ActualWidgetInfo actualWidgetInfo = ActualWidgetInfo.createFromA11yNode(nodeInfo);
+                    if (actualWidgetInfo != null)
+                        Log.d(LatteService.TAG, "\t" + actualWidgetInfo.getXpath());
+                }
+            }
+            else{
+                Log.d(LatteService.TAG, "There are more than one candidates for the target.");
+                for(AccessibilityNodeInfo node : similarNodes){
+                    Log.d(LatteService.TAG, " Node: " + node);
+                }
+            }
+            return null;
+        }
+        AccessibilityNodeInfo node = similarNodes.get(0);
+        return ActualWidgetInfo.createFromA11yNode(node);
+    }
+
     public static boolean isFocusedNodeTarget(AccessibilityNodeInfo similarNode) {
         return isFocusedNodeTarget(Collections.singletonList(similarNode));
     }
@@ -68,15 +96,35 @@ public class ActionUtils {
             return false;
         AccessibilityNodeInfo targetNode = similarNodes.get(0); // TODO: This strategy works even we found multiple similar widgets
         AccessibilityNodeInfo firstReachableNode = targetNode;
-        boolean isSimilar = firstReachableNode != null && firstReachableNode.equals(LatteService.getInstance().getAccessibilityFocusedNode());
+        AccessibilityNodeInfo focusedNode = LatteService.getInstance().getAccessibilityFocusedNode();
+        boolean isSimilar = firstReachableNode != null && firstReachableNode.equals(focusedNode);
         if(!isSimilar) {
-            AccessibilityNodeInfo it = targetNode;
-            while (it != null) {
-                if (it.isClickable()) {
-                    firstReachableNode = it;
-                    break;
+            if (focusedNode != null && focusedNode.getChildCount() == 0){
+                Log.i(LatteService.TAG, "-- TalkBack is focused on a leaf node" + focusedNode);
+                AccessibilityNodeInfo it = focusedNode;
+                while(it != null){
+                    if (it.equals(targetNode)){
+                        firstReachableNode = focusedNode;
+                        break;
+                    }
+                    it = it.getParent();
                 }
-                it = it.getParent();
+            }
+            else{
+                Log.i(LatteService.TAG, "-- TalkBack is focused on a parent node" + focusedNode);
+                AccessibilityNodeInfo it = targetNode;
+                while (it != null) {
+                    if (it.isClickable() && !targetNode.isClickable()) {
+                        firstReachableNode = it;
+                        break;
+                    }
+                    if (it.isImportantForAccessibility() && !targetNode.isImportantForAccessibility() && targetNode.isClickable())
+                    {
+                        firstReachableNode = it;
+                        break;
+                    }
+                    it = it.getParent();
+                }
             }
             Log.i(LatteService.TAG, "-- FIRST REACHABLE NODE IS " + firstReachableNode);
             isSimilar = firstReachableNode != null && firstReachableNode.equals(LatteService.getInstance().getAccessibilityFocusedNode());
@@ -158,6 +206,28 @@ public class ActionUtils {
         gestureBuilder.addStroke(new GestureDescription.StrokeDescription(swipePath, startTime, duration));
         GestureDescription gestureDescription = gestureBuilder.build();
         Log.i(LatteService.TAG, "Execute Gesture " + gestureDescription.toString());
+        return LatteService.getInstance().dispatchGesture(gestureDescription, callback, null);
+    }
+
+    public static boolean performThreeFingerTap(AccessibilityService.GestureResultCallback callback){
+        GestureDescription.Builder gestureBuilder = new GestureDescription.Builder();
+        int BASE = 50;
+        WindowManager wm = (WindowManager) LatteService.getInstance().getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
+        Display display = wm.getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        int width = size.x;
+        int height = size.y;
+        int centerX = width/2;
+        int centerY = height/2;
+
+        for(int i=0; i<3; i++) {
+            Path fingerPath = new Path();
+            fingerPath.moveTo(centerX + (i-1) * BASE, centerY + (int) Math.pow(-1,i+1) * BASE);
+            gestureBuilder.addStroke(new GestureDescription.StrokeDescription(fingerPath, 0, Config.v().TAP_DURATION));
+        }
+        GestureDescription gestureDescription = gestureBuilder.build();
+        Log.i(LatteService.TAG, "Execute ThreeFingerTap Gesture " + gestureDescription.toString());
         return LatteService.getInstance().dispatchGesture(gestureDescription, callback, null);
     }
 
@@ -261,6 +331,11 @@ public class ActionUtils {
                 Log.i(LatteService.TAG, "Add left direction to " + Integer.toString(100+dx1) + " " +Integer.toString(y2-dy1));
                 swipePath.lineTo(100+dx1, y2-dy1);
             }
+            if (direction.equals("left") && secondDirection.equals("down"))
+            {
+                Log.i(LatteService.TAG, "Add down direction to " + Integer.toString(100+dx1) + " " +Integer.toString(y2-dy1));
+                swipePath.lineTo(100+dx2, height-100+dy1);
+            }
         }
         gestureBuilder.addStroke(new GestureDescription.StrokeDescription(swipePath, 0, Config.v().GESTURE_DURATION));
         GestureDescription gestureDescription = gestureBuilder.build();
@@ -278,6 +353,9 @@ public class ActionUtils {
     public static boolean swipeUpThenLeft(ActionCallback doneCallback){
         return swipeToDirection("up", "left", doneCallback);
     }
+    public static boolean swipeLeftThenDown(ActionCallback doneCallback){
+        return swipeToDirection("left", "down", doneCallback);
+    }
     public static boolean swipeToDirection(String direction, String secondDirection, ActionCallback doneCallback){
         if(isActionPending()){
             Log.i(LatteService.TAG, String.format("Do nothing since another action is pending! (Size:%d)", pendingActions.size()));
@@ -289,6 +367,7 @@ public class ActionUtils {
         AccessibilityService.GestureResultCallback callback = new AccessibilityService.GestureResultCallback() {
             @Override
             public void onCompleted(GestureDescription gestureDescription) {
+                Log.i(LatteService.TAG, "Gesture execution is completed!");
                 new Handler().postDelayed(() -> {
                     pendingActions.remove(thisActionId);
                     if(doneCallback != null)

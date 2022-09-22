@@ -5,24 +5,23 @@ from typing import List
 from ppadb.device_async import DeviceAsync
 
 from GUI_utils import Node
-from command import LocatableCommandResponse, Command, LocatableCommand, create_command_response_from_dict, \
+from command import LocatableCommandResponse, Command, create_command_response_from_dict, \
     CommandResponse, ClickCommand, SelectCommand
 from consts import BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG
-from controller import Controller, TalkBackDirectionalController
+from controller import Controller, TalkBackDirectionalController, TouchController, TalkBackJumpController
 from latte_executor_utils import report_atf_issues, report_tb_focusables
 from padb_utils import ParallelADBLogger
 from results_utils import capture_current_state
 from snapshot import Snapshot, DeviceSnapshot
 from task.snapshot_task import SnapshotTask
 from task.talkback_explore_task import TalkBackExploreTask
-from utils import annotate_elements
 
 logger = logging.getLogger(__name__)
 
 
 class ExecuteSingleActionTask(SnapshotTask):
     def __init__(self, snapshot: Snapshot, device: DeviceAsync, controller: Controller, command: Command):
-        if controller.device_name != device.serial:
+        if controller.device.serial != device.serial:
             raise Exception("Controller and DeviceSnapshot should have same device!")
         self.controller = controller
         self.device = device
@@ -53,7 +52,9 @@ class ExecuteSingleActionTask(SnapshotTask):
         await self.write_TB_focusable_nodes(focusable_nodes)
         await self.write_ATF_issues()
         tags = [BLIND_MONKEY_TAG, BLIND_MONKEY_EVENTS_TAG]
-        if isinstance(self.controller, TalkBackDirectionalController) and isinstance(self.command, ClickCommand):
+        if (isinstance(self.controller, TalkBackDirectionalController) or
+            isinstance(self.controller, TalkBackJumpController)) \
+                and isinstance(self.command, ClickCommand):
             device_snapshot = DeviceSnapshot(address_book=self.snapshot.address_book, device=self.device)
             await device_snapshot.setup(first_setup=False)
             is_located = False
@@ -63,7 +64,10 @@ class ExecuteSingleActionTask(SnapshotTask):
                     break
             if is_located:
                 logger.debug("The node exists on the screen, now go with TB_DIR!")
-                is_located = await TalkBackExploreTask(snapshot=device_snapshot, target_node=self.command.target).execute()
+                jump_mode = isinstance(self.controller, TalkBackJumpController)
+                is_located = await TalkBackExploreTask(snapshot=device_snapshot,
+                                                       target_node=self.command.target,
+                                                       jump_mode=jump_mode).execute()
             log_message_map: dict = {x: '' for x in tags}
             if is_located:
                 logger.info("Target node is focused!")
@@ -88,7 +92,7 @@ class ExecuteSingleActionTask(SnapshotTask):
             await self.controller.setup()
             logger.info(f"Executing command {self.command}")
             executor_result = await padb_logger.execute_async_with_log(
-                self.controller.execute(self.command),
+                self.controller.execute(self.command, address_book=self.snapshot.address_book),
                 tags=tags)
             log_message_map: dict = executor_result[0]
             action_response: CommandResponse = executor_result[1]
@@ -103,3 +107,10 @@ class ExecuteSingleActionTask(SnapshotTask):
         result['response'] = action_response.toJSON()
         with open(self.snapshot.address_book.execute_single_action_results_path, "w") as f:
             f.write(f"{json.dumps(result)}\n")
+
+        # Fallback mechanism
+        if action_response.state != 'COMPLETED':
+            logger.info("Since the action could not be performed correctly, we redo it with TouchController")
+            touch_controller = TouchController(device=self.device)
+            await touch_controller.setup()
+            await touch_controller.execute(self.command)

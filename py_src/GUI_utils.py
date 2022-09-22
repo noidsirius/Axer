@@ -163,6 +163,8 @@ class Node(JSONSerializable):
         self.action = 'click'
         # --- Extra ----
         self.xml_element = None
+        self.parent_node = None
+        self.children_nodes = []
         self.covered = False
         self.is_ad = False
 
@@ -241,16 +243,29 @@ class Node(JSONSerializable):
                self.resource_id == other.resource_id and \
                self.xpath == other.xpath
 
+    def almost_same_xpath(self, other: 'Node') -> bool:
+        """
+        Determines if two nodes have almost same xpath. If the xpaths are not identical, it looks at other attributes
+        """
+        if other is None:
+            return False
+        if self.xpath == other.xpath:
+            return True
+        xpath_num_re_pattern = r'\[\d+\]'
+        self_simple_xpath  = re.sub(xpath_num_re_pattern, '', self.xpath)
+        other_simple_xpath  = re.sub(xpath_num_re_pattern, '', other.xpath)
+        return self_simple_xpath == other_simple_xpath and self.resource_id == other.resource_id
+
     def toJSONStr(self, excluded_attributes: List[str] = None) -> str:
         if excluded_attributes is None:
             excluded_attributes = []
-        excluded_attributes.append('xml_element')
+        excluded_attributes.extend(['xml_element', 'parent_node', 'children_nodes'])
         return super().toJSONStr(excluded_attributes)
 
     def toJSON(self, excluded_attributes: List[str] = None) -> dict:
         if excluded_attributes is None:
             excluded_attributes = []
-        excluded_attributes.append('xml_element')
+        excluded_attributes.extend(['xml_element', 'parent_node', 'children_nodes'])
         return super().toJSON(excluded_attributes)
 
     def __str__(self):
@@ -399,6 +414,8 @@ class NodesFactory:
             for t_pass in self.passes:
                 t_pass(node, extra, children_nodes, child_to_extra_map)
             for child_node in children_nodes:
+                child_node.parent_node = node
+                node.children_nodes.append(child_node)
                 nodes.extend(dfs(child_node, child_to_extra_map[child_node]))
             return nodes
 

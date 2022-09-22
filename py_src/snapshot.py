@@ -75,6 +75,68 @@ class Snapshot:
 
         return [node for node in self.nodes if filter_query(node)]
 
+    def get_text_description(self, node: Node, depth: int = 1000, excluded_xpaths: List[str] = None) -> List[str]:
+        def max_subsequenc_substring(string_1, string_2, n, m) -> int:
+            # Copied from https://www.geeksforgeeks.org/find-length-longest-subsequence-one-string-substring-another-string/
+            MAX_LENGTH = 1000
+            dp = [[0 for i in range(MAX_LENGTH)]
+                  for i in range(MAX_LENGTH)]
+
+            # Initialize the dp[][] to 0.
+
+            # Calculating value for each element.
+            for i in range(1, m + 1):
+                for j in range(1, n + 1):
+
+                    # If alphabet of string
+                    # X and Y are equal make
+                    # dp[i][j] = 1 + dp[i-1][j-1]
+                    if(string_1[j - 1] == string_2[i - 1]):
+                        dp[i][j] = 1 + dp[i - 1][j - 1]
+
+                    # Else copy the previous value
+                    # in the row i.e dp[i-1][j-1]
+                    else:
+                        dp[i][j] = dp[i][j - 1]
+
+            # Finding the maximum length
+            ans = 0
+            for i in range(1, m + 1):
+                ans = max(ans, dp[i][n])
+            return ans
+        if depth <= 0:
+            return []
+        my_node: Node = None
+        if node.xml_element is not None:
+            my_node = node
+        else:
+            for t_node in self.nodes:
+                if t_node.xpath == node.xpath:
+                    my_node = t_node
+                    break
+            if my_node is None:
+                similar_nodes = []
+                for t_node in self.nodes:
+                    if t_node.almost_same_xpath(node):
+                        sim = max_subsequenc_substring(node.xpath, t_node.xpath, len(node.xpath), len(t_node.xpath))
+                        similar_nodes.append((t_node, sim))
+                if len(similar_nodes) > 0:
+                    my_node = max(similar_nodes, key=lambda x: x[1])[0]
+        if my_node is None:
+            return []
+        if my_node.content_desc:
+            return [my_node.content_desc]
+        if my_node.text:
+            return [my_node.text]
+        text_description = []
+        for child in my_node.children_nodes:
+            if excluded_xpaths is not None and child.xpath in excluded_xpaths:
+                continue
+            text_description.extend(self.get_text_description(child, depth=depth-1, excluded_xpaths=excluded_xpaths))
+        text_description = [x.strip() for x in text_description if len(x.strip()) > 0]
+        return text_description
+
+
     def is_in_same_state_as(self, other_snapshot: 'Snapshot') -> bool:
         logger.debug(f"Comparing with {other_snapshot.address_book.snapshot_name()}")
         if self.address_book.package_name() != other_snapshot.address_book.package_name():

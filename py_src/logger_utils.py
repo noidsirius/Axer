@@ -26,7 +26,7 @@ def fix_formatter(logger_format: str, use_color=True):
 
 COLORS = {
     'WARNING': YELLOW,
-    'INFO': WHITE,
+    'INFO': CYAN,
     'DEBUG': BLUE,
     'CRITICAL': YELLOW,
     'ERROR': RED

@@ -6,9 +6,12 @@ public class InfoCommand extends Command {
 
 
     private String question = "";
+    private JSONObject extra = null;
+
     InfoCommand(JSONObject stepJson) {
         super(stepJson);
         question = (String) stepJson.getOrDefault("question", "");
+        extra = (JSONObject) stepJson.getOrDefault("extra", null);
     }
     @Override
     public JSONObject getJSON() {
@@ -19,6 +22,10 @@ public class InfoCommand extends Command {
 
     public String getQuestion() {
         return question;
+    }
+
+    public JSONObject getExtra() {
+        return extra;
     }
 
     public JSONObject getJsonResult() {

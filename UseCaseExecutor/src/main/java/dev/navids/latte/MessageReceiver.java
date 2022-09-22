@@ -64,6 +64,10 @@ public class MessageReceiver extends BroadcastReceiver {
         // ----------- General ----------------
         messageEventMap.put("is_live", (extra) -> Utils.createFile(String.format(Config.v().IS_LIVE_FILE_PATH_PATTERN, extra), "I'm alive " + extra));
         messageEventMap.put("log", (extra) -> Utils.getAllA11yNodeInfo(true));
+        messageEventMap.put("tb_search", (extra) -> {
+            Log.i(LatteService.TAG, "Opening TalkBack Search Page");
+            ActionUtils.swipeLeftThenDown(null);
+        });
         messageEventMap.put("report_tb_nodes", (extra) -> {
            Log.i(LatteService.TAG, "I'm reporting TalkBack Focusable Nodes!");
            // Logs the ordered list of focusable nodes in TalkBack

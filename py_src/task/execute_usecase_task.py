@@ -32,7 +32,7 @@ class ExecuteUsecaseTask(AppTask):
                 command = create_command_from_dict(json_command)
                 commands.append(command)
         padb_logger = ParallelADBLogger(self.device)
-        controller = TalkBackAPIController(device_name=self.device.serial)
+        controller = TalkBackAPIController(device=self.device)
         for index, command in enumerate(commands):
             logger.info(f"Command {index}: {command}")
             address_book = AddressBook(self.app_path.joinpath(f"command_{index}"))

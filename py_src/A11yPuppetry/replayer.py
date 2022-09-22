@@ -30,13 +30,13 @@ logger = logging.getLogger(__name__)
 
 # TODO: Need to be moved to a config file
 pkg_name_to_apk_path = {
-    'com.colpit.diamondcoming.isavemoney': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.colpit.diamondcoming.isavemoney.apk',
-    'com.dictionary': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.dictionary.apk',
+    'com.colpit.diamondcoming.isavemoney': '$LATTE_PATH/Setup/com.colpit.diamondcoming.isavemoney.apk',
+    'com.dictionary': '$LATTE_PATH/Setup/com.dictionary.apk',
+    'com.espn.score_center': '$LATTE_PATH/Setup/com.espn.score_center.apk',
+    'com.expedia.bookings': '$LATTE_PATH/Setup/com.expedia.bookings.apk',
+    'com.dd.doordash': '$LATTE_PATH/Setup/com.dd.doordash.apk',
     'com.yelp.android': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.yelp.android.apk',
     'com.offerup': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.offerup.apk',
-    'com.espn.score_center': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.espn.score_center.apk',
-    'com.expedia.bookings': '/Users/navid/StudioProjects/Latte/BM_APKs/ase_apks/com.expedia.bookings.apk',
-    'com.dd.doordash': '/Users/navid/StudioProjects/Latte/Setup/com.dd.doordash.apk',
     'com.different.toonme': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.different.toonme.apk', # Didn't work
     'com.zhiliaoapp.musically': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.zhiliaoapp.musically.apk',
     'com.squareup.cash': '/Users/navid/StudioProjects/Latte/BM_APKs/topplay_apks/com.squareup.cash.apk',
@@ -59,11 +59,12 @@ async def proxy_user_client(controller_mode: str,
                             result_path: Path,
                             ws_ip: str = WS_IP,
                             ws_port: int = WS_PORT,
-                            single_usecase: bool = False):
+                            single_usecase: bool = False,
+                            interactive: bool = False):
     uri = f"ws://{ws_ip}:{ws_port}"
     client = AdbClient(host=ADB_HOST, port=ADB_PORT)
     device = await client.device(device_name)
-    controller = create_controller(controller_mode, device_name=device.serial)
+    controller = create_controller(controller_mode, device=device)
     enabled_assistive_services = ["tb"] if "tb_" in controller_mode else None  # TODO: More elegant
     logger.info(f"Controller is {controller.name()}")
     async with websockets.connect(uri, max_size=1_000_000_000) as websocket:  # TODO: Add to constants
@@ -101,7 +102,7 @@ async def proxy_user_client(controller_mode: str,
             await launch_specified_application(pkg_name=package_name, device_name=device_name)
             logger.info(f"App {package_name} is started!")
             if "localhost" not in device_name and package_name == "com.colpit.diamondcoming.isavemoney":
-                await asyncio.sleep(60)
+                await asyncio.sleep(20)
             else:
                 await asyncio.sleep(10)
             logger.info(f"Listening for commands!")
@@ -116,10 +117,15 @@ async def proxy_user_client(controller_mode: str,
                     command = message.command
                     index = message.index
                     logger.info(f"Received command({index}) {command.name()}: '{message_str}'")
+                    if interactive:
+                        input("Press something to continue...")
                     snapshot = await app.take_snapshot(device=device,
                                                        snapshot_name=f"{controller_mode}.S_{index}",
                                                        enabled_assistive_services=enabled_assistive_services)
-                    await ExecuteSingleActionTask(snapshot=snapshot, device=device, controller=controller, command=command).execute()
+                    tmp_controller = controller
+                    # if package_name == "com.expedia.bookings" and int(index) < 14:
+                    #     tmp_controller = create_controller(mode='touch', device=device)
+                    await ExecuteSingleActionTask(snapshot=snapshot, device=device, controller=tmp_controller, command=command).execute()
                     rd_manager.add_new_action(snapshot=snapshot)
                 elif isinstance(message, EndRecordSM):
                     logger.info(f"The replay is finished!")
@@ -164,6 +170,7 @@ if __name__ == "__main__":
     parser.add_argument('--adb-port', type=int, default=ADB_PORT, help='The port number of ADB')
     parser.add_argument('--single-usecase', action='store_true')
     parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--interactive', action='store_true')
     parser.add_argument('--quiet', action='store_true')
     args = parser.parse_args()
 
@@ -177,4 +184,5 @@ if __name__ == "__main__":
                                 result_path=result_path,
                                 ws_ip=args.ws_ip,
                                 ws_port=args.ws_port,
-                                single_usecase=args.single_usecase))
+                                single_usecase=args.single_usecase,
+                                interactive=args.interactive))

@@ -17,6 +17,7 @@ public class TalkBackTouchLocator extends BaseLocator{
         ActualWidgetInfo actualWidgetInfo = result.actualWidgetInfo;
         if(!ActionUtils.isFocusedNodeTarget(actualWidgetInfo.getA11yNodeInfo())){
             Pair<Integer, Integer> clickableCoordinate = ActionUtils.getClickableCoordinate(actualWidgetInfo.getA11yNodeInfo(), true);
+            Log.i(LatteService.TAG, "TalkBackTouch taps on the coordinates " + clickableCoordinate.first + " " + clickableCoordinate.second + " to locate!");
             ActionUtils.performTap(clickableCoordinate);
             return new LocatorResult(LocatorStatus.WAITING);
         }

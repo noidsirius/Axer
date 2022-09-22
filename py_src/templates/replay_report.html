@@ -41,7 +41,7 @@
                 </tr>
                 {% for header, issues_steps in summary_report.items() %}
                     <tr>
-                        <th> {{ header }}</th>
+                        <th> {{ header }} ({{ issues_steps | length }})</th>
                         {% for step in problematic_steps %}
                             {% if step in issues_steps %}
                                 <td class="table-danger text-center">X</td>
@@ -130,10 +130,14 @@
                             {% if snapshot_index != 'END' %}
                                 {% if command['target'] %}
                                     {{ action_info(command.target) }}
+                                    <hr>
+                                    TextDesc: {{ a11y_report_manager.get_text_description_node(snapshot_index, command.target) }}
                                     {% else %}
                                     {{ command }}
-                                    {% endif %}
+
+                                {% endif %}
                             {% endif %}
+
                         </div>
                     </div>
                     <div class="card-footer">
@@ -192,7 +196,8 @@
                     <input type="hidden" id="{{ rd_manager.controller_mode }}_atf_annotated_{{ snapshot_index }}" value="false"/>
                 {% endif %}
             {% endfor %}
-            <div class="col-2 p-1">
+
+            <div class="col-3 p-1">
                 <div class="card">
                     <div class="card-header">
                         A11y Report
@@ -205,6 +210,17 @@
                                 </div>
                             </div>
                         </div>
+                        {% set blind_fold = a11y_report_manager.get_blind_fold(snapshot_index) %}
+                        {% if blind_fold %}
+                            <div class="row">
+                                <div class="col">
+                                    <div class="markdown-content">
+                                        <input type="hidden" value="{{ blind_fold }}">
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+
 
                         {% if is_edit %}
                             <hr>

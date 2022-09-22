@@ -42,17 +42,22 @@ class ParallelADBLogger:
                                      tags: List[str] = None) -> (dict, Any):
         if self.lock is not None:
             raise Exception("Cannot execute more than one coroutine while logging!")
-        self.lock = coroutine_obj
-        self.log_message = ""
-        ll_task = await self._logcat()
-        coroutine_result = await coroutine_obj
-        await asyncio.sleep(1)  # TODO: Add it to consts
-        ll_task.cancel()
-        self.lock = None
-        if tags is None:
-            tags = [BLIND_MONKEY_TAG]
-        logs = {}
-        for tag in tags:
-            logs[tag] = "\n".join(line for line in self.log_message.split("\n") if tag in line)
-        self.log_message = logs
+        try:
+            self.lock = coroutine_obj
+            self.log_message = ""
+            ll_task = await self._logcat()
+            coroutine_result = await coroutine_obj
+            await asyncio.sleep(1)  # TODO: Add it to consts
+            ll_task.cancel()
+            self.lock = None
+            if tags is None:
+                tags = [BLIND_MONKEY_TAG]
+            logs = {}
+            for tag in tags:
+                logs[tag] = "\n".join(line for line in self.log_message.split("\n") if tag in line)
+            self.log_message = logs
+        except Exception as e:
+            self.lock = None
+            self.log_message = "Error in Execution"
+            coroutine_result = None
         return self.log_message, coroutine_result
