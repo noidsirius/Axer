@@ -16,12 +16,12 @@
             <thead>
             <tr class="table-primary">
                 <th>Name</th>
-                <th>#Snapshots</th>
-                <th>#Actions</th>
-                <th>#Failures</th>
-                <th>#Warnings</th>
-                <th>#Other</th>
-                <th>Last update</th>
+{#                <th>#Snapshots</th>#}
+{#                <th>#Actions</th>#}
+{#                <th>#Failures</th>#}
+{#                <th>#Warnings</th>#}
+{#                <th>#Other</th>#}
+{#                <th>Last update</th>#}
                 <th>...</th>
             </tr>
             </thead>
@@ -33,12 +33,12 @@
                         aria-controls="{{ app.name }}_row" >
                         <i class="fas fa-angle-double-down"></i> {{ app.name }}
                     </td>
-                    <td>{{ app.snapshots|length }}</td>
-                    <td>{{ app.actions }}</td>
-                    <td>{{ app.failure }}</td>
-                    <td>{{ app.warning }}</td>
-                    <td>{{ app.other }}</td>
-                    <td>{{ app.last_update }}</td>
+{#                    <td>{{ app.snapshots|length }}</td>#}
+{#                    <td>{{ app.actions }}</td>#}
+{#                    <td>{{ app.failure }}</td>#}
+{#                    <td>{{ app.warning }}</td>#}
+{#                    <td>{{ app.other }}</td>#}
+{#                    <td>{{ app.last_update }}</td>#}
                     <td>
                         {% if app.has_unprocessed %}
                             <a href="#" class="post_analysis btn btn-secondary">
@@ -52,15 +52,15 @@
                         {% endif %}
                     </td>
                 </tr>
-                <tr>
-                    <td colspan="8">
-                        <div class="collapse" id="{{ app.name.replace('.', '_').replace('(','_').replace(')','_') }}_row">
-                            <div class="row">
-                                {{ app_snapshots(result_path, app) }}
-                            </div>
-                        </div>
-                    </td>
-                </tr>
+{#                <tr>#}
+{#                    <td colspan="8">#}
+{#                        <div class="collapse" id="{{ app.name.replace('.', '_').replace('(','_').replace(')','_') }}_row">#}
+{#                            <div class="row">#}
+{#                                {{ app_snapshots(result_path, app) }}#}
+{#                            </div>#}
+{#                        </div>#}
+{#                    </td>#}
+{#                </tr>#}
             {% endfor %}
             </tbody>
         </table>

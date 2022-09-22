@@ -24,7 +24,7 @@
             background-color: rgba(220, 53, 69, var(--bs-bg-opacity)) !important;
         }
     </style>
-    <title>BlindMonkey-{% block title %}{% endblock %}</title>
+    <title>A11yPuppetry-{% block title %}{% endblock %}</title>
 </head>
 <body class="d-flex flex-column min-vh-100">
 
@@ -35,31 +35,31 @@
                 <svg class="bi me-2" width="40" height="32">
                     <use xlink:href="#bootstrap"/>
                 </svg>
-                <span class="fs-4">Blind Monkey Reports</span>
+                <span class="fs-4">A11yPuppetry Reports</span>
             </a>
 
-            <ul class="nav nav-pills">
-                <li class="nav-item">
-                    <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                            {{ result_path[:-8].capitalize() }}
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                            {% for iter_result_path in all_result_paths if iter_result_path != result_path %}
-                                <li>
-                                    <a class="dropdown-item" href="{{ url_for('report_index_v2', result_path_str=iter_result_path) }}">
-                                        {{ iter_result_path[:-8].capitalize() }}
-                                    </a>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </li>
-                <li class="nav-item"><a href="{{ url_for('gh_summary', result_path_str=result_path) }}" class="nav-link" >Groundhog Summary</a></li>
-                <li class="nav-item"><a href="{{ url_for('snapshot_search', result_path_str=result_path) }}" class="nav-link" >SnapshotSearch</a></li>
-                <li class="nav-item"><a href="{{ url_for('search_v2', result_path_str=result_path) }}" class="nav-link" >ActionSearch</a></li>
-                <li class="nav-item"><a href="{{ url_for('tags_list', result_path=result_path) }}" class="nav-link" >Tags</a></li>
-            </ul>
+{#            <ul class="nav nav-pills">#}
+{#                <li class="nav-item">#}
+{#                    <div class="dropdown">#}
+{#                        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">#}
+{#                            {{ result_path[:-8].capitalize() }}#}
+{#                        </button>#}
+{#                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">#}
+{#                            {% for iter_result_path in all_result_paths if iter_result_path != result_path %}#}
+{#                                <li>#}
+{#                                    <a class="dropdown-item" href="{{ url_for('report_index_v2', result_path_str=iter_result_path) }}">#}
+{#                                        {{ iter_result_path[:-8].capitalize() }}#}
+{#                                    </a>#}
+{#                                </li>#}
+{#                            {% endfor %}#}
+{#                        </ul>#}
+{#                    </div>#}
+{#                </li>#}
+{#                <li class="nav-item"><a href="{{ url_for('gh_summary', result_path_str=result_path) }}" class="nav-link" >Groundhog Summary</a></li>#}
+{#                <li class="nav-item"><a href="{{ url_for('snapshot_search', result_path_str=result_path) }}" class="nav-link" >SnapshotSearch</a></li>#}
+{#                <li class="nav-item"><a href="{{ url_for('search_v2', result_path_str=result_path) }}" class="nav-link" >ActionSearch</a></li>#}
+{#                <li class="nav-item"><a href="{{ url_for('tags_list', result_path=result_path) }}" class="nav-link" >Tags</a></li>#}
+{#            </ul>#}
         </header>
     </div>
     <div class="row">

@@ -253,6 +253,10 @@ class A11yReportManager:
             if step in problematic_steps:
                 report += f"##### Issues of {rd_manager.get_name()}\n\n"
                 for issue in problematic_steps[step]:
+                    if issue in ['FAILED_LOCATE', 'FAILED']:
+                        issue = "Could not locate the element!"
+                    elif issue == 'FAILED_NO_TEXT':
+                        issue = "There is no text describing the element!"
                     report += f"- {issue}\n"
         user_review = self.record_manager.get_user_review(step)
         if user_review is not None:
