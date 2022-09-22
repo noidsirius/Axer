@@ -41,7 +41,7 @@
                 </tr>
                 {% for header, issues_steps in summary_report.items() %}
                     <tr>
-                        <th> {{ header }}</th>
+                        <th> {{ header }} ({{ issues_steps | length }})</th>
                         {% for step in problematic_steps %}
                             {% if step in issues_steps %}
                                 <td class="table-danger text-center">X</td>

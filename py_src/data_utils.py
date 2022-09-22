@@ -99,6 +99,8 @@ class ReplayDataManager:
             'touch': 'Orig',
             'tb_dir': 'Linear',
             'tb_touch': 'Touch',
+            'tb_jump': 'Jump',
+            'tb_search': 'Search'
         }
         return mode_to_name.get(self.controller_mode, self.controller_mode)
 
