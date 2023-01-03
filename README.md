@@ -1,4 +1,4 @@
-# Latte Library
+# Axer (Latte Library)
 ## Setup
 - For OS X
   - Install coreutils "brew install coreutils"
