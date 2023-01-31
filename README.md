@@ -2,7 +2,7 @@
 
 Axer, previsouly Latte Library, is a framework for evaluating accessibility in Android application with or without assistive technologies, like TalkBack.  This framework was originally developed for a set of automated assistive-service driven testing techniques ([Latte](https://dl.acm.org/doi/10.1145/3411764.3445455), [Groundhog](https://dl.acm.org/doi/10.1145/3551349.3556905), [Oversight](https://dl.acm.org/doi/10.1145/3551349.3560424), and A11yPuppetry); however, it is designed in a way that can be used and extended for other applications that require interacting with Android apps and devices.
 
-- [Setup](/#Setup)
+- [Setup](#Setup)
 - How to use Axer?
  - Latte 
  - Groundhog
