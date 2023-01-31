@@ -146,31 +146,3 @@ To analyze a snapshot, first load the BASE snapshot `./scripts/load_snapshot.sh 
 ```
 python pt_src/main.py --app-name <APP_NAME> --output-path <RESLUT_PATH> --snapshot <SNAPSHOT> --debug --device "emulator-5554"
 ```
-
-
-
-## OLD ---- Run SnapA11yIssueDetector
-- Load the base snapshot by `./scripts/load_snapshot.sh BASE`
-- Install the app you want to test, for example: `adb install -r -g Setup/yelp.apk`
-- Run the app and go to a state you want to test, then take a snapshot, for example: `adb shell monkey -p com.yelp.android 1` and `./scripts/save_snapshot.sh Yelp_0`
-- Run SnapA11yIssueDetector by executing `cd py_src && python main.py Yelp_0`
-- Once the script is done, you can analyze the result using following python script:
-
-```
-from snapshot import Snapshot
-snapshot = Snapshot("Yelp_0")
-different_behaviors, directional_unreachable, unlocatable, different_behaviors_directional_unreachable = snapshot.report_issues()
-```
-
-## OLD ------ Use Library
-- Create an app
-- Add dependency (AAR)
-- Add accessibility_service_config
-    - Add string in xml
-- Create a service and inherits from LatteService
-- if no activity, change the default launch option to nothing
-- TODO: Change enable-service and disable-service
-
-##  OLD ------- Communication Service
-- Http android:usesCleartextTraffic="true"
--
