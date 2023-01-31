@@ -1,4 +1,22 @@
-# Axer (Latte Library)
+# Axer - Android Accessibility Tester
+
+Axer, previsouly Latte Library, is a framework for evaluating accessibility in Android application with or without assistive technologies, like TalkBack.  This framework was originally developed for a set of automated assistive-service driven testing techniques ([Latte](https://dl.acm.org/doi/10.1145/3411764.3445455), [Groundhog](https://dl.acm.org/doi/10.1145/3551349.3556905), [Oversight](https://dl.acm.org/doi/10.1145/3551349.3560424), and A11yPuppetry); however, it is designed in a way that can be used and extended for other applications that require interacting with Android apps and devices.
+
+- [Setup](/#Setup)
+- How to use Axer?
+ - Latte 
+ - Groundhog
+ - Oversight
+ - A11yPuppetry
+- How to reuse/extend Axer?
+ - Tasks
+		- SnapshotTask
+		- AppTask
+ - Data Storage
+ - Snapshot Search
+ - TalkBack Navigator
+
+
 ## Setup
 - For OS X
   - Install coreutils "brew install coreutils"
@@ -26,6 +44,16 @@
 - In TalkBack Settings, go to Customize gestures, and assign "Swipe up then left" to "Print node tree"
 - Update the BASE snapshot `./scripts/save_snapshot.sh BASE`
 - To verify the TreeNode lists are captured correctly run `python py_src/demo.py --command tb_a11y_tree`
+
+## How to use
+### Latte
+### Groundhog
+### A11yPuppetry
+
+
+## Tasks
+
+There are two types of tasks that you can define and execute in Axer
 
 ## A11yPuppetry
 - Go to `A11yPuppetry` directory.
